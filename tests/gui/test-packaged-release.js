@@ -3,7 +3,8 @@ const {_electron}=require('playwright-core'),fs=require('fs'),path=require('path
 const binary=process.argv[2]||path.join(process.env.LOCALAPPDATA,'SemekoBuild/release/win-unpacked/Semeko Pro.exe');
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-packaged-'));
 (async()=>{const env={...process.env,PATH:path.join(process.env.SystemRoot,'System32')};for(const key of ['ELECTRON_RUN_AS_NODE','JAVA_HOME','DOTNET_ROOT','PYTHONHOME','PYTHONPATH'])delete env[key];
-const app=await _electron.launch({executablePath:binary,args:['--user-data-dir='+profile],env,timeout:60000});
+assert(fs.existsSync(path.join(path.dirname(binary),'resources','SEMEKO-LICENSE.txt')), 'Application license included');
+const app=await _electron.launch({executablePath:binary,args:['--user-data-dir='+profile],cwd:os.tmpdir(),env,timeout:60000});
 try{let page;for(let i=0;i<600;i++){page=app.windows().find(p=>p.url().includes('index.html'));if(page)break;await new Promise(r=>setTimeout(r,100));}assert(page,'main window');await page.waitForFunction(()=>window.App?.ready);await page.evaluate(()=>ensureMonaco());
 const tools=await app.evaluate(()=>{const r=process.mainModule.require('./services/languages/runtime');return Object.fromEntries(['python','java','javac','dotnet'].map(k=>[k,r.tool(k)]));});for(const [key,file]of Object.entries(tools)){assert(file.includes('language-runtimes'),key+': '+file);console.log('PASS bundled '+key+': '+file);}
 for(const ext of ['cpp','c','py','java','cs']){
