@@ -84,6 +84,7 @@ window.UILanguage = (() => {
         'Settings saved':'Đã lưu cài đặt','Settings reset to defaults':'Đã khôi phục cài đặt mặc định','Add Note':'Thêm ghi chú','Edit Note':'Sửa ghi chú',
         'Choose programming language':'Chọn ngôn ngữ lập trình','Choose a language workspace':'Chọn workspace theo ngôn ngữ','Close problem browser':'Đóng cửa sổ bài tập',
         'No updates available':'Chưa có bản cập nhật mới','Download':'Tải xuống',
+        'Could not load sample tests':'Không tải được test mẫu','No sample tests available':'Chưa có test mẫu',
         'Reset Keybindings':'Khôi phục phím tắt','Reset the Vim profile keybindings to defaults?':'Khôi phục phím tắt Vim về mặc định?','Reset all keybindings to defaults?':'Khôi phục toàn bộ phím tắt mặc định?',
         'default':'Mặc định','error':'Báo lỗi','ignore':'Bỏ qua','always':'Luôn hiển thị',
         'Easy / CF ≤1200':'Dễ / CF ≤1200','Medium / CF 1300–2000':'Trung bình / CF 1300–2000','Hard / CF >2000':'Khó / CF >2000',

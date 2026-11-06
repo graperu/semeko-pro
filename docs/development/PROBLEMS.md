@@ -77,3 +77,13 @@ Only public samples are tested, not hidden platform cases. Output comparison is 
 after whitespace normalization; problems with custom checkers or multiple valid output
 orders may require manual review. Codeforces imports samples automatically when its
 public statement is accessible, otherwise use Competitive Companion.
+# Reopening saved problem files (unreleased fix)
+
+Imported problem metadata is stored in userData/state as `oj-problem-<SHA256 of normalized file path>.json`. It includes official tests and function metadata, not solution source. Explorer opens and session restoration recover this file-owned context independently of the tab checkpoint.
+
+Legacy LeetCode function files can recover metadata and samples from their original comment URL. A known function solution never falls back to plain C++ compilation when recovery fails. New C++ starters include the standard headers and namespace needed for editor diagnostics. Recovery does not rewrite the user's solution.
+
+Regression coverage closes/reopens a legacy Two Sum source and restores a session checkpoint lacking test metadata, with platform fetching disabled after the first successful recovery. All three samples pass and remain read only. The user's existing Two Sum file was separately backed up, given the missing C++ headers, and verified in the running app after closing/reopening: 3 AC, zero errors.
+
+The app refreshes its HTTP asset cache on installed-version changes (and development starts). HTML, JavaScript and CSS responses require revalidation. This does not clear localStorage, workspaces, sessions or settings. An editor regression test verifies changed script contents are returned on the next request.
+

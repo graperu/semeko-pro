@@ -77,6 +77,22 @@ async function main() {
         assert.equal(path.resolve(userData), path.resolve(profile));
     });
 
+    await check('app scripts revalidate after edits instead of serving stale cached code', async () => {
+        const name = `cache-probe-${process.pid}-${Date.now()}.js`;
+        const fixture = path.join(ROOT, 'plans', 'artifacts', name);
+        fs.mkdirSync(path.dirname(fixture), { recursive: true });
+        const url = 'app://app/plans/artifacts/' + name;
+        try {
+            fs.writeFileSync(fixture, '/* before */');
+            const before = await page.evaluate(async url => { const response = await fetch(url); return { text: await response.text(), cache: response.headers.get('cache-control') }; }, url);
+            assert.equal(before.text, '/* before */');
+            assert.match(before.cache, /no-cache/);
+            fs.writeFileSync(fixture, '/* after edit */');
+            const after = await page.evaluate(async url => (await fetch(url)).text(), url);
+            assert.equal(after, '/* after edit */');
+        } finally { fs.unlinkSync(fixture); }
+    });
+
     await check('template import survives delayed editor initialization', async () => {
         const content = '// Imported before the mini editor is ready\nint main() {}\n';
         const fixture = path.join(profile, 'template.cpp');

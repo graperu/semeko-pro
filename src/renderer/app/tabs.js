@@ -272,7 +272,11 @@ async function openFileFromPath(filePath) {
                 modified: false
             };
             App.tabs.push(tab);
+            await restoreProblemForTab(tab);
             setActive(id);
+            if (tab.testState?.problem?.solutionMode === 'function' && !tab.testState.problem.tests.length) {
+                restoreProblemForTab(tab, { fetchMissing: true }).catch(error => console.warn('Problem recovery:', error.message));
+            }
             updateUI();
             scheduleSessionSave();
             startFileWatch(filePath);
@@ -525,6 +529,7 @@ function markTabSaved(tab, savedText) {
     const current = tab.model && !tab.model.isDisposed() ? tab.model.getValue() : tab.content;
     tab.modified = current !== savedText;
     renderTabs();
+    persistProblemForTab(tab).catch(error => console.warn('Problem metadata save:', error.message));
 }
 
 /**

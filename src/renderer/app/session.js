@@ -157,6 +157,7 @@ async function reopenSessionTabs(session, { includeUnsaved }) {
                     modified: isModified,
                     testState: restoredTestState(tabData),
                 };
+                if (!restoredTab.testState) await restoreProblemForTab(restoredTab);
 
                 App.tabs.push(restoredTab);
                 restoredIds.set(tabData.id, restoredTab.id);

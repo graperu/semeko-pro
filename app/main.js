@@ -35,6 +35,7 @@ app.whenReady().then(async () => {
 
     console.log(`[PERF] whenReady @ ${__ms().toFixed(0)}ms`);
     await initializeApp();
+    await require('./core/app-protocol').prepareAssetCache();
     console.log(`[PERF] initializeApp done @ ${__ms().toFixed(0)}ms`);
     
     // Lazy load window & handlers

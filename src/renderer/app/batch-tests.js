@@ -130,6 +130,9 @@ async function runAllTests() {
     const problem = ccProblem;
     const tests = problem.tests.slice();
     const content = tabSourceText(tab);
+    clearProblems(tab.id);
+    clearErrorDecorations();
+    hasBuildProblems = false;
 
     const runAllBtn = document.getElementById('btn-run-all-tests');
     if (runAllBtn) {

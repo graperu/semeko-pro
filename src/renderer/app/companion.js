@@ -52,6 +52,48 @@ function saveTestStateToTab(tab) {
     tab.testState = (ccProblem || batchTestResults.length)
         ? { problem: ccProblem, index: ccTestIndex, results: batchTestResults }
         : null;
+    persistProblemForTab(tab).catch(error => console.warn('Problem metadata save:', error.message));
+}
+
+async function problemStateKey(filePath) {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pathKey(filePath)));
+    return 'oj-problem-' + [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
+async function persistProblemForTab(tab) {
+    const problem = tab?.testState?.problem;
+    if (!tab?.path || !problem || !hasFixedProblemTests(problem) || !window.electronAPI?.stateWrite) return;
+    await window.electronAPI.stateWrite(await problemStateKey(tab.path), { filePath: tab.path, problem });
+}
+
+// Problem ownership belongs to the saved file, not just to its current tab.
+// Older files can recover from their original LeetCode URL without changing code.
+async function restoreProblemForTab(tab, { fetchMissing = false } = {}) {
+    if (!tab?.path || tab.testState?.problem?.tests?.length) return;
+    if (tab.problemRestorePromise) return tab.problemRestorePromise;
+    const work = async () => {
+        const content = tab.model && !tab.model.isDisposed() ? tab.model.getValue() : tab.content || '';
+        const match = content.slice(0, 1500).match(/^\s*(?:\/\/|#)\s*(https:\/\/(?:www\.)?leetcode\.com\/problems\/([a-zA-Z0-9-]+)\/?)/m);
+        if (!tab.testState?.problem && match && /\bclass\s+Solution\b/.test(content) && !/\bint\s+main\s*\(/.test(content)) {
+            tab.testState = { problem: { name: tab.name, url: match[1], sourcePlatform: 'leetcode', solutionMode: 'function', tests: [] }, index: 0, results: [] };
+        }
+        const saved = await window.electronAPI?.stateRead?.(await problemStateKey(tab.path));
+        if (saved?.problem && Array.isArray(saved.problem.tests)) {
+            tab.testState = { problem: protectProblemTests(saved.problem), index: 0, results: [] };
+        }
+        if (fetchMissing && tab.testState?.problem?.solutionMode === 'function' && !tab.testState.problem.tests.length && match) {
+            const response = await window.electronAPI.ojProblemDetail({ provider: 'leetcode', id: match[2] });
+            if (!response.ok) throw new Error(response.error);
+            const detail = response.data;
+            tab.testState = { problem: protectProblemTests({ name: `LeetCode ${detail.number} - ${detail.title}`, url: detail.url, group: 'LeetCode', sourcePlatform: 'leetcode', solutionMode: 'function', functionMetadata: detail.metadata, tests: ProblemBrowser.sampleTests(detail) }), index: 0, results: [] };
+        }
+        if (tab.testState?.problem) {
+            await persistProblemForTab(tab);
+            if (getPreferredTabId() === tab.id) loadTestStateFromTab(tab);
+        }
+    };
+    tab.problemRestorePromise = work();
+    try { await tab.problemRestorePromise; } finally { tab.problemRestorePromise = null; }
 }
 
 function loadTestStateFromTab(tab) {
@@ -487,6 +529,9 @@ async function handleProblemReceived(problem, options = {}) {
         setActive(id);
         updateUI();
     }
+
+    saveTestStateToTab(App.tabs.find(tab => tab.id === getPreferredTabId()));
+    await persistProblemForTab(App.tabs.find(tab => tab.id === getPreferredTabId()));
 
     // Load first test into UI
     const testCount = ccProblem?.tests?.length || 0;

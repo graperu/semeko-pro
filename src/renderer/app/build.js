@@ -76,10 +76,19 @@ async function buildActiveTab({ runAfter }) {
     const tab = App.tabs.find(t => t.id === getPreferredTabId());
     const editor = getActiveEditor();
     if (!tab) { log('No file open', 'warning'); return; }
+    setBuildingState(true);
+    try { await restoreProblemForTab(tab, { fetchMissing: true }); }
+    catch (error) {
+        if (tab.testState?.problem?.solutionMode === 'function') {
+            log('Could not restore LeetCode sample tests: ' + error.message, 'error');
+            setStatus('Could not load sample tests', 'warning');
+            return;
+        }
+    } finally { setBuildingState(false); }
     if (tab.testState?.problem?.solutionMode === 'function') {
         if (tab.testState.problem.tests?.length) { await runAllTests(); return; }
-        log('This LeetCode solution uses a function signature. Run and submit it on LeetCode; a local stdin runner is not included.', 'warning');
-        setStatus('Run this solution on LeetCode', 'warning');
+        log('No sample tests are available for this function solution. Reopen it in Practice to refresh samples, or use the official platform.', 'warning');
+        setStatus('No sample tests available', 'warning');
         return;
     }
     if (!isRunnableTab(tab)) { log(`${tab.name} is not a supported source file. Switch to the solution's tab to ${verb.toLowerCase()} it.`, 'warning'); return; }

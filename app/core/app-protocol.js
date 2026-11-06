@@ -85,6 +85,22 @@ function registerScheme() {
 
 const notFound = () => new Response(null, { status: 404 });
 
+// Cached app:// scripts must never outlive the installed application version.
+// This clears only HTTP assets, not localStorage, sessions, code or settings.
+async function prepareAssetCache() {
+    const { app, session } = require('electron');
+    const fs = require('fs');
+    const marker = path.join(app.getPath('userData'), 'state', 'asset-cache-version.txt');
+    try {
+        const previous = fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8') : '';
+        if (!app.isPackaged || previous !== app.getVersion()) await session.defaultSession.clearCache();
+        if (app.isPackaged && previous !== app.getVersion()) {
+            fs.mkdirSync(path.dirname(marker), { recursive: true });
+            fs.writeFileSync(marker, app.getVersion(), 'utf8');
+        }
+    } catch (error) { console.warn('[App assets] Cache refresh:', error.message); }
+}
+
 let handled = false;
 /**
  * Serve the scheme. Call after 'ready'; later calls do nothing.
@@ -95,7 +111,7 @@ function ensureHandled(root) {
     handled = true;
     const { protocol, net } = require('electron');
     const base = path.resolve(root);
-    protocol.handle(SCHEME, (request) => {
+    protocol.handle(SCHEME, async (request) => {
         let url;
         try { url = new URL(request.url); } catch (_) { return new Response(null, { status: 400 }); }
         if (url.host !== APP_HOST) return notFound();
@@ -108,7 +124,13 @@ function ensureHandled(root) {
             if (file !== base && !file.startsWith(base + path.sep)) return notFound();
         }
         // Range requests let a background video seek and loop.
-        return net.fetch(fetchUrl(file), { headers: request.headers, bypassCustomProtocolHandlers: true });
+        const response = await net.fetch(fetchUrl(file), { headers: request.headers, bypassCustomProtocolHandlers: true });
+        if (['.html', '.js', '.css'].includes(path.extname(file).toLowerCase())) {
+            const headers = new Headers(response.headers);
+            headers.set('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+            return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+        }
+        return response;
     });
 }
 
@@ -182,4 +204,4 @@ function urlFor(root, file) {
     return `${SCHEME}://${APP_HOST}/${rel}`;
 }
 
-module.exports = { registerScheme, ensureHandled, migrateFileOriginStorage, urlFor, SCHEME };
+module.exports = { registerScheme, prepareAssetCache, ensureHandled, migrateFileOriginStorage, urlFor, SCHEME };

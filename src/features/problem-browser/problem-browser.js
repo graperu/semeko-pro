@@ -200,6 +200,7 @@ window.ProblemBrowser = (() => {
             if (extension === 'java') code = code.replace(/new FileWriter\(System\.getenv\("OUTPUT_PATH"\)\)/g, 'new OutputStreamWriter(System.out)');
             if (extension === 'cs') code = code.replace(/new StreamWriter\(@?System\.Environment\.GetEnvironmentVariable\("OUTPUT_PATH"\),\s*true\)/g, 'Console.Out');
         }
+        if (detail.provider === 'leetcode' && extension === 'cpp') code = '#include <bits/stdc++.h>\nusing namespace std;\n\n' + code;
         const comment = extension === 'py' ? '# ' : '// ';
         return `${comment}${detail.url}\n${comment}${detail.mode === 'function' ? 'Function solution — C++/Python: Run sample tests locally; submit on LeetCode.' : 'Complete the solution, then build and run sample tests.'}\n\n${code}\n`;
     }

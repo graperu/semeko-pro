@@ -43,6 +43,27 @@ const ROOT=path.resolve(__dirname,'../..');let app;
   const artifact=path.join(ROOT,'plans/artifacts/gui');fs.mkdirSync(artifact,{recursive:true});await page.screenshot({path:path.join(artifact,'test-colors-'+ext+'.png')});
   console.log('PASS LeetCode '+ext+': locked read-only samples, deletion blocked, snapshot restored, 3 AC / 3 WA');
  }
+ const legacyFolder=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-legacy-problem-'));
+ const legacyFile=path.join(legacyFolder,'leetcode_1_two_sum_2.cpp');
+ const legacySource='// https://leetcode.com/problems/two-sum/\nclass Solution {public: vector<int> twoSum(vector<int>& nums,int target){for(int i=0;i<nums.size();i++)for(int j=i+1;j<nums.size();j++)if(nums[i]+nums[j]==target)return {i,j};return {};}};\n';
+ fs.writeFileSync(legacyFile,legacySource);
+ const repaired=await page.evaluate(async file=>{
+  await openFileFromPath(file);const tab=App.tabs.find(t=>t.path===file);
+  await buildRun();await persistProblemForTab(tab);
+  return {code:tab.model.getValue(),tests:ccProblem.tests.length,results:batchTestResults.map(r=>r.status),id:tab.id};
+ },legacyFile.replace(/\\/g,'/'));
+ assert.strictEqual(repaired.code,legacySource);assert.strictEqual(repaired.tests,3);assert.deepStrictEqual(repaired.results,['AC','AC','AC']);
+ await app.evaluate((_,root)=>{const service=process.mainModule.require(root+'/app/services/competitive/problem-browser');service.detail=async()=>{throw Error('Offline test: fetching disabled');};},ROOT);
+ const reopened=await page.evaluate(async file=>{
+  let tab=App.tabs.find(t=>t.path===file);await closeTab(tab.id,{quiet:true});await openFileFromPath(file);
+  tab=App.tabs.find(t=>t.path===file);const tests=tab.testState.problem.tests.length;
+  const checkpoint={tabs:[{id:tab.id,path:file,name:tab.name,modified:false,tests:null}],activeTabId:tab.id};
+  await closeTab(tab.id,{quiet:true});await reopenSessionTabs(checkpoint,{includeUnsaved:false});
+  tab=App.tabs.find(t=>t.path===file);setActive(tab.id);await buildRun();
+  return {tests,restored:tab.testState.problem.tests.length,results:batchTestResults.map(r=>r.status),locked:document.getElementById('input-area').readOnly,code:tab.model.getValue()};
+ },legacyFile.replace(/\\/g,'/'));
+ assert.strictEqual(reopened.tests,3);assert.strictEqual(reopened.restored,3);assert.deepStrictEqual(reopened.results,['AC','AC','AC']);assert(reopened.locked);assert.strictEqual(reopened.code,legacySource);
+ console.log('PASS legacy C++ LeetCode recovery and offline close/reopen/session restore: 3 AC without changing solution code');
  const cf=await page.evaluate(()=>ProblemBrowser.sampleTests({provider:'codeforces',html:'<div class="sample-test"><div class="input"><pre>4<br>2</pre></div><div class="output"><pre>YES</pre></div></div>'}));
  assert.deepStrictEqual(cf,[{input:'4\n2\n',output:'YES\n'}]);console.log('PASS Codeforces sample extraction');
  const locks=await page.evaluate(async()=>{
