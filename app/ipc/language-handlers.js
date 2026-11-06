@@ -15,7 +15,7 @@ function registerHandlers() {
         try { return await require('../services/languages/workspace').open(extension); }
         catch (error) { return { ok: false, error: error.message }; }
     });
-    ipcMain.handle('language-tools', () => runtime.checkTools());
+    ipcMain.handle('language-tools', (_, paths) => runtime.checkTools(paths && typeof paths === 'object' ? paths : {}));
     ipcMain.handle('language-request', async (_, request) => {
         try { return { ok: true, result: await lsp.request(request) }; }
         catch (error) { return { ok: false, error: error.message }; }

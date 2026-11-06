@@ -26,7 +26,7 @@ try {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    languageTools: () => ipcRenderer.invoke('language-tools'),
+    languageTools: paths => ipcRenderer.invoke('language-tools', paths),
     languageWorkspace: extension => ipcRenderer.invoke('language-workspace', extension),
     languageRequest: data => ipcRenderer.invoke('language-request', data),
     languageClose: file => ipcRenderer.invoke('language-close', file),

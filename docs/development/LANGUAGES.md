@@ -137,6 +137,18 @@ Protocol and tool references: [LSP](https://microsoft.github.io/language-server-
 
 ### Compiler / Runtime settings
 
+Unreleased settings improvements:
+
+- Python versions are discovered from the selected interpreter and installed PATH candidates; choosing one saves its executable path. Optimization and warning choices have descriptive labels.
+- Java target releases come from the selected javac `--help` output. C# language versions come from the selected SDK's Roslyn compiler, rather than a hardcoded list.
+- Saved custom values remain visible when the selected compiler does not report them. The actual compiler reports incompatibilities; the UI does not silently replace a saved preference.
+- Each runtime path has a file picker and version detection refresh. Repeated opens reuse detection results; the explicit check button refreshes the scan.
+- C has a separate C89/C99/C11/C17/C23 selector. The C build excludes C++-only standard/library/RTTI flags. Tests verify the C11 `__STDC_VERSION__` value.
+- C# versions older than 10 disable SDK-generated implicit global usings; versions older than 8 default nullable analysis off. C# 1 also disables incompatible generated assembly attributes. Tests cover actual C# 1 and 7.3 builds.
+- Interface language is stored in `appearance.language` (`en` or `vi`). UI translation excludes code, filenames, problem statements, terminal output and test data. Settings search accepts Vietnamese without accents.
+
+The improvements above are source changes only. Do not publish the 1.4.1 installer until the user requests the completed release.
+
 Settings follows the active file language. The selector can inspect another language without changing the file. Save applies options to the next build; existing project files are never rewritten.
 
 - Python: optimization (0 / -O / -OO), warnings, development checks, bytecode writes, and interpreter arguments. Optimization can remove assertions; -OO also removes docstrings.

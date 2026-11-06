@@ -334,7 +334,13 @@ async function compile({ filePath, fileName, content, flags, useLLD, noBuildCach
         resolvedFlags = '-std=c++17 -O0 -w';
     }
 
-    if (isC) resolvedFlags = resolvedFlags.replace(/-std=(?:c\+\+|gnu\+\+)\S+/g, '-std=c17');
+    if (isC) {
+        const configured = require('../../shared/settings-reader').readUserSettings()?.compiler?.cStandard;
+        const standard = ['c89', 'c99', 'c11', 'c17', 'c23'].includes(configured) ? configured : 'c17';
+        resolvedFlags = resolvedFlags.replace(/-std=(?:c\+\+|gnu\+\+)\S+/g, '-std=' + standard)
+            .replace(/(?:^|\s)(?:-lstdc\+\+exp|-fno-rtti|-fno-exceptions)(?=\s|$)/g, ' ');
+        if (!/(?:^|\s)-std=/.test(resolvedFlags)) resolvedFlags += ' -std=' + standard;
+    }
     const unbufferObj = isC ? null : getUnbufferObjectPath();
 
     const args = [

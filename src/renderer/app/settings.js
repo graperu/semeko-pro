@@ -375,17 +375,21 @@ function settingsSearchText(el) {
     return parts.join(' ').toLowerCase().replace(/\s+/g, ' ');
 }
 
+function normalizeSettingsSearch(text) {
+    return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+}
+
 function applySettingsSearch(raw) {
     const content = document.querySelector('#settings-popup .settings-content');
     if (!content) return;
-    const words = raw.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const words = normalizeSettingsSearch(raw).trim().split(/\s+/).filter(Boolean);
     content.querySelectorAll('.search-hidden').forEach(el => el.classList.remove('search-hidden'));
     content.querySelector('.settings-search-empty')?.remove();
     document.querySelectorAll('#settings-popup .settings-tab.search-empty').forEach(t => t.classList.remove('search-empty'));
     content.classList.toggle('searching', words.length > 0);
     if (!words.length) return;
 
-    const matches = (text) => words.every(w => text.includes(w));
+    const matches = (text) => words.every(w => normalizeSettingsSearch(text).includes(w));
     // Hides what has no match inside; returns whether `el` holds a match.
     const filter = (el) => {
         if (el.matches(SETTINGS_SEARCH_ITEMS)) {
@@ -824,6 +828,7 @@ function getSelectedFontFamily() {
 }
 
 function openSettings() {
+    document.getElementById('set-uiLanguage').value = App.settings.appearance.language || 'en';
     // Populate theme dropdowns dynamically from ThemeManager first
     populateThemeDropdowns();
 
@@ -859,6 +864,7 @@ function openSettings() {
     document.getElementById('set-snippets-enabled').checked = App.settings.editor.snippets !== false;
 
     document.getElementById('set-cppStandard').value = App.settings.compiler.cppStandard;
+    document.getElementById('set-cStandard').value = App.settings.compiler.cStandard || 'c17';
     document.getElementById('set-optimization').value = App.settings.compiler.optimization;
     document.getElementById('set-warnings').checked = App.settings.compiler.warnings;
     const lldToggle = document.getElementById('set-useLLD');
@@ -984,6 +990,14 @@ function syncCompilerSettingsLanguage(selected) {
     controls.hidden = !native;
     controls.querySelector('h3').textContent = language === 'c' ? 'C Compiler Settings' : 'C++ Compiler Settings';
     document.getElementById('set-cppStandard').closest('.setting-row').hidden = language !== 'cpp';
+    document.getElementById('set-cStandard').closest('.setting-row').hidden = language !== 'c';
+    section.querySelector('p').textContent = ({
+        py: 'Choose an installed Python interpreter. Python versions are selected by interpreter, not by a C++ standard flag. Optimization and warning settings apply when running your program.',
+        java: 'Choose the Java target release supported by the selected javac compiler. The detected JDK determines which releases are available.',
+        cs: 'Choose a C# language version supported by the selected .NET SDK. Build configuration, optimization and nullable analysis are applied to the real build.',
+        cpp: 'C++ settings use the bundled compiler or the configured toolchain.',
+        c: 'C settings use the bundled compiler or the configured toolchain.'
+    })[language];
     section.querySelector('h3').textContent = ({ cpp: 'C++', c: 'C', py: 'Python', java: 'Java', cs: 'C#' })[language] + ' Language Settings';
     const allowed = { py: ['python'], java: ['java', 'javac'], cs: ['dotnet'] }[language] || [];
     for (const key of ['python', 'java', 'javac', 'dotnet']) document.getElementById('set-language-' + key).closest('.setting-row').hidden = !allowed.includes(key);
@@ -996,6 +1010,7 @@ function syncCompilerSettingsLanguage(selected) {
 async function saveSettingsAndClose() {
     const previousSettings = JSON.parse(JSON.stringify(App.settings));
     try {
+        App.settings.appearance.language = document.getElementById('set-uiLanguage').value;
         App.settings.editor.fontSize = parseInt(document.getElementById('set-fontSize').value);
         App.settings.editor.fontFamily = normalizeFontFamilyInput(getSelectedFontFamily());
         App.settings.editor.tabSize = parseInt(document.getElementById('set-tabSize').value);
@@ -1023,6 +1038,7 @@ async function saveSettingsAndClose() {
         App.settings.editor.snippets = document.getElementById('set-snippets-enabled').checked;
 
         App.settings.compiler.cppStandard = document.getElementById('set-cppStandard').value;
+        App.settings.compiler.cStandard = document.getElementById('set-cStandard').value;
         App.settings.compiler.optimization = document.getElementById('set-optimization').value;
         App.settings.compiler.warnings = document.getElementById('set-warnings').checked;
         const lldToggle = document.getElementById('set-useLLD');

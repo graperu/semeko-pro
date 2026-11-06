@@ -300,6 +300,7 @@ function clearLiveCheckMarkers(model = null) {
 }
 
 function applySettings() {
+    if (window.UILanguage) UILanguage.apply();
     const performanceMode = !!App.settings.appearance.performanceMode;
     const opts = {
         fontSize: App.settings.editor.fontSize,

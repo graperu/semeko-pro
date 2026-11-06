@@ -47,6 +47,10 @@ async function debugPython(build) {
 async function main() {
     const tools = await runtime.checkTools();
     for (const key of ['python', 'javac', 'java', 'dotnet']) assert(tools[key].available, `${key} required for integration test: ${tools[key].error}`);
+    assert(tools.javac.releases.includes('17'), 'Java release choices come from javac');
+    assert(tools.dotnet.languageVersions.includes('12.0'), 'C# version choices come from Roslyn');
+    assert(tools.python.installations.length > 0, 'Python interpreter versions detected');
+    console.log('PASS installed Python versions, javac target releases and Roslyn language versions detected');
     const folder = path.join(root, 'source with spaces'); fs.mkdirSync(folder);
     const fixtures = [
         ['sum.py', 'n = int(input())\nm = n + 1\nprint(m)\nm += 1\n'],
@@ -99,7 +103,9 @@ async function main() {
     const configuredCases = [
         ['settings.py', { pythonOptimization: '1', pythonNoBytecode: true, pythonWarnings: 'error' }, 'import sys\nprint(sys.flags.optimize, sys.dont_write_bytecode)\n', '1 True'],
         ['Settings.java', { javaRelease: '17', javaDebugInfo: false, javaWarnings: true, javaVmArgs: ['-Dsemeko.test=works'] }, 'public class Settings { public static void main(String[] args) { System.out.println(System.getProperty("semeko.test")); } }', 'works'],
-        ['Settings.cs', { csharpConfiguration: 'Release', csharpOptimize: 'true', csharpNullable: 'enable', csharpWarningsAsErrors: true }, 'using System; class Settings { static void Main() {\n#if DEBUG\nConsole.WriteLine("debug");\n#else\nConsole.WriteLine("release");\n#endif\n} }', 'release']
+        ['Settings.cs', { csharpConfiguration: 'Release', csharpOptimize: 'true', csharpNullable: 'enable', csharpWarningsAsErrors: true }, 'using System; class Settings { static void Main() {\n#if DEBUG\nConsole.WriteLine("debug");\n#else\nConsole.WriteLine("release");\n#endif\n} }', 'release'],
+        ['Legacy.cs', { csharpLangVersion: '7.3' }, 'using System; class Legacy { static void Main() { Console.WriteLine("legacy"); } }', 'legacy'],
+        ['LegacyOne.cs', { csharpLangVersion: '1' }, 'using System; class LegacyOne { static void Main() { Console.WriteLine("legacy-one"); } }', 'legacy-one']
     ];
     for (const [fileName, languages, content, expectedOutput] of configuredCases) {
         const language = runtime.languageForFile(fileName);
@@ -121,6 +127,12 @@ async function main() {
     const argumentBuild = await runtime.build({ fileName: 'arguments.py', untitledId: 'arguments', content: 'import sys\nprint(sys.argv[1])\n' });
     assert(argumentBuild.success, argumentBuild.error);
     assert.strictEqual((await runTest({ exePath: argumentBuild.outputPath, input: '', expectedOutput: 'argument with spaces', timeLimit: 10000 })).status, 'AC');
+    fs.writeFileSync(path.join(root, 'settings.json'), JSON.stringify({ compiler: { cStandard: 'c11' } }));
+    const compiler = require('../../app/services/compiler');
+    const cBuild = await compiler.compile({ fileName: 'standard.c', untitledId: 'c-standard-check', flags: '-std=c++23 -lstdc++exp -fno-rtti', content: '#include <stdio.h>\nint main(void){printf("%ld\\n",(long)__STDC_VERSION__);return 0;}\n' });
+    assert(cBuild.success, cBuild.error);
+    assert.strictEqual((await runTest({ exePath: cBuild.outputPath, input: '', expectedOutput: '201112', timeLimit: 10000 })).status, 'AC');
+    console.log('PASS C11 setting controls real C compilation and excludes C++-only flags');
     fs.writeFileSync(path.join(root, 'settings.json'), '{}');
     await debugPython(pythonBuild);
 }

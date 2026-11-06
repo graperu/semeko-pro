@@ -17,7 +17,7 @@ function capture(command, args, options = {}) {
         };
         const timer = setTimeout(() => {
             killProcessTree(child);
-            done(-1, 'Tool timed out after 120 seconds.');
+            done(-1, `Tool timed out after ${Math.ceil((options.timeout || 120000) / 1000)} seconds.`);
         }, options.timeout || 120000);
         for (const stream of [child.stdout, child.stderr]) {
             stream.setEncoding('utf8');

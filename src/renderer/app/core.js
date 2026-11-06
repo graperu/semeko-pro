@@ -38,6 +38,7 @@ const DEFAULT_SETTINGS = {
     },
     languages: {},
     compiler: {
+        cStandard: 'c17',
         cppStandard: '',
         optimization: '',
         warnings: false,
@@ -60,6 +61,7 @@ const DEFAULT_SETTINGS = {
         realtimeOutput: true
     },
     appearance: {
+        language: 'en',
         theme: 'monokai',
         bgOpacity: 50,
         bgUrl: '',

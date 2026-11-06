@@ -12,6 +12,11 @@ This private repository contains the source; the public downloads repository con
 
 ## Features
 
+Development changes after 1.4.0 (not released yet): Vietnamese/English interface selection,
+accent-insensitive Settings search, detected Python interpreter choices, compiler-supported
+Java/C# version dropdowns, and a separate C language standard selector. The public installer
+remains 1.4.0 until the next release is explicitly approved.
+
 - Switch language workspaces from the top-left language selector; each starts
   with Hello World and keeps its files when switching away.
 - Open existing folders, edit multiple files, select a main file and run a folder.

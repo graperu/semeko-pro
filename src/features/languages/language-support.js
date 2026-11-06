@@ -32,7 +32,7 @@ window.LanguageSupport = (() => {
         ['py', 'pythonDevMode', 'Development checks', 'boolean', false],
         ['py', 'pythonArgs', 'Interpreter arguments (JSON array)', 'args', []],
         ['py', 'pythonProgramArgs', 'Program arguments (JSON array)', 'args', []],
-        ['java', 'javaRelease', 'Target Java release (empty = installed JDK)', 'text', ''],
+        ['java', 'javaRelease', 'Target Java release (empty = installed JDK)', [''], ''],
         ['java', 'javaDebugInfo', 'Debug information', 'boolean', true],
         ['java', 'javaWarnings', 'Enable all compiler warnings', 'boolean', false],
         ['java', 'javaWarningsAsErrors', 'Treat warnings as errors', 'boolean', false],
@@ -41,7 +41,7 @@ window.LanguageSupport = (() => {
         ['java', 'javaVmArgs', 'JVM arguments (JSON array)', 'args', []],
         ['java', 'javaProgramArgs', 'Program arguments (JSON array)', 'args', []],
         ['cs', 'csharpConfiguration', 'Build configuration', ['Debug', 'Release'], 'Debug'],
-        ['cs', 'csharpLangVersion', 'Language version (empty = project default)', 'text', ''],
+        ['cs', 'csharpLangVersion', 'Language version (empty = project default)', ['', 'default', 'latest', 'latestmajor', 'preview'], ''],
         ['cs', 'csharpNullable', 'Nullable analysis', ['', 'enable', 'disable', 'warnings', 'annotations'], ''],
         ['cs', 'csharpOptimize', 'Optimization', ['', 'true', 'false'], ''],
         ['cs', 'csharpWarningsAsErrors', 'Treat warnings as errors', 'boolean', false],
@@ -189,19 +189,40 @@ window.LanguageSupport = (() => {
         const defaultRow = document.createElement('div'); defaultRow.className = 'setting-row';
         defaultRow.innerHTML = '<label for="set-language-default">New files and problems</label><select id="set-language-default"><option value="cpp">C++</option><option value="c">C</option><option value="py">Python</option><option value="java">Java</option><option value="cs">C#</option></select>';
         section.append(defaultRow);
+        const pythonRow = document.createElement('div'); pythonRow.className = 'setting-row'; pythonRow.dataset.buildLanguage = 'py';
+        pythonRow.innerHTML = '<label for="set-python-installation">Installed Python version</label><select id="set-python-installation"><option value="">Automatic (bundled / PATH)</option></select>';
+        pythonRow.querySelector('select').onchange = event => {
+            document.getElementById('set-language-python').value = event.target.value;
+            detectChoices().catch(error => console.warn(error.message));
+        };
+        section.append(pythonRow);
+        const detected = document.createElement('p'); detected.id = 'language-versions-status'; detected.className = 'setting-desc'; detected.setAttribute('role', 'status'); detected.setAttribute('aria-live', 'polite'); section.append(detected);
         for (const key of runtimeKeys) {
             const row = document.createElement('div'); row.className = 'setting-row';
             const label = document.createElement('label'); label.htmlFor = `set-language-${key}`; label.textContent = { python: 'Python interpreter', java: 'Java runtime', javac: 'Java compiler', dotnet: '.NET SDK' }[key];
             const input = document.createElement('input'); input.type = 'text'; input.id = label.htmlFor; input.placeholder = 'Auto (PATH)'; input.style.cssText = 'flex:1;min-width:180px';
-            row.append(label, input); section.append(row);
+            input.onchange = () => detectChoices().catch(error => console.warn(error.message));
+            const browse = document.createElement('button'); browse.type = 'button'; browse.id = `btn-language-${key}-browse`; browse.className = 'action-btn';
+            browse.title = 'Choose runtime executable'; browse.setAttribute('aria-label', 'Choose runtime executable');
+            browse.innerHTML = '<svg class="ico" width="16" height="16"><use href="#i-folder-open-duo"/></svg>';
+            browse.onclick = async () => {
+                const result = await window.electronAPI.showOpenDialog({ title: window.UILanguage ? UILanguage.translate('Select runtime executable') : 'Select runtime executable', properties: ['openFile'] });
+                if (!result.canceled && result.filePaths?.[0]) { input.value = result.filePaths[0]; await detectChoices(); }
+            };
+            row.append(label, input, browse); section.append(row);
         }
         for (const [language, key, title, type] of buildFields) {
             const row = document.createElement('div'); row.className = 'setting-row'; row.dataset.buildLanguage = language;
             const label = document.createElement('label'); label.htmlFor = `set-language-${key}`; label.textContent = title;
             const input = document.createElement(Array.isArray(type) ? 'select' : 'input'); input.id = label.htmlFor;
-            if (Array.isArray(type)) for (const value of type) { const option = document.createElement('option'); option.value = value; option.textContent = value || 'Project default'; input.append(option); }
+            if (Array.isArray(type)) for (const value of type) { const option = document.createElement('option'); option.value = value; option.textContent = optionLabel(key, value); input.append(option); }
             else { input.type = type === 'boolean' ? 'checkbox' : 'text'; if (type === 'args') input.placeholder = '["--option", "value with spaces"]'; }
-            row.append(label, input); section.append(row);
+            if (type === 'boolean') {
+                const toggle = document.createElement('label'); toggle.className = 'switch';
+                const slider = document.createElement('span'); slider.className = 'slider';
+                toggle.append(input, slider); row.append(label, toggle);
+            } else row.append(label, input);
+            section.append(row);
         }
         const resetBuild = document.createElement('button'); resetBuild.type = 'button'; resetBuild.className = 'action-btn'; resetBuild.textContent = 'Reset selected language build options'; resetBuild.dataset.buildReset = 'true';
         resetBuild.onclick = () => {
@@ -229,21 +250,66 @@ window.LanguageSupport = (() => {
         const status = document.createElement('pre'); status.style.cssText = 'white-space:pre-wrap;font-size:12px'; status.setAttribute('aria-live', 'polite');
         button.onclick = async () => {
             button.disabled = true; status.textContent = 'Checking saved runtime settings…';
-            try { const tools = await window.electronAPI.languageTools(); status.textContent = Object.entries(tools).map(([key, tool]) => `${key}: ${tool.available ? tool.version : tool.error}`).join('\n'); }
+            try { const tools = await detectChoices(true); status.textContent = Object.entries(tools).map(([key, tool]) => `${key}: ${tool.available ? tool.version : tool.error}`).join('\n'); }
             catch (error) { status.textContent = error.message; }
             finally { button.disabled = false; }
         };
         section.append(button, status);
         for (const row of section.querySelectorAll('.setting-row')) row.style.gap = '12px';
-        for (const label of section.querySelectorAll('.setting-row > label')) label.style.cssText = 'flex:0 1 170px;min-width:110px';
+        for (const label of section.querySelectorAll('.setting-row > label:not(.switch)')) label.style.cssText = 'flex:0 1 170px;min-width:110px';
         panel.append(section);
+    }
+    function optionLabel(key, value) {
+        const labels = {
+            pythonOptimization: { '0': 'No optimization (keep assertions)', '1': '-O (remove assertions)', '2': '-OO (remove assertions and docstrings)' },
+            pythonWarnings: { default: 'Default warnings', error: 'Warnings as errors', ignore: 'Hide warnings', always: 'Show all warnings' },
+            csharpOptimize: { 'true': 'Enabled', 'false': 'Disabled' },
+            csharpNullable: { enable: 'Enable nullable analysis', disable: 'Disable nullable analysis', warnings: 'Nullable warnings only', annotations: 'Nullable annotations only' }
+        };
+        return labels[key]?.[value] || value || 'Project default';
+    }
+    function selectValue(input, value) {
+        if (input.tagName === 'SELECT' && ![...input.options].some(option => option.value === String(value))) {
+            const option = document.createElement('option'); option.value = value; option.textContent = value; input.append(option);
+        }
+        input.value = value;
+    }
+    let choiceRequest = 0;
+    const choiceCache = new Map();
+    async function detectChoices(force = false) {
+        const request = ++choiceRequest;
+        const paths = Object.fromEntries(runtimeKeys.map(key => [key, document.getElementById(`set-language-${key}`).value.trim()]));
+        const status = document.getElementById('language-versions-status'); status.textContent = 'Detecting installed language versions…';
+        let tools;
+        const cacheKey = JSON.stringify(paths);
+        if (force) choiceCache.delete(cacheKey);
+        if (!choiceCache.has(cacheKey)) {
+            if (choiceCache.size >= 8) choiceCache.delete(choiceCache.keys().next().value);
+            choiceCache.set(cacheKey, window.electronAPI.languageTools(paths).catch(error => { choiceCache.delete(cacheKey); throw error; }));
+        }
+        try { tools = await choiceCache.get(cacheKey); }
+        catch (error) { if (request === choiceRequest) status.textContent = 'Could not detect versions. Check runtime paths.'; throw error; }
+        if (request !== choiceRequest) return tools;
+        status.textContent = ['python', 'javac', 'dotnet'].map(key => `${key}: ${tools[key].available ? tools[key].version : '—'}`).join(' · ');
+        for (const [key, values] of [['javaRelease', tools.javac.releases || []], ['csharpLangVersion', tools.dotnet.languageVersions || []]]) {
+            const input = document.getElementById(`set-language-${key}`), current = input.value;
+            input.replaceChildren();
+            for (const value of ['', ...new Set(values)]) { const option = document.createElement('option'); option.value = value; option.textContent = value || 'Project default'; input.append(option); }
+            selectValue(input, current);
+        }
+        const python = document.getElementById('set-python-installation'), selected = document.getElementById('set-language-python').value;
+        python.replaceChildren();
+        const auto = document.createElement('option'); auto.value = ''; auto.textContent = 'Automatic (bundled / PATH)'; python.append(auto);
+        for (const installation of tools.python.installations || []) { const option = document.createElement('option'); option.value = installation.command; option.textContent = `Python ${installation.version} — ${installation.command}`; python.append(option); }
+        selectValue(python, selected);
+        return tools;
     }
     function loadSettings() {
         mountSettings();
         for (const [, key, , type, fallback] of buildFields) {
             const input = document.getElementById(`set-language-${key}`), value = App.settings.languages?.[key] ?? fallback;
             if (type === 'boolean') input.checked = value;
-            else input.value = type === 'args' ? JSON.stringify(value) : value;
+            else selectValue(input, type === 'args' ? JSON.stringify(value) : value);
         }
         document.getElementById('set-language-default').value = App.settings.languages?.defaultExtension || 'cpp';
         for (const key of runtimeKeys) document.getElementById(`set-language-${key}`).value = App.settings.languages?.[key] || '';
@@ -251,6 +317,7 @@ window.LanguageSupport = (() => {
             const key = `${id}${type}`;
             document.getElementById(`set-language-${key}`).value = App.settings.languages?.[key] ? JSON.stringify(App.settings.languages[key], null, 2) : '';
         }
+        detectChoices().catch(error => { console.warn('Runtime version detection:', error.message); });
     }
     function saveSettings() {
         const next = { ...App.settings.languages, defaultExtension: document.getElementById('set-language-default').value };

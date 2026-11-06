@@ -1179,6 +1179,15 @@ body.performance-mode .main .editor-section {
 
 #settings-overlay [hidden] { display: none !important; }
 
+#language-settings .setting-row > select {
+    flex: 1;
+    min-width: 0;
+    max-width: 380px;
+    text-overflow: ellipsis;
+}
+#language-settings .setting-row > input:not([type="checkbox"]),
+#language-settings .setting-row > textarea { min-width: 0 !important; max-width: 100%; }
+
 /* Collection verdicts use the same semantic colors as the Tests panel. */
 :root { --cp-status-re: #ef5350; --cp-status-tle: #ef5350; --cp-status-testing: #64b5f6; }
 .cat-list-item-badge.cp-badge-re,

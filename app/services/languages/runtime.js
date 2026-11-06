@@ -178,10 +178,14 @@ async function buildSource(options, language, key) {
         }
         const output = path.join(root, 'dotnet');
         const compileArgs = ['build', project, '-c', config.csharpConfiguration === 'Release' ? 'Release' : 'Debug', '-o', output, '--nologo', '-v', 'minimal'];
+        const numericLanguageVersion = Number.parseFloat(config.csharpLangVersion);
         if (config.csharpLangVersion) {
             if (!/^(default|latest|latestmajor|preview|\d+(\.\d+)?)$/.test(config.csharpLangVersion)) throw new Error('Invalid C# language version.');
             compileArgs.push('-p:LangVersion=' + config.csharpLangVersion);
         }
+        if (Number.isFinite(numericLanguageVersion) && numericLanguageVersion < 10) compileArgs.push('-p:ImplicitUsings=disable');
+        if (Number.isFinite(numericLanguageVersion) && numericLanguageVersion < 8 && !config.csharpNullable) compileArgs.push('-p:Nullable=disable');
+        if (Number.isFinite(numericLanguageVersion) && numericLanguageVersion < 2) compileArgs.push('-p:GenerateAssemblyInfo=false', '-p:GenerateTargetFrameworkAttribute=false');
         if (['enable', 'disable', 'warnings', 'annotations'].includes(config.csharpNullable)) compileArgs.push('-p:Nullable=' + config.csharpNullable);
         if (['true', 'false'].includes(config.csharpOptimize)) compileArgs.push('-p:Optimize=' + config.csharpOptimize);
         if (config.csharpWarningsAsErrors) compileArgs.push('-p:TreatWarningsAsErrors=true');
@@ -207,13 +211,42 @@ async function buildSource(options, language, key) {
     builds.set(outputPath, descriptor);
     return { success: true, outputPath, warnings: result.output, language };
 }
-async function checkTools() {
+async function checkTools(overrides = {}) {
     const result = {};
     await Promise.all(['python', 'java', 'javac', 'dotnet'].map(async key => {
-        const command = tool(key);
+        const command = typeof overrides[key] === 'string' && overrides[key].trim() ? overrides[key].trim() : tool(key);
         const version = await capture(command, [key === 'dotnet' || key === 'python' ? '--version' : '-version'], { timeout: 15000 });
         result[key] = { command, available: version.success, version: version.output.trim(), error: version.error };
     }));
+    if (result.javac.available) {
+        const help = await capture(result.javac.command, ['-J-Duser.language=en', '-J-Duser.country=US', '--help'], { timeout: 15000 });
+        result.javac.releases = (help.output.match(/Supported releases:\s*([\d, ]+)/i)?.[1] || '').split(',').map(value => value.trim()).filter(value => /^\d+$/.test(value));
+    }
+    if (result.dotnet.available) {
+        const sdks = await capture(result.dotnet.command, ['--list-sdks'], { timeout: 15000 });
+        const installed = sdks.output.split(/\r?\n/).map(line => /^(\S+)\s+\[(.+)\]$/.exec(line)).filter(Boolean);
+        const selected = installed.find(row => result.dotnet.version === row[1]) || installed.at(-1);
+        if (selected) {
+            const compiler = path.join(selected[2], selected[1], 'Roslyn', 'bincore', 'csc.dll');
+            if (fs.existsSync(compiler)) {
+                const versions = await capture(result.dotnet.command, [compiler, '-langversion:?'], { timeout: 15000 });
+                result.dotnet.languageVersions = versions.output.split(/\r?\n/).map(line => line.trim().split(/\s+/)[0]).filter(value => /^(default|latest|latestmajor|preview|\d+(\.\d+)?)$/.test(value));
+            }
+        }
+    }
+    const candidates = [result.python.command];
+    if (IS_WIN) {
+        const paths = await capture('where.exe', ['python'], { timeout: 5000 });
+        candidates.push(...paths.output.split(/\r?\n/).filter(file => file && !/\\Microsoft\\WindowsApps\\/i.test(file) && fs.existsSync(file)));
+    }
+    result.python.installations = [];
+    for (const command of [...new Set(candidates)]) {
+        const probe = await capture(command, ['-c', 'import sys,json; print(json.dumps({"command":sys.executable,"version":sys.version.split()[0]}))'], { timeout: 10000 });
+        try {
+            const value = JSON.parse(probe.output.trim());
+            if (probe.success && value.command && !result.python.installations.some(item => item.command.toLowerCase() === value.command.toLowerCase())) result.python.installations.push(value);
+        } catch (_) {}
+    }
     return result;
 }
 module.exports = { build, getBuild, resolveRun, languageForFile, tool, settings, checkTools, csharpWorkspace };

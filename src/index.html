@@ -370,6 +370,7 @@
                         <!-- Editor Tab -->
                         <div class="settings-panel active" id="panel-editor">
                             <h3>Editor Settings</h3>
+                            <div class="setting-row"><label for="set-uiLanguage">Interface language</label><select id="set-uiLanguage"><option value="en">English</option><option value="vi">Tiếng Việt</option></select></div>
                             <div class="setting-row">
                                 <label>Font Size</label>
                                 <div class="setting-control">
@@ -573,6 +574,7 @@
                                     <option value="c++26">C++26</option>
                                 </select>
                             </div>
+                            <div class="setting-row"><label for="set-cStandard">C Standard</label><select id="set-cStandard"><option value="c89">C89</option><option value="c99">C99</option><option value="c11">C11</option><option value="c17">C17</option><option value="c23">C23</option></select></div>
                             <div class="setting-row">
                                 <label>Optimization <span class="tooltip"
                                         title="None: Fast build, easy debug&#10;Fast: 2-3x faster runtime&#10;Fastest: Maximum speed">?</span></label>
@@ -1315,6 +1317,7 @@
          built by scripts/build/build-monaco.js) and, on first use, xterm, marked and gsap.
          No inline <script> anywhere - the CSP forbids it. -->
     <script src="renderer/boot.js"></script>
+    <script src="renderer/ui/i18n.js"></script>
     <script src="features/suggestions/cpp-suggestions.js"></script>
     <script src="features/snippets/snippet-editor.js"></script>
     <script src="renderer/ui/theme-tokens.js"></script>
