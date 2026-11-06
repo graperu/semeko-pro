@@ -96,6 +96,32 @@ async function main() {
     assert.strictEqual((await runTest({ exePath: loop.outputPath, input: '', expectedOutput: '', timeLimit: 200 })).status, 'TLE');
     assert.throws(() => runtime.resolveRun(path.join(root, 'unknown.sameko-run')), /Build.*again/);
     console.log('PASS syntax error, untitled Java, timeout, stale-build rejection');
+    const configuredCases = [
+        ['settings.py', { pythonOptimization: '1', pythonNoBytecode: true, pythonWarnings: 'error' }, 'import sys\nprint(sys.flags.optimize, sys.dont_write_bytecode)\n', '1 True'],
+        ['Settings.java', { javaRelease: '17', javaDebugInfo: false, javaWarnings: true, javaVmArgs: ['-Dsemeko.test=works'] }, 'public class Settings { public static void main(String[] args) { System.out.println(System.getProperty("semeko.test")); } }', 'works'],
+        ['Settings.cs', { csharpConfiguration: 'Release', csharpOptimize: 'true', csharpNullable: 'enable', csharpWarningsAsErrors: true }, 'using System; class Settings { static void Main() {\n#if DEBUG\nConsole.WriteLine("debug");\n#else\nConsole.WriteLine("release");\n#endif\n} }', 'release']
+    ];
+    for (const [fileName, languages, content, expectedOutput] of configuredCases) {
+        const language = runtime.languageForFile(fileName);
+        languages[language + 'ProgramArgs'] = ['argument with spaces'];
+        fs.writeFileSync(path.join(root, 'settings.json'), JSON.stringify({ languages }));
+        const built = await runtime.build({ fileName, untitledId: fileName, content });
+        assert(built.success, built.error);
+        const descriptor = runtime.getBuild(built.outputPath);
+        assert.strictEqual(descriptor.args.at(-1), 'argument with spaces');
+        if (language === 'java') {
+            assert(descriptor.classPaths[0].endsWith('classes'));
+            assert.deepStrictEqual(descriptor.runtimeArgs, ['-Dsemeko.test=works']);
+        }
+        const verdict = await runTest({ exePath: built.outputPath, input: '', expectedOutput, timeLimit: 10000 });
+        assert.strictEqual(verdict.status, 'AC', JSON.stringify(verdict));
+        console.log(`PASS ${fileName}: saved compiler/runtime options change real execution`);
+    }
+    fs.writeFileSync(path.join(root, 'settings.json'), JSON.stringify({ languages: { pythonProgramArgs: ['argument with spaces'] } }));
+    const argumentBuild = await runtime.build({ fileName: 'arguments.py', untitledId: 'arguments', content: 'import sys\nprint(sys.argv[1])\n' });
+    assert(argumentBuild.success, argumentBuild.error);
+    assert.strictEqual((await runTest({ exePath: argumentBuild.outputPath, input: '', expectedOutput: 'argument with spaces', timeLimit: 10000 })).status, 'AC');
+    fs.writeFileSync(path.join(root, 'settings.json'), '{}');
     await debugPython(pythonBuild);
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -113,10 +113,21 @@ async function buildSource(options, language, key) {
     const outputPath = path.join(root, 'program.sameko-run');
     builds.delete(outputPath); // a failed build must not leave a runnable stale result
     let command, args, result, program, mainClass, project;
+    const config = settings();
+    const extra = key => {
+        const value = config[key] ?? [];
+        if (!Array.isArray(value) || value.some(arg => typeof arg !== 'string' || arg.includes('\0'))) throw new Error(`${key} must be an array of string arguments.`);
+        return value;
+    };
     if (language === 'python') {
         command = tool('python');
         result = await capture(command, ['-c', 'import ast,sys; ast.parse(open(sys.argv[1], encoding="utf-8-sig").read(), filename=sys.argv[1])', source], { cwd });
-        args = ['-u', source];
+        args = ['-u'];
+        if (['1', '2'].includes(String(config.pythonOptimization))) args.push(Number(config.pythonOptimization) === 2 ? '-OO' : '-O');
+        if (config.pythonNoBytecode) args.push('-B');
+        if (config.pythonDevMode) args.push('-X', 'dev');
+        if (['default', 'error', 'ignore', 'always'].includes(config.pythonWarnings)) args.push('-W', config.pythonWarnings);
+        args.push(...extra('pythonArgs'), source);
         program = source;
     } else if (language === 'java') {
         const packageName = content.match(/^\s*package\s+([\w.]+)\s*;/m)?.[1];
@@ -132,8 +143,18 @@ async function buildSource(options, language, key) {
         // An argument file also handles projects exceeding Windows command-line limits.
         const argumentFile = path.join(root, 'java-sources.txt');
         await fs.promises.writeFile(argumentFile, sources.map(file => '"' + file.replace(/\\/g, '/').replace(/"/g, '\\"') + '"').join('\n'));
-        result = await capture(tool('javac'), ['-encoding', 'UTF-8', '-g', '-d', classes, '-sourcepath', sourceRoot, '@' + argumentFile], { cwd });
-        command = tool('java'); args = ['-cp', classes, mainClass]; program = source;
+        const compileArgs = ['-encoding', 'UTF-8', config.javaDebugInfo === false ? '-g:none' : '-g'];
+        if (config.javaRelease) {
+            if (!/^\d+$/.test(String(config.javaRelease))) throw new Error('Invalid target Java release.');
+            compileArgs.push('--release', String(config.javaRelease));
+        }
+        if (config.javaWarnings) compileArgs.push('-Xlint:all');
+        if (config.javaWarningsAsErrors) compileArgs.push('-Werror');
+        if (config.javaClasspath) compileArgs.push('-classpath', String(config.javaClasspath));
+        compileArgs.push(...extra('javacArgs'), '-d', classes, '-sourcepath', sourceRoot, '@' + argumentFile);
+        result = await capture(tool('javac'), compileArgs, { cwd });
+        const classpath = classes + (config.javaClasspath ? path.delimiter + config.javaClasspath : '');
+        command = tool('java'); args = [...extra('javaVmArgs'), '-cp', classpath, mainClass]; program = source;
     } else {
         command = tool('dotnet');
         project = options.filePath ? findProject(path.dirname(source), workspace) : null;
@@ -148,7 +169,16 @@ async function buildSource(options, language, key) {
             await fs.promises.writeFile(project, `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net${major}.0</TargetFramework><EnableDefaultCompileItems>false</EnableDefaultCompileItems><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><DebugType>portable</DebugType></PropertyGroup><ItemGroup>${sources.map(file => `<Compile Include="${xml(file)}" />`).join('')}</ItemGroup></Project>`);
         }
         const output = path.join(root, 'dotnet');
-        result = await capture(command, ['build', project, '-c', 'Debug', '-o', output, '--nologo', '-v', 'minimal'], { cwd });
+        const compileArgs = ['build', project, '-c', config.csharpConfiguration === 'Release' ? 'Release' : 'Debug', '-o', output, '--nologo', '-v', 'minimal'];
+        if (config.csharpLangVersion) {
+            if (!/^(default|latest|latestmajor|preview|\d+(\.\d+)?)$/.test(config.csharpLangVersion)) throw new Error('Invalid C# language version.');
+            compileArgs.push('-p:LangVersion=' + config.csharpLangVersion);
+        }
+        if (['enable', 'disable', 'warnings', 'annotations'].includes(config.csharpNullable)) compileArgs.push('-p:Nullable=' + config.csharpNullable);
+        if (['true', 'false'].includes(config.csharpOptimize)) compileArgs.push('-p:Optimize=' + config.csharpOptimize);
+        if (config.csharpWarningsAsErrors) compileArgs.push('-p:TreatWarningsAsErrors=true');
+        compileArgs.push(...extra('dotnetBuildArgs'));
+        result = await capture(command, compileArgs, { cwd });
         // runtimeconfig identifies runnable assemblies, unlike dependency DLLs.
         if (result.success) {
             const candidates = fs.readdirSync(output).filter(file => file.endsWith('.runtimeconfig.json'));
@@ -160,7 +190,11 @@ async function buildSource(options, language, key) {
         }
     }
     if (!result.success) return { success: false, error: result.error || result.output };
-    const descriptor = { language, command, args, cwd, source, program, mainClass, project };
+    const programArgs = extra(language + 'ProgramArgs');
+    const runtimeArgs = language === 'python' ? args.slice(0, -1) : language === 'java' ? extra('javaVmArgs') : [];
+    const classPaths = language === 'java' ? args[args.indexOf('-cp') + 1].split(path.delimiter) : [];
+    args.push(...programArgs);
+    const descriptor = { language, command, args, cwd, source, program, mainClass, project, programArgs, runtimeArgs, classPaths };
     await fs.promises.writeFile(outputPath, JSON.stringify({ language, source }));
     builds.set(outputPath, descriptor);
     return { success: true, outputPath, warnings: result.output, language };

@@ -979,6 +979,8 @@ function syncCompilerSettingsLanguage(selected) {
     const language = selected || ({ cc: 'cpp', cxx: 'cpp' })[ext] || (['cpp', 'c', 'py', 'java', 'cs'].includes(ext) ? ext : defaultSourceExtension());
     document.getElementById('settings-build-language').value = language;
     const native = language === 'cpp' || language === 'c';
+    for (const row of section.querySelectorAll('[data-build-language]')) row.hidden = row.dataset.buildLanguage !== language;
+    section.querySelector('[data-build-reset]').hidden = native;
     controls.hidden = !native;
     controls.querySelector('h3').textContent = language === 'c' ? 'C Compiler Settings' : 'C++ Compiler Settings';
     document.getElementById('set-cppStandard').closest('.setting-row').hidden = language !== 'cpp';
@@ -1032,7 +1034,7 @@ async function saveSettingsAndClose() {
         if (window.LanguageSupport) LanguageSupport.saveSettings();
 
         App.settings.execution.timeLimitEnabled = document.getElementById('set-timeLimitEnabled').checked;
-        App.settings.execution.timeLimitSeconds = parseInt(document.getElementById('set-timeLimitSeconds').value);
+        App.settings.execution.timeLimitSeconds = Math.max(1, Math.min(60, parseInt(document.getElementById('set-timeLimitSeconds').value) || 3));
         App.settings.execution.clearTerminal = document.getElementById('set-clearTerminal').checked;
         App.settings.execution.autoSendInput = document.getElementById('set-autoSendInput').checked;
         App.settings.execution.useExternalTerminal = document.getElementById('set-useExternalTerminal').checked;

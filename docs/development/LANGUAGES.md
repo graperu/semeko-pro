@@ -134,3 +134,15 @@ Protocol and tool references: [LSP](https://microsoft.github.io/language-server-
 [netcoredbg](https://github.com/Samsung/netcoredbg),
 [JDT LS](https://github.com/eclipse-jdtls/eclipse.jdt.ls),
 [Java Debug](https://github.com/microsoft/java-debug).
+
+### Compiler / Runtime settings
+
+Settings follows the active file language. The selector can inspect another language without changing the file. Save applies options to the next build; existing project files are never rewritten.
+
+- Python: optimization (0 / -O / -OO), warnings, development checks, bytecode writes, and interpreter arguments. Optimization can remove assertions; -OO also removes docstrings.
+- Java: target release (must be supported by the installed JDK), debug information, lint warnings, warnings as errors, additional classpath, javac arguments and JVM arguments.
+- C#: Debug/Release configuration, language version, nullable analysis, optimization, warnings as errors and dotnet build arguments. Empty property fields preserve project defaults. Explicit values override the project for this build.
+
+Argument fields use JSON string arrays, for example `["-Xmx512m"]`. Each element is one argument, including paths containing spaces; no shell parsing is performed. Compiler/runtime arguments are separate from stdin test data. Invalid options or unavailable target versions are reported by the toolchain.
+
+References: [Python command line](https://docs.python.org/3/using/cmdline.html), [javac options](https://docs.oracle.com/en/java/javase/25/docs/specs/man/javac.html), [.NET build](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-build).

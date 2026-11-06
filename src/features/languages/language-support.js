@@ -25,6 +25,29 @@ function helloWorldTemplate(ext) {
 window.LanguageSupport = (() => {
     const ids = ['python', 'java', 'csharp'];
     const runtimeKeys = ['python', 'java', 'javac', 'dotnet'];
+    const buildFields = [
+        ['py', 'pythonOptimization', 'Optimization', ['0', '1', '2'], '0'],
+        ['py', 'pythonWarnings', 'Warnings', ['default', 'error', 'ignore', 'always'], 'default'],
+        ['py', 'pythonNoBytecode', 'Do not write .pyc files', 'boolean', false],
+        ['py', 'pythonDevMode', 'Development checks', 'boolean', false],
+        ['py', 'pythonArgs', 'Interpreter arguments (JSON array)', 'args', []],
+        ['py', 'pythonProgramArgs', 'Program arguments (JSON array)', 'args', []],
+        ['java', 'javaRelease', 'Target Java release (empty = installed JDK)', 'text', ''],
+        ['java', 'javaDebugInfo', 'Debug information', 'boolean', true],
+        ['java', 'javaWarnings', 'Enable all compiler warnings', 'boolean', false],
+        ['java', 'javaWarningsAsErrors', 'Treat warnings as errors', 'boolean', false],
+        ['java', 'javaClasspath', 'Additional classpath', 'text', ''],
+        ['java', 'javacArgs', 'Compiler arguments (JSON array)', 'args', []],
+        ['java', 'javaVmArgs', 'JVM arguments (JSON array)', 'args', []],
+        ['java', 'javaProgramArgs', 'Program arguments (JSON array)', 'args', []],
+        ['cs', 'csharpConfiguration', 'Build configuration', ['Debug', 'Release'], 'Debug'],
+        ['cs', 'csharpLangVersion', 'Language version (empty = project default)', 'text', ''],
+        ['cs', 'csharpNullable', 'Nullable analysis', ['', 'enable', 'disable', 'warnings', 'annotations'], ''],
+        ['cs', 'csharpOptimize', 'Optimization', ['', 'true', 'false'], ''],
+        ['cs', 'csharpWarningsAsErrors', 'Treat warnings as errors', 'boolean', false],
+        ['cs', 'dotnetBuildArgs', 'Build arguments (JSON array)', 'args', []],
+        ['cs', 'csharpProgramArgs', 'Program arguments (JSON array)', 'args', []]
+    ];
     let mon;
     const pending = new Map();
     const versions = new Map();
@@ -172,6 +195,25 @@ window.LanguageSupport = (() => {
             const input = document.createElement('input'); input.type = 'text'; input.id = label.htmlFor; input.placeholder = 'Auto (PATH)'; input.style.cssText = 'flex:1;min-width:180px';
             row.append(label, input); section.append(row);
         }
+        for (const [language, key, title, type] of buildFields) {
+            const row = document.createElement('div'); row.className = 'setting-row'; row.dataset.buildLanguage = language;
+            const label = document.createElement('label'); label.htmlFor = `set-language-${key}`; label.textContent = title;
+            const input = document.createElement(Array.isArray(type) ? 'select' : 'input'); input.id = label.htmlFor;
+            if (Array.isArray(type)) for (const value of type) { const option = document.createElement('option'); option.value = value; option.textContent = value || 'Project default'; input.append(option); }
+            else { input.type = type === 'boolean' ? 'checkbox' : 'text'; if (type === 'args') input.placeholder = '["--option", "value with spaces"]'; }
+            row.append(label, input); section.append(row);
+        }
+        const resetBuild = document.createElement('button'); resetBuild.type = 'button'; resetBuild.className = 'action-btn'; resetBuild.textContent = 'Reset selected language build options'; resetBuild.dataset.buildReset = 'true';
+        resetBuild.onclick = () => {
+            const selected = document.getElementById('settings-build-language')?.value;
+            for (const [language, key, , type, fallback] of buildFields) {
+                if (language !== selected) continue;
+                const input = document.getElementById(`set-language-${key}`);
+                if (type === 'boolean') input.checked = fallback;
+                else input.value = type === 'args' ? JSON.stringify(fallback) : fallback;
+            }
+        };
+        section.append(resetBuild);
         const advanced = document.createElement('details');
         const summary = document.createElement('summary'); summary.textContent = 'Advanced: language servers and debug adapters';
         advanced.append(summary); section.append(advanced);
@@ -198,6 +240,11 @@ window.LanguageSupport = (() => {
     }
     function loadSettings() {
         mountSettings();
+        for (const [, key, , type, fallback] of buildFields) {
+            const input = document.getElementById(`set-language-${key}`), value = App.settings.languages?.[key] ?? fallback;
+            if (type === 'boolean') input.checked = value;
+            else input.value = type === 'args' ? JSON.stringify(value) : value;
+        }
         document.getElementById('set-language-default').value = App.settings.languages?.defaultExtension || 'cpp';
         for (const key of runtimeKeys) document.getElementById(`set-language-${key}`).value = App.settings.languages?.[key] || '';
         for (const id of ids) for (const type of ['Lsp', 'Debug']) {
@@ -207,6 +254,17 @@ window.LanguageSupport = (() => {
     }
     function saveSettings() {
         const next = { ...App.settings.languages, defaultExtension: document.getElementById('set-language-default').value };
+        for (const [, key, title, type] of buildFields) {
+            const input = document.getElementById(`set-language-${key}`);
+            if (type === 'boolean') next[key] = input.checked;
+            else if (type === 'args') {
+                let value; try { value = JSON.parse(input.value || '[]'); } catch (_) { throw new Error(`${title}: enter a JSON array.`); }
+                if (!Array.isArray(value) || value.some(arg => typeof arg !== 'string' || arg.includes('\0'))) throw new Error(`${title}: use an array of strings.`);
+                next[key] = value;
+            } else next[key] = input.value.trim();
+        }
+        if (next.javaRelease && !/^\d+$/.test(next.javaRelease)) throw new Error('Target Java release must be a number.');
+        if (next.csharpLangVersion && !/^(default|latest|latestmajor|preview|\d+(\.\d+)?)$/.test(next.csharpLangVersion)) throw new Error('Invalid C# language version.');
         for (const key of runtimeKeys) next[key] = document.getElementById(`set-language-${key}`).value.trim();
         for (const id of ids) for (const type of ['Lsp', 'Debug']) {
             const key = `${id}${type}`, text = document.getElementById(`set-language-${key}`).value.trim();

@@ -212,6 +212,14 @@ async function main() {
     await page.locator('#settings-build-language').selectOption('py');
     assert(await page.locator('#set-language-python').isVisible());
     assert.strictEqual(await page.locator('#set-cppStandard').isVisible(), false);
+    await page.locator('#set-language-pythonOptimization').selectOption('2');
+    await page.evaluate(async () => { LanguageSupport.saveSettings(); await saveSettings(); closeSettings(); openSettings(); });
+    assert.strictEqual(await page.locator('#set-language-pythonOptimization').inputValue(), '2');
+    await page.locator('#settings-build-language').selectOption('java');
+    assert(await page.locator('#set-language-javaRelease').isVisible());
+    assert.strictEqual(await page.locator('#set-language-pythonOptimization').isVisible(), false);
+    await page.locator('#settings-build-language').selectOption('cs');
+    assert(await page.locator('#set-language-csharpConfiguration').isVisible());
     assert.deepStrictEqual(errors, []);
     console.log('PASS settings automatically follow all five file languages and allow manual switching');
     console.log('PASS language settings, templates, Dark Molokai registry, no renderer exceptions');

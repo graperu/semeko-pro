@@ -99,10 +99,10 @@ class DapSession extends EventEmitter {
         const b = this.build;
         const custom = runtime.settings()[`${b.language}Debug`]?.launch || {};
         const launch = b.language === 'python'
-            ? { type: 'python', python: runtime.tool('python'), program: b.source, console: 'integratedTerminal', justMyCode: false }
+            ? { type: 'python', python: runtime.tool('python'), program: b.source, pythonArgs: b.runtimeArgs || [], args: b.programArgs || [], console: 'integratedTerminal', justMyCode: false }
             : b.language === 'java'
-                ? { type: 'java', mainClass: b.mainClass, classPaths: [b.args[1]], sourcePaths: [path.dirname(b.source)], console: 'integratedTerminal' }
-                : { type: 'coreclr', program: b.program, console: 'integratedTerminal' };
+                ? { type: 'java', mainClass: b.mainClass, classPaths: b.classPaths || [b.args[1]], vmArgs: b.runtimeArgs || [], args: b.programArgs || [], sourcePaths: [path.dirname(b.source)], console: 'integratedTerminal' }
+                : { type: 'coreclr', program: b.program, args: b.programArgs || [], console: 'integratedTerminal' };
         const started = this.send('launch', { name: 'Sameko', request: 'launch', cwd: this.cwd, stopOnEntry: !!this.stopOnEntry, ...launch, ...custom });
         // Some adapters delay the launch response until configurationDone.
         started.catch(() => {});
