@@ -138,7 +138,7 @@ function initSettings() {
         headerUpdateBtn.onclick = () => {
             if (isPortableVersion) {
                 // Portable: Open download page
-                window.electronAPI?.openReleasePage?.('https://github.com/graperu/semeko-pro/releases');
+                window.electronAPI?.openReleasePage?.('https://github.com/graperu/semeko-pro-downloads/releases');
             } else if (updateDownloaded && window.electronAPI?.quitAndInstall) {
                 // Installer: Restart to install
                 window.electronAPI.quitAndInstall();

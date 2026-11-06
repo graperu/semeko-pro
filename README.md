@@ -3,9 +3,12 @@
 The upgraded Semeko C++ edition: an Electron + Monaco IDE for C/C++, Python,
 Java and C#, based on [Sameko Dev C++](https://github.com/QuangquyNguyenvo/Sameko-Dev-CPP).
 
-This repository contains the Semeko Pro source. A Semeko Pro release installer
-has not been published yet; use the source setup below. The original project
-website and older release notes belong to the upstream project.
+Download the Windows installer from [Semeko Pro Downloads](https://github.com/graperu/semeko-pro-downloads/releases/latest).
+Run setup once to install for your Windows account and create Desktop and Start Menu shortcuts.
+The full x64 installer includes GCC, Python, a JDK and .NET SDK for local build/run.
+Optional Python packages and language servers/debug adapters are configured separately.
+
+This private repository contains the source; the public downloads repository contains release files and installation instructions.
 
 ## Features
 

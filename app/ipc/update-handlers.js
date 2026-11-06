@@ -40,8 +40,8 @@ function registerUpdateHandlers() {
     ipcMain.handle('open-release-page', async (event, url) => {
         const target = typeof url === 'string' && url
             ? url
-            : 'https://github.com/graperu/semeko-pro/releases';
-        const allowed = /^https:\/\/(github\.com\/(?:graperu\/semeko-pro|QuangquyNguyenvo\/Sameko-Dev-CPP)(\/|$)|sameko\.dev(\/|$))/i;
+            : 'https://github.com/graperu/semeko-pro-downloads/releases';
+        const allowed = /^https:\/\/(github\.com\/(?:graperu\/semeko-pro(?:-downloads)?|QuangquyNguyenvo\/Sameko-Dev-CPP)(\/|$)|sameko\.dev(\/|$))/i;
         if (!allowed.test(target)) return { success: false, error: 'URL not allowed' };
         await require('electron').shell.openExternal(target);
         return { success: true };

@@ -45,7 +45,7 @@ async function initAbout() {
     const githubBtn = document.getElementById('btn-github');
     if (githubBtn) {
         githubBtn.onclick = () => {
-            window.electronAPI.openReleasePage('https://github.com/graperu/semeko-pro');
+            window.electronAPI.openReleasePage('https://github.com/graperu/semeko-pro-downloads');
         };
     }
 

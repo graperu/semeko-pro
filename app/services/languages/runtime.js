@@ -23,6 +23,14 @@ function settings() {
 function tool(key) {
     const configured = settings()[key];
     if (typeof configured === 'string' && configured.trim()) return configured.trim();
+    const { app } = require('electron');
+    if (app.isPackaged) {
+        const relative = { python: ['python', 'python.exe'], java: ['java', 'bin', 'java.exe'], javac: ['java', 'bin', 'javac.exe'], dotnet: ['dotnet', 'dotnet.exe'] }[key];
+        if (relative) {
+            const bundled = path.join(process.resourcesPath, 'language-runtimes', ...relative);
+            if (fs.existsSync(bundled)) return bundled;
+        }
+    }
     if ((key === 'java' || key === 'javac') && process.env.JAVA_HOME) return path.join(process.env.JAVA_HOME, 'bin', key + (IS_WIN ? '.exe' : ''));
     return { python: IS_WIN ? 'python' : 'python3', java: 'java', javac: 'javac', dotnet: 'dotnet' }[key];
 }
