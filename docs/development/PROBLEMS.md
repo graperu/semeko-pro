@@ -60,6 +60,12 @@ platform failure. Screenshots are written to `plans/artifacts/gui/`.
 
 ## Sample judging
 
+Imported platform samples are fixed to their problem: Input/Expected are read-only,
+and add/delete controls are removed. A separate original-sample snapshot is kept in
+the session so reloading cannot replace it with edited test data. Manual source
+tabs still support creating and editing personal tests. Companion imports from
+Codeforces, LeetCode and HackerRank receive the same protection.
+
 Press Run on an imported LeetCode C++/Python function to run all loaded samples.
 The Tests panel reports AC/WA/RE/TLE for each case and shows expected/actual output.
 Only public samples are tested, not hidden platform cases. Output comparison is exact

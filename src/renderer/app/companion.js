@@ -18,6 +18,35 @@ let ccProblem = null;
 let ccTestIndex = 0;
 let ccHasReceivedProblem = false;
 
+function hasFixedProblemTests(problem = ccProblem) {
+    return !!(problem && (problem.sourcePlatform || problem.fixedTests || /^https:\/\/(?:www\.)?(?:leetcode\.com|codeforces\.com|hackerrank\.com)\//i.test(problem.url || '')));
+}
+
+function protectProblemTests(problem) {
+    if (!hasFixedProblemTests(problem)) return problem;
+    problem.fixedTests = true;
+    if (!Array.isArray(problem.officialTests)) problem.officialTests = (problem.tests || []).map(test => ({ input: test.input || '', output: test.output || '' }));
+    problem.tests = problem.officialTests.map(test => Object.freeze({ ...test }));
+    Object.freeze(problem.tests);
+    return problem;
+}
+
+function updateFixedTestUI() {
+    const locked = hasFixedProblemTests();
+    for (const id of ['input-area', 'expected-area']) {
+        const field = document.getElementById(id);
+        if (field) { field.readOnly = locked; field.title = locked ? 'Official problem sample — read only' : ''; }
+    }
+    for (const id of ['btn-add-test', 'btn-add-test-panel', 'btn-delete-test', 'btn-delete-all-tests', 'docked-btn-add-test', 'docked-btn-delete-test', 'clear-input', 'clear-output', 'btn-input-file']) {
+        const button = document.getElementById(id);
+        if (button) {
+            button.disabled = locked;
+            if (locked) { if (!('fixedDisplay' in button.dataset)) button.dataset.fixedDisplay = button.style.display; button.style.display = 'none'; }
+            else if ('fixedDisplay' in button.dataset) { button.style.display = button.dataset.fixedDisplay; delete button.dataset.fixedDisplay; }
+        }
+    }
+}
+
 function saveTestStateToTab(tab) {
     if (!tab) return;
     tab.testState = (ccProblem || batchTestResults.length)
@@ -27,7 +56,7 @@ function saveTestStateToTab(tab) {
 
 function loadTestStateFromTab(tab) {
     const st = tab && tab.testState;
-    ccProblem = st ? st.problem : null;
+    ccProblem = st ? protectProblemTests(st.problem) : null;
     ccTestIndex = st ? (st.index || 0) : 0;
     batchTestResults = st ? (st.results || []) : [];
     const count = ccProblem?.tests?.length || 0;
@@ -96,6 +125,7 @@ function initCompetitiveCompanion() {
     const expectedArea = document.getElementById('expected-area');
 
     const saveCurrentTest = () => {
+        if (hasFixedProblemTests()) return;
         if (ccProblem && ccProblem.tests && ccProblem.tests[ccTestIndex]) {
             ccProblem.tests[ccTestIndex].input = inputArea.value;
             ccProblem.tests[ccTestIndex].output = expectedArea.value;
@@ -150,6 +180,7 @@ function initCompetitiveCompanion() {
 }
 
 function addTestCase() {
+    if (hasFixedProblemTests()) return;
     if (!ccProblem) {
         ccProblem = { name: 'Manual Problem', tests: [] };
     }
@@ -179,6 +210,7 @@ function addTestCase() {
 }
 
 async function deleteTestCase() {
+    if (hasFixedProblemTests()) return;
     if (!ccProblem || !ccProblem.tests || ccProblem.tests.length === 0) return;
 
     const confirmed = await showConfirmDialog({
@@ -209,6 +241,7 @@ async function deleteTestCase() {
 }
 
 async function deleteTestCaseByIndex(index) {
+    if (hasFixedProblemTests()) return;
     if (!ccProblem || !ccProblem.tests || index < 0 || index >= ccProblem.tests.length) return;
 
     const confirmed = await showConfirmDialog({
@@ -241,6 +274,7 @@ async function deleteTestCaseByIndex(index) {
 }
 
 async function deleteAllTestCases() {
+    if (hasFixedProblemTests()) return;
     if (!ccProblem || !ccProblem.tests || ccProblem.tests.length === 0) return;
 
     const confirmed = await showConfirmDialog({
@@ -308,6 +342,7 @@ async function startCCServer(silent = false) {
 }
 
 async function handleProblemReceived(problem, options = {}) {
+    protectProblemTests(problem);
 
     if (!ccHasReceivedProblem) {
         ccHasReceivedProblem = true;
@@ -318,7 +353,7 @@ async function handleProblemReceived(problem, options = {}) {
 
     const importTarget = options.newTab ? 'new-tab' : App.settings.oj?.importTarget || 'new-tab';
     const importMerge = App.settings.oj?.importMerge || 'replace';
-    const useCurrentTab = importTarget === 'current-tab' && App.activeTabId && App.tabs.length > 0;
+    const useCurrentTab = importTarget === 'current-tab' && !hasFixedProblemTests() && !hasFixedProblemTests(problem) && App.activeTabId && App.tabs.length > 0;
 
     if (useCurrentTab) {
         // Import tests into the current active tab \u2014 don't create a new tab
@@ -523,6 +558,7 @@ function updateTestNavUI() {
         // Always show Add button to allow manual test creation
         panelAddBtn.style.display = 'flex';
     }
+    updateFixedTestUI();
 
     if (!testNav || !testLabel) return;
 
@@ -539,7 +575,7 @@ function updateTestNavUI() {
     if (hasTests) {
         testNav.style.display = 'flex';
         testLabel.textContent = `${ccTestIndex + 1}/${testCount}`;
-        if (deleteBtn) deleteBtn.style.display = 'flex';
+        if (deleteBtn) deleteBtn.style.display = hasFixedProblemTests() ? 'none' : 'flex';
     } else {
         // Show only the "Add" button area?
         // For now, let's show it so user can click Add.

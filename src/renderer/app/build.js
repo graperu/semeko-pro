@@ -796,6 +796,7 @@ function formatBytes(n) {
 }
 
 async function chooseInputFile() {
+    if (hasFixedProblemTests()) return;
     const result = await window.electronAPI.showOpenDialog({
         title: 'Load input from a file',
         properties: ['openFile'],

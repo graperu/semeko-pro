@@ -548,6 +548,13 @@ function renderTestResults() {
         `;
 
     container.innerHTML = html;
+    if (hasFixedProblemTests()) {
+        container.querySelectorAll('.test-delete-btn, #btn-list-add-test').forEach(button => button.remove());
+        const label = document.createElement('p');
+        label.textContent = 'Official samples · read only';
+        label.style.cssText = 'font-size:12px;opacity:.7;margin:8px 12px';
+        container.prepend(label);
+    }
 
 
     container.querySelectorAll('.test-result-item').forEach(item => {

@@ -15,13 +15,30 @@ const ROOT=path.resolve(__dirname,'../..');let app;
    await handleProblemReceived({name:'Two Sum',tests,sourcePlatform:'leetcode',solutionMode:'function',functionMetadata:d.metadata},{newTab:true,starter:content,extension:ext});
    await buildRun();
    const pass=batchTestResults.map(r=>r.status);
+   const fixedBefore=JSON.stringify(ccProblem.tests);
+   await deleteAllTestCases(); await deleteTestCaseByIndex(0); await deleteTestCase(); addTestCase();
+   if(JSON.stringify(ccProblem.tests)!==fixedBefore)throw Error('Official tests were changed');
+   if(!document.getElementById('input-area').readOnly||!document.getElementById('expected-area').readOnly)throw Error('Official fields editable');
+   if(document.querySelector('.test-delete-btn')||document.getElementById('btn-list-add-test'))throw Error('Mutation controls remain');
+   const checkpoint=JSON.parse(JSON.stringify(ccProblem));checkpoint.tests=[];
+   protectProblemTests(checkpoint);if(checkpoint.tests.length!==3)throw Error('Official snapshot not restored');
    setTabText(App.tabs.find(t=>t.id===getPreferredTabId()),ext==='cpp'?'class Solution{public:vector<int> twoSum(vector<int>& a,int b){return {};}};':'class Solution:\n    def twoSum(self,nums,target):\n        return []\n');
    await runAllTests();
    return {tests,pass,fail:batchTestResults.map(r=>r.status),input:document.getElementById('input-area').value,expected:document.getElementById('expected-area').value};
   },ext);
   assert.strictEqual(result.tests.length,3);assert.deepStrictEqual(result.pass,['AC','AC','AC']);assert.deepStrictEqual(result.fail,['WA','WA','WA']);assert(result.input&&result.expected);
-  console.log('PASS LeetCode '+ext+': 3 auto-filled samples, Run gives 3 AC, wrong solution gives 3 WA');
+  console.log('PASS LeetCode '+ext+': locked read-only samples, deletion blocked, snapshot restored, 3 AC / 3 WA');
  }
  const cf=await page.evaluate(()=>ProblemBrowser.sampleTests({provider:'codeforces',html:'<div class="sample-test"><div class="input"><pre>4<br>2</pre></div><div class="output"><pre>YES</pre></div></div>'}));
  assert.deepStrictEqual(cf,[{input:'4\n2\n',output:'YES\n'}]);console.log('PASS Codeforces sample extraction');
+ const locks=await page.evaluate(async()=>{
+  for(const sourcePlatform of ['codeforces','hackerrank']){
+   const problem={sourcePlatform,tests:[{input:'1\n',output:'2\n'}]};
+   protectProblemTests(problem);if(!Object.isFrozen(problem.tests)||!Object.isFrozen(problem.tests[0]))throw Error('Platform sample not protected');
+  }
+  newFile('py');
+  if(document.getElementById('input-area').readOnly)throw Error('Manual tab remains locked');
+  addTestCase();if(ccProblem.tests.length!==1)throw Error('Manual test creation broken');
+  return true;
+ });assert(locks);console.log('PASS Codeforces/HackerRank locks and manual-tab editability');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(app)await app.close();});

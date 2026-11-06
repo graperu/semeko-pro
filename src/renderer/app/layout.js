@@ -212,10 +212,11 @@ function initPanels() {
     const clearOutput = document.getElementById('clear-output');
 
     if (clearInput) {
-        clearInput.onclick = () => { document.getElementById('input-area').value = ''; };
+        clearInput.onclick = () => { if (!hasFixedProblemTests()) document.getElementById('input-area').value = ''; };
     }
     if (clearOutput) {
         clearOutput.onclick = () => {
+            if (hasFixedProblemTests()) return;
             document.getElementById('expected-area').value = '';
             document.getElementById('expected-area').style.display = 'block';
             document.getElementById('expected-diff').style.display = 'none';
@@ -848,6 +849,7 @@ function createDockedIOView(container) {
 
 // Update docked test navigation UI
 function updateDockedTestNavUI() {
+    updateFixedTestUI();
     const testLabel = document.getElementById('docked-test-label');
     const prevBtn = document.getElementById('docked-btn-prev-test');
     const nextBtn = document.getElementById('docked-btn-next-test');
@@ -861,7 +863,7 @@ function updateDockedTestNavUI() {
         testLabel.textContent = `${ccTestIndex + 1}/${testCount}`;
         if (prevBtn) prevBtn.style.display = 'flex';
         if (nextBtn) nextBtn.style.display = 'flex';
-        if (deleteBtn) deleteBtn.style.display = 'flex';
+        if (deleteBtn) deleteBtn.style.display = hasFixedProblemTests() ? 'none' : 'flex';
     } else {
         testLabel.textContent = '0/0';
         if (prevBtn) prevBtn.style.display = 'none';
