@@ -226,6 +226,34 @@ window.ProblemBrowser = (() => {
         if (!items.length) load(0);
     }
     function init() {
+        const divider = $('oj-divider'), body = divider.parentElement;
+        let ratio = 35;
+        try { const saved = Number(localStorage.getItem('sameko-oj-split')); if (saved >= 20 && saved <= 70) ratio = saved; } catch (_) {}
+        const resize = value => {
+            ratio = Math.max(20, Math.min(70, value));
+            const width = body.getBoundingClientRect().width;
+            if (width) body.style.setProperty('--oj-list-width', Math.max(Math.min(180, width * .35), Math.min(width - Math.min(240, width * .4) - 8, width * ratio / 100)) + 'px');
+            divider.setAttribute('aria-valuenow', Math.round(ratio));
+        };
+        const persist = () => { try { localStorage.setItem('sameko-oj-split', String(ratio)); } catch (_) {} };
+        divider.onpointerdown = event => {
+            if (event.button !== 0) return;
+            event.preventDefault(); divider.setPointerCapture(event.pointerId); divider.classList.add('dragging');
+        };
+        divider.onpointermove = event => {
+            if (!divider.hasPointerCapture(event.pointerId)) return;
+            const bounds = body.getBoundingClientRect(); resize((event.clientX - bounds.left) / bounds.width * 100);
+        };
+        const finish = () => { divider.classList.remove('dragging'); persist(); };
+        divider.onpointerup = event => { if (divider.hasPointerCapture(event.pointerId)) divider.releasePointerCapture(event.pointerId); finish(); };
+        divider.onlostpointercapture = finish;
+        divider.onpointercancel = finish;
+        divider.ondblclick = () => { resize(35); persist(); };
+        divider.onkeydown = event => {
+            const value = { ArrowLeft: ratio - 2, ArrowRight: ratio + 2, Home: 20, End: 70 }[event.key];
+            if (value === undefined) return; event.preventDefault(); resize(value); persist();
+        };
+        new ResizeObserver(() => resize(ratio)).observe(body);
         const saved = localStorage.getItem('sameko-oj-provider');
         if (names[saved]) $('oj-provider').value = saved;
         $('btn-problem-browser').onclick = open;
