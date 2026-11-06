@@ -1179,6 +1179,15 @@ body.performance-mode .main .editor-section {
 
 #settings-overlay [hidden] { display: none !important; }
 
+/* Collection verdicts use the same semantic colors as the Tests panel. */
+:root { --cp-status-re: #ef5350; --cp-status-tle: #ef5350; --cp-status-testing: #64b5f6; }
+.cat-list-item-badge.cp-badge-re,
+.cat-list-item-badge.cp-badge-tle { color: #ef5350; background: rgba(239, 83, 80, .15); }
+.cat-list-item.cp-status-re,
+.cat-list-item.cp-status-tle { background: rgba(239, 83, 80, .06); }
+.cat-list-item-badge.cp-badge-testing { color: #64b5f6; background: rgba(100, 181, 246, .15); }
+.cat-list-item.cp-status-testing { background: rgba(100, 181, 246, .06); }
+
 /* Keep long settings names inside their buttons at every window size. */
 #settings-popup > .settings-container > .settings-sidebar {
     flex-shrink: 0;

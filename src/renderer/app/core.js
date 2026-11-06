@@ -897,6 +897,8 @@ function createEditor(containerId) {
         multiCursorModifier: resolveMultiCursorModifier(),
         scrollBeyondLastLine: !!App.settings.editor.scrollBeyondLastLine,
         automaticLayout: true,
+        // Suggestions and hover popups can extend beyond the rounded editor card.
+        fixedOverflowWidgets: true,
         tabSize: App.settings.editor.tabSize,
         insertSpaces: true,
         detectIndentation: false,

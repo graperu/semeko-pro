@@ -91,6 +91,7 @@ window.ProblemBrowser = (() => {
     async function select(item, button) {
         const revision = ++detailRevision;
         selected = null; $('oj-start').disabled = true;
+        $('oj-start').textContent = 'Start solving';
         for (const other of $('oj-results').querySelectorAll('button')) other.removeAttribute('aria-current');
         button.setAttribute('aria-current', 'true');
         $('oj-problem-title').textContent = item.title;
@@ -113,6 +114,7 @@ window.ProblemBrowser = (() => {
             $('oj-statement').innerHTML = html;
             if (!html) $('oj-statement').textContent = 'Use Open official page to read the complete problem statement.';
             $('oj-start').disabled = !!detail.paid;
+            $('oj-start').textContent = detail.provider === 'codeforces' && !html ? 'Create file (no samples)' : 'Start solving';
         } catch (error) {
             if (revision !== detailRevision) return;
             $('oj-problem-note').textContent = error.message;
