@@ -164,6 +164,7 @@ async function runAllTests() {
             markTabSaved(tab, content);
         }
         const compileResult = await window.electronAPI.compile({
+            functionMetadata: problem.solutionMode === 'function' ? problem.functionMetadata : null,
             filePath: tab.path,
             fileName: tab.name,
             untitledId: tab.path ? '' : tab.id,
@@ -357,6 +358,7 @@ async function runSingleTestByIndex(testIndex) {
             markTabSaved(tab, content);
         }
         const compileResult = await window.electronAPI.compile({
+            functionMetadata: problem.solutionMode === 'function' ? problem.functionMetadata : null,
             filePath: tab.path,
             fileName: tab.name,
             untitledId: tab.path ? '' : tab.id,

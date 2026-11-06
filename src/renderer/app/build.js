@@ -77,6 +77,7 @@ async function buildActiveTab({ runAfter }) {
     const editor = getActiveEditor();
     if (!tab) { log('No file open', 'warning'); return; }
     if (tab.testState?.problem?.solutionMode === 'function') {
+        if (tab.testState.problem.tests?.length) { await runAllTests(); return; }
         log('This LeetCode solution uses a function signature. Run and submit it on LeetCode; a local stdin runner is not included.', 'warning');
         setStatus('Run this solution on LeetCode', 'warning');
         return;

@@ -51,6 +51,10 @@ window.ProblemBrowser = (() => {
         }
     }
     async function safeStatement(html, provider) {
+        if (provider === 'codeforces') {
+            const parsed = new DOMParser().parseFromString(html, 'text/html');
+            html = parsed.querySelector('.problem-statement')?.innerHTML || '';
+        }
         await loadScript('../node_modules/dompurify/dist/purify.min.js');
         const sanitized = window.DOMPurify.sanitize(html, {
             USE_PROFILES: { html: true, svg: true },
@@ -116,6 +120,32 @@ window.ProblemBrowser = (() => {
         }
     }
     function sampleTests(detail) {
+        if (detail.provider === 'codeforces') {
+            const doc = new DOMParser().parseFromString(detail.html || '', 'text/html');
+            const inputs = [...doc.querySelectorAll('.sample-test .input pre')];
+            const outputs = [...doc.querySelectorAll('.sample-test .output pre')];
+            const plain = node => {
+                const copy = node.cloneNode(true);
+                for (const br of copy.querySelectorAll('br')) br.replaceWith('\n');
+                for (const row of copy.querySelectorAll('.test-example-line')) row.append('\n');
+                return copy.textContent.trimEnd() + '\n';
+            };
+            return inputs.flatMap((input, index) => outputs[index] ? [{ input: plain(input), output: plain(outputs[index]) }] : []);
+        }
+        if (detail.provider === 'leetcode') {
+            const doc = new DOMParser().parseFromString(detail.html || '', 'text/html');
+            const outputs = [...doc.querySelectorAll('pre, p')].flatMap(pre => {
+                const match = /(?:^|\n)\s*Output:\s*([^\n]+)/i.exec(pre.textContent);
+                return match ? [match[1].trim()] : [];
+            });
+            return (detail.examples || []).flatMap((example, index) => {
+                try {
+                    const args = example.split('\n').filter(line => line.trim()).map(line => JSON.parse(line));
+                    if (args.length !== detail.metadata?.params?.length || !outputs[index]) return [];
+                    return [{ input: JSON.stringify(args), output: JSON.stringify(JSON.parse(outputs[index])) }];
+                } catch (_) { return []; }
+            });
+        }
         if (detail.provider !== 'hackerrank') return [];
         const doc = new DOMParser().parseFromString(detail.html || '', 'text/html');
         const inputs = [...doc.querySelectorAll('.challenge_sample_input_body pre')];
@@ -167,7 +197,7 @@ window.ProblemBrowser = (() => {
             if (extension === 'cs') code = code.replace(/new StreamWriter\(@?System\.Environment\.GetEnvironmentVariable\("OUTPUT_PATH"\),\s*true\)/g, 'Console.Out');
         }
         const comment = extension === 'py' ? '# ' : '// ';
-        return `${comment}${detail.url}\n${comment}${detail.mode === 'function' ? 'Function solution — run and submit on the official platform.' : 'Complete the solution, then build and run sample tests.'}\n\n${code}\n`;
+        return `${comment}${detail.url}\n${comment}${detail.mode === 'function' ? 'Function solution — C++/Python: Run sample tests locally; submit on LeetCode.' : 'Complete the solution, then build and run sample tests.'}\n\n${code}\n`;
     }
     async function start() {
         if (importing || !selected || selected.paid || selected.previewFailed) return;
@@ -179,11 +209,11 @@ window.ProblemBrowser = (() => {
             await handleProblemReceived({
                 name: `${names[detail.provider]} ${detail.number || detail.id} - ${detail.title}`,
                 url: detail.url, group: names[detail.provider], tests,
-                sourcePlatform: detail.provider, solutionMode: detail.mode
+                sourcePlatform: detail.provider, solutionMode: detail.mode, functionMetadata: detail.metadata
             }, { newTab: true, starter: code, extension });
             localStorage.setItem('sameko-oj-provider', detail.provider);
             $('oj-browser').close();
-            if (detail.mode === 'function') showToast('LeetCode function template loaded. Run and submit on LeetCode.', 'info');
+            if (detail.mode === 'function') showToast(`${tests.length} sample tests loaded. C++/Python: press Run to test your function.`, 'info');
             else if (!tests.length) showToast('Problem opened. Import samples with Get Tests from OJ or add your own.', 'info');
         } catch (error) { status(error.message); }
         finally { importing = false; $('oj-start').disabled = !selected || selected.paid || selected.previewFailed; }

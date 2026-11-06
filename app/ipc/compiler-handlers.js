@@ -29,6 +29,11 @@ function setMainWindow(window) {
 function registerHandlers() {
     // Compile
     ipcMain.handle(IPC.COMPILER.COMPILE, async (event, options) => {
+        if (options.functionMetadata) {
+            const extension = require('path').extname(options.filePath || options.fileName || '').slice(1);
+            try { options = { ...options, content: require('../services/competitive/function-runner').wrap(options.content, options.functionMetadata, extension), filePath: null, untitledId: (options.untitledId || 'function') + '-runner' }; }
+            catch (error) { return { success: false, error: error.message }; }
+        }
         const runtime = require('../services/languages/runtime');
         if (runtime.languageForFile(options.filePath || options.fileName) !== 'cpp') return runtime.build(options);
         return await compiler.compile(options);

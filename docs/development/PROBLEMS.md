@@ -16,9 +16,10 @@ replacing existing files. The source URL is kept in the code and problem metadat
   the official page; protected statement pages are not scraped. Use the existing
   **Get Tests from OJ** / Competitive Companion flow for sample tests.
 - **LeetCode:** public catalog, statement and official function signature for
-  C/C++, Python, Java and C#. Function solutions run and submit on LeetCode;
-  Sameko does not provide a function-call test harness. Examples are displayed
-  in the statement, not treated as console stdin. Premium/locked entries stay
+  C/C++, Python, Java and C#.
+  C++ and Python scalar/array function samples run locally with generated wrappers.
+  Sample arguments and expected JSON outputs are filled automatically. Tree/list/design
+  types and C/Java/C# function wrappers are not supported yet; full judging stays on LeetCode. Premium/locked entries stay
   locked and can be opened on the official website.
 - **HackerRank:** searchable category catalogs, public statement, full starter
   (head/body/tail), and recognizable stdin/stdout examples. Annotated
@@ -56,3 +57,12 @@ changes can affect them. The GUI test uses an isolated profile, preserves an
 existing draft, completes/runs a HackerRank Python sample, checks function-mode
 session persistence, sanitization, locked entries and recovery from a simulated
 platform failure. Screenshots are written to `plans/artifacts/gui/`.
+
+## Sample judging
+
+Press Run on an imported LeetCode C++/Python function to run all loaded samples.
+The Tests panel reports AC/WA/RE/TLE for each case and shows expected/actual output.
+Only public samples are tested, not hidden platform cases. Output comparison is exact
+after whitespace normalization; problems with custom checkers or multiple valid output
+orders may require manual review. Codeforces imports samples automatically when its
+public statement is accessible, otherwise use Competitive Companion.

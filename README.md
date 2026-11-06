@@ -13,8 +13,9 @@ website and older release notes belong to the upstream project.
   with Hello World and keeps its files when switching away.
 - Open existing folders, edit multiple files, select a main file and run a folder.
 - Browse Codeforces, LeetCode and HackerRank problems from **Practice**.
-  HackerRank samples and full starters can run locally; LeetCode function solutions
-  run/submit on LeetCode. Codeforces samples can be imported with Competitive Companion.
+  HackerRank samples and full starters can run locally; C++/Python LeetCode scalar/array
+  functions can run public samples locally. Submit on the original platform for hidden tests.
+  Codeforces samples load when accessible, with Competitive Companion as a fallback.
 - Build/run C/C++, Python, Java and C#; debug with GDB or configurable debug adapters.
 - Manage Contest and Collections, test cases and progress.
 - Material Icon Theme file/folder icons, custom themes, split editor and local history.

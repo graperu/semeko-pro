@@ -111,15 +111,20 @@ async function detail(provider, id) {
         if (provider === 'codeforces') {
             const item = (await codeforces()).find(p => p.id === id);
             if (!item) throw new Error('This Codeforces problem is not in the public catalog.');
-            return { ...item, url, html: '', snippets: {}, note: 'Read the statement on Codeforces. Use Get Tests from OJ with Competitive Companion to import samples.', mode: 'stdin' };
+            let html = '';
+            try {
+                const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(12000) });
+                if (response.ok) { const raw = await response.text(); if (raw.length < 3000000 && raw.includes('problem-statement')) html = raw; }
+            } catch (_) {}
+            return { ...item, url, html, snippets: {}, note: html ? 'Public samples load automatically. Run All Tests reports each sample result.' : 'Codeforces blocked automatic statement loading. Open the official page and use Competitive Companion to import samples.', mode: 'stdin' };
         }
         if (provider === 'leetcode') {
-            const data = await graphql(`query samekoQuestion($slug:String!){question(titleSlug:$slug){title titleSlug questionFrontendId difficulty isPaidOnly content codeSnippets{langSlug code}}}`, { slug: id });
+            const data = await graphql(`query samekoQuestion($slug:String!){question(titleSlug:$slug){title titleSlug questionFrontendId difficulty isPaidOnly content metaData exampleTestcaseList codeSnippets{langSlug code}}}`, { slug: id });
             const p = data.question;
             if (!p) throw new Error('LeetCode problem not found.');
             return { provider, id, url, title: p.title, number: p.questionFrontendId, difficulty: p.difficulty, paid: !!p.isPaidOnly,
-                html: p.content || '', snippets: Object.fromEntries((p.codeSnippets || []).map(s => [s.langSlug, s.code])), mode: 'function',
-                note: 'LeetCode solutions use a function signature. Run and submit on LeetCode; examples are not stdin test cases.' };
+                html: p.content || '', metadata: JSON.parse(p.metaData || '{}'), examples: p.exampleTestcaseList || [], snippets: Object.fromEntries((p.codeSnippets || []).map(s => [s.langSlug, s.code])), mode: 'function',
+                note: 'Sample tests load automatically. C++ and Python function solutions can run locally for scalar/array arguments; submit on LeetCode for full judging. Tree/list/design problems and other languages are not supported by the local function runner yet.' };
         }
         const value = await request(`https://www.hackerrank.com/rest/contests/master/challenges/${id}`);
         const p = value.model;

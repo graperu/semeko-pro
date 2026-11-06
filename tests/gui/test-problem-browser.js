@@ -45,10 +45,8 @@ async function main() {
     await page.locator('#oj-start').click();
     await page.waitForFunction(() => !document.getElementById('oj-browser').open);
     assert(await page.evaluate(() => App.tabs.find(t => t.id === getPreferredTabId()).content.includes('class Solution')));
-    await page.evaluate(() => buildRun());
-    assert.strictEqual(await page.evaluate(() => App.tabs.find(t => t.id === getPreferredTabId()).exePath || null), null);
-    assert((await page.locator('#status').innerText()).includes('LeetCode'));
-    console.log('PASS LeetCode: public statement, official C++ function template and honest local-run message');
+    assert.strictEqual(await page.evaluate(() => ccProblem.tests.length), 3);
+    console.log('PASS LeetCode: public statement, official C++ function template and three sample tests');
     await search('hackerrank', 'simple array sum', /^Simple Array Sum$/);
     await page.screenshot({ path: path.join(artifactDir, 'problem-browser-hackerrank.png') });
     await page.locator('#oj-language').selectOption('py');

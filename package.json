@@ -96,6 +96,7 @@
         "test:problems": "node tests/integration/test-problem-browser.js",
         "pretest:problems:gui": "node scripts/build/build-monaco.js --if-stale",
         "test:problems:gui": "node tests/gui/test-problem-browser.js",
+        "test:oj:samples": "node tests/gui/test-oj-samples.js",
         "pretest:gui": "node scripts/build/build-monaco.js --if-stale",
         "test:gui": "node tests/gui/test-gui-smoke.js",
         "pretest:themes": "node scripts/build/build-monaco.js --if-stale",
