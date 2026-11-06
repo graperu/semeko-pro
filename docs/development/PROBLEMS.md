@@ -60,6 +60,11 @@ platform failure. Screenshots are written to `plans/artifacts/gui/`.
 
 ## Sample judging
 
+The Tests panel updates live: blue spinner/Running while executing, yellow for
+unrun or incomplete tests, red for WA/RE/TLE/CE, and green for AC. Compilation
+and runner warmup have explicit progress labels. Every finished case appears as
+soon as its worker finishes; the summary stays active until the full run ends.
+
 Imported platform samples are fixed to their problem: Input/Expected are read-only,
 and add/delete controls are removed. A separate original-sample snapshot is kept in
 the session so reloading cannot replace it with edited test data. Manual source

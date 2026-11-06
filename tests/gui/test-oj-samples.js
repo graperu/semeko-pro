@@ -15,6 +15,18 @@ const ROOT=path.resolve(__dirname,'../..');let app;
    await handleProblemReceived({name:'Two Sum',tests,sourcePlatform:'leetcode',solutionMode:'function',functionMetadata:d.metadata},{newTab:true,starter:content,extension:ext});
    await buildRun();
    const pass=batchTestResults.map(r=>r.status);
+   if(ext==='py') {
+    const tab=App.tabs.find(t=>t.id===getPreferredTabId());
+    setTabText(tab,content.replace('        for i in range(len(nums)):', '        import time\n        time.sleep(0.6)\n        for i in range(len(nums)):'));
+    let sawRunning=false,sawWaiting=false;
+    const observe=setInterval(()=>{
+     sawRunning ||= !!document.querySelector('.test-result-item.status-running');
+     sawWaiting ||= !!document.querySelector('.test-result-item.status-pending');
+    },20);
+    try {await runAllTests();}finally{clearInterval(observe);}
+    if(!sawRunning||!sawWaiting)throw Error('Missing visible live running/waiting states');
+    if(!document.querySelector('.test-results-summary.all-passed'))throw Error('Missing success summary');
+   }
    const fixedBefore=JSON.stringify(ccProblem.tests);
    await deleteAllTestCases(); await deleteTestCaseByIndex(0); await deleteTestCase(); addTestCase();
    if(JSON.stringify(ccProblem.tests)!==fixedBefore)throw Error('Official tests were changed');
@@ -24,9 +36,11 @@ const ROOT=path.resolve(__dirname,'../..');let app;
    protectProblemTests(checkpoint);if(checkpoint.tests.length!==3)throw Error('Official snapshot not restored');
    setTabText(App.tabs.find(t=>t.id===getPreferredTabId()),ext==='cpp'?'class Solution{public:vector<int> twoSum(vector<int>& a,int b){return {};}};':'class Solution:\n    def twoSum(self,nums,target):\n        return []\n');
    await runAllTests();
+   if(!document.querySelector('.test-results-summary.has-failed'))throw Error('Missing failure summary');
    return {tests,pass,fail:batchTestResults.map(r=>r.status),input:document.getElementById('input-area').value,expected:document.getElementById('expected-area').value};
   },ext);
   assert.strictEqual(result.tests.length,3);assert.deepStrictEqual(result.pass,['AC','AC','AC']);assert.deepStrictEqual(result.fail,['WA','WA','WA']);assert(result.input&&result.expected);
+  const artifact=path.join(ROOT,'plans/artifacts/gui');fs.mkdirSync(artifact,{recursive:true});await page.screenshot({path:path.join(artifact,'test-colors-'+ext+'.png')});
   console.log('PASS LeetCode '+ext+': locked read-only samples, deletion blocked, snapshot restored, 3 AC / 3 WA');
  }
  const cf=await page.evaluate(()=>ProblemBrowser.sampleTests({provider:'codeforces',html:'<div class="sample-test"><div class="input"><pre>4<br>2</pre></div><div class="output"><pre>YES</pre></div></div>'}));

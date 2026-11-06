@@ -12,6 +12,14 @@
 // ============================================================================
 let batchTestResults = [];
 let isBatchTesting = false;
+const testProgress = new Map();
+function updateTestProgress(tab, phase, index = null, active = true) {
+    let progress = testProgress.get(tab.id);
+    if (!progress) { progress = { phase, running: new Set() }; testProgress.set(tab.id, progress); }
+    progress.phase = phase;
+    if (index !== null) { if (active) progress.running.add(index); else progress.running.delete(index); }
+    if (getPreferredTabId() === tab.id) renderTestResults();
+}
 
 function resetTestRunResults() {
     batchTestResults = [];
@@ -130,6 +138,7 @@ async function runAllTests() {
 
     isBatchTesting = true;
     batchTestResults = [];
+    updateTestProgress(tab, 'Compiling solution…');
 
     // Ensure Problems panel is visible to show results
     if (!App.showProblems) {
@@ -176,6 +185,7 @@ async function runAllTests() {
         });
 
         if (!compileResult.success) {
+            storeTestResults(tab, problem, tests.map((_, testIndex) => ({ testIndex, status: 'CE', details: compileResult.error, executionTime: 0 })));
             log('Compile Error!', 'error');
             log(compileResult.error, 'error');
             setStatus('Compile Error', 'error');
@@ -200,6 +210,7 @@ async function runAllTests() {
         if (totalTests > 0) {
             try {
                 setStatus('Warming up...', '');
+                updateTestProgress(tab, 'Preparing test runner…');
                 const warmupTest = tests[0] || { input: '' };
                 await window.electronAPI.runTest({
                     exePath: tab.exePath,
@@ -228,6 +239,7 @@ async function runAllTests() {
             while (nextIndex < totalTests) {
                 const i = nextIndex++;
                 const test = tests[i];
+                updateTestProgress(tab, 'Running tests…', i);
                 const result = await window.electronAPI.runTest({
                     exePath,
                     input: test.input || '',
@@ -242,6 +254,8 @@ async function runAllTests() {
                 result.actualOutput = result.output ?? '';
                 results[i] = result;
                 finished++;
+                storeTestResults(tab, problem, results.filter(Boolean));
+                updateTestProgress(tab, 'Running tests…', i, false);
                 setStatus(`Testing ${finished}/${totalTests}...`, '');
             }
         };
@@ -257,6 +271,7 @@ async function runAllTests() {
                 const first = results[i];
                 if (first.status !== 'TLE' && !(first.executionTime > timeLimit * 0.6)) continue;
                 setStatus(`Re-checking test ${i + 1} alone...`, '');
+                updateTestProgress(tab, 'Rechecking timing…', i);
                 const again = await window.electronAPI.runTest({
                     exePath,
                     input: tests[i].input || '',
@@ -270,6 +285,8 @@ async function runAllTests() {
                 again.testName = `Test ${i + 1}`;
                 again.actualOutput = again.output ?? '';
                 results[i] = again;
+                storeTestResults(tab, problem, results.filter(Boolean));
+                updateTestProgress(tab, 'Running tests…', i, false);
             }
         }
 
@@ -318,9 +335,13 @@ async function runAllTests() {
 
     } catch (e) {
         log(`Error running tests: ${e.message}`, 'error');
+        const current = getPreferredTabId() === tab.id ? batchTestResults : (tab.testState?.results || []);
+        storeTestResults(tab, problem, tests.map((_, testIndex) => current.find(result => result.testIndex === testIndex) || { testIndex, status: 'RE', details: e.message, executionTime: 0 }));
         setStatus('Test Error', 'error');
     } finally {
         isBatchTesting = false;
+        testProgress.delete(tab.id);
+        if (getPreferredTabId() === tab.id) renderTestResults();
         runAllBtn?.classList.remove('running');
     }
 }
@@ -343,6 +364,8 @@ async function runSingleTestByIndex(testIndex) {
         log('No file is currently open!', 'error');
         return;
     }
+    if (testProgress.has(tab.id)) return;
+    updateTestProgress(tab, `Compiling for test ${testIndex + 1}…`);
 
     const runBtn = document.querySelector(`.test-run-btn[data-run-index="${testIndex}"]`);
     if (runBtn) runBtn.classList.add('running');
@@ -370,6 +393,8 @@ async function runSingleTestByIndex(testIndex) {
         });
 
         if (!compileResult.success) {
+            const list = (getPreferredTabId() === tab.id ? batchTestResults : tab.testState?.results || []).filter(result => result.testIndex !== testIndex);
+            storeTestResults(tab, problem, [...list, { testIndex, status: 'CE', details: compileResult.error, executionTime: 0 }]);
             log('Compile Error!', 'error');
             log(compileResult.error, 'error');
             setStatus('Compile Error', 'error');
@@ -384,6 +409,7 @@ async function runSingleTestByIndex(testIndex) {
         const sourceDir = lastSlash !== -1 ? tab.path.substring(0, lastSlash) : null;
 
         setStatus(`Running test ${testIndex + 1}...`, '');
+        updateTestProgress(tab, 'Running test…', testIndex);
         const result = await window.electronAPI.runTest({
             exePath: tab.exePath,
             input: test.input || '',
@@ -428,6 +454,8 @@ async function runSingleTestByIndex(testIndex) {
         log(`Single test error: ${e.message}`, 'error');
         setStatus('Single Test Error', 'error');
     } finally {
+        testProgress.delete(tab.id);
+        if (getPreferredTabId() === tab.id) renderTestResults();
         if (runBtn) runBtn.classList.remove('running');
     }
 }
@@ -443,6 +471,7 @@ function renderTestResults() {
     const tests = ccProblem && ccProblem.tests ? ccProblem.tests : [];
     const results = batchTestResults || [];
     const total = tests.length;
+    const progress = testProgress.get(getPreferredTabId());
 
     // Calculate passed from results that match existing tests
     // Note: batchTestResults might be cleared or partial.
@@ -473,12 +502,14 @@ function renderTestResults() {
     let html = '';
 
     // Summary if run
-    if (executed > 0) {
+    if (total > 0) {
         const allPassed = passed === total && total > 0;
         const totalTime = results.reduce((s, r) => s + (r.executionTime || 0), 0);
-        const summaryClass = allPassed ? 'test-results-summary all-passed' : 'test-results-summary has-failed';
+        const failed = results.some(result => result.status !== 'AC');
+        const summaryClass = 'test-results-summary ' + (progress ? 'is-running' : failed ? 'has-failed' : allPassed ? 'all-passed' : 'is-incomplete');
         html += `
-                <div class="${summaryClass}">
+                <div class="${summaryClass}" role="status" aria-live="polite">
+                    <span class="test-phase">${progress ? '<span class="test-spinner" aria-hidden="true"></span> ' + escHtml(progress.phase) : failed ? 'Failed' : allPassed ? 'All tests passed' : 'Not finished — run all tests'}</span>
                     <span class="test-summary-ratio">${passed}/${total}</span>
                     <span class="test-summary-stat passed">✓ ${passed} passed</span>
                     <span class="test-summary-stat failed">✗ ${executed - passed} failed</span>
@@ -492,7 +523,7 @@ function renderTestResults() {
         // Find result for this test index
         const result = results.find(r => r.testIndex === idx);
 
-        let status = 'PENDING';
+        let status = 'Not run';
         let timeStr = '';
         let details = '';
         let statusClass = 'pending';
@@ -509,6 +540,9 @@ function renderTestResults() {
             const inputPreview = (test.input || '').replace(/\n/g, ' ').substring(0, 20);
             details = inputPreview ? `In: ${inputPreview}...` : 'Empty input';
         }
+        if (progress?.running.has(idx)) { status = 'Running'; statusClass = 'running'; details = 'Executing your solution…'; timeStr = ''; }
+        else if (!result && progress) { status = 'Waiting'; details = progress.phase; }
+        else if (result) { details = ({ AC: 'Passed', WA: 'Wrong answer', RE: 'Runtime error', TLE: 'Time limit exceeded', CE: 'Compile error' }[result.status] || result.status) + (details ? ' · ' + details : ''); }
 
         const isAC = result && result.status === 'AC';
         const itemClass = `test-result-item status-${escHtml(statusClass)}${isAC ? ' item-ac' : ''}`;
@@ -521,7 +555,7 @@ function renderTestResults() {
                         <span class="test-result-details">${escHtml(details)}</span>
                     </div>
                     <span class="test-result-time">${timeStr}</span>
-                    <button class="test-run-btn" data-run-index="${idx}" title="Run this test case">
+                    <button class="test-run-btn" data-run-index="${idx}" title="Run this test case" ${progress ? 'disabled' : ''}>
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="8 5 19 12 8 19 8 5"></polygon>
                         </svg>
