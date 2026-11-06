@@ -28,8 +28,10 @@ function setMainWindow(window) {
  */
 function registerHandlers() {
     // Compile
-    ipcMain.handle(IPC.COMPILER.COMPILE, async (event, { filePath, content, flags, useLLD, noBuildCache, singleFileMode, realtimeOutput, untitledId }) => {
-        return await compiler.compile({ filePath, content, flags, useLLD, noBuildCache, singleFileMode, realtimeOutput, untitledId });
+    ipcMain.handle(IPC.COMPILER.COMPILE, async (event, options) => {
+        const runtime = require('../services/languages/runtime');
+        if (runtime.languageForFile(options.filePath || options.fileName) !== 'cpp') return runtime.build(options);
+        return await compiler.compile(options);
     });
 
     // Run
@@ -43,6 +45,13 @@ function registerHandlers() {
     // Stop
     ipcMain.handle(IPC.COMPILER.STOP, async () => {
         compiler.stopProcess();
+        return { success: true };
+    });
+
+    ipcMain.handle('end-input', () => {
+        const child = compiler.getRunningProcess();
+        if (!child?.stdin || child.stdin.destroyed) return { success: false, error: 'No running process' };
+        child.stdin.end();
         return { success: true };
     });
 

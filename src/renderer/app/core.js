@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS = {
         formatStyle: 'google',  // AStyle preset (app/services/formatter/styles.js)
         formatOnSave: false     // Format C/C++ files on Ctrl+S (not on auto-save)
     },
+    languages: {},
     compiler: {
         cppStandard: '',
         optimization: '',
@@ -120,6 +121,7 @@ int main() {
         saveAs: 'Ctrl+Shift+S',
         newFile: 'Ctrl+N',
         openFile: 'Ctrl+O',
+        openFolder: 'Ctrl+Shift+O',
         newTab: 'Ctrl+T',
         closeTab: 'Ctrl+W',
         nextTab: 'Ctrl+Tab',
@@ -389,6 +391,9 @@ function fileExtension(name) {
 function languageForFile(name) {
     const ext = fileExtension(name);
     if (!ext || CPP_EXTENSIONS.has(ext)) return 'cpp';
+    if (ext === 'py') return 'python';
+    if (ext === 'java') return 'java';
+    if (ext === 'cs') return 'csharp';
     if (ext === 'md' || ext === 'markdown') return 'markdown';
     return 'sameko-text';
 }
@@ -398,12 +403,17 @@ function isCppTab(tab) {
     return !tab || languageForFile(tab.path || tab.name) === 'cpp';
 }
 
+function isRunnableTab(tab) {
+    return !!tab && ['cpp', 'python', 'java', 'csharp'].includes(languageForFile(tab.path || tab.name));
+}
+
 /** After a rename or Save As the extension may have changed. */
 function syncTabLanguage(tab) {
     if (!tab?.model || tab.model.isDisposed()) return;
     registerTextLanguage();
     const language = languageForFile(tab.path || tab.name);
     if (tab.model.getLanguageId() !== language) {
+        tab.exePath = null;
         monaco.editor.setModelLanguage(tab.model, language);
         // C++ diagnostics do not apply to a write-up or to test data.
         if (language !== 'cpp') monaco.editor.setModelMarkers(tab.model, 'live-check', []);
@@ -529,7 +539,7 @@ function syncEditorToActiveTab() {
 }
 
 function initMonaco(onReady, onLoadError) {
-    // The Monaco bundle (scripts/build-monaco.js) sets window.monaco when it runs.
+    // The Monaco bundle (scripts/build/build-monaco.js) sets window.monaco when it runs.
     loadScript('vendor/monaco/editor.js', { module: true }).then(async function () {
 
         // Register enhanced C++ tokenizer with escape sequence highlighting
@@ -735,6 +745,7 @@ function initMonaco(onReady, onLoadError) {
 
         if (typeof registerCppIntellisense === 'function') {
             registerCppIntellisense(monaco);
+            if (window.LanguageSupport) LanguageSupport.register(monaco);
         }
 
         if (typeof onReady === 'function') onReady();

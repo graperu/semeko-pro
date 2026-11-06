@@ -18,7 +18,7 @@ let mainWindow = null;
 // Monaco becomes unusable well before this; refuse instead of freezing the window.
 const MAX_OPEN_BYTES = 16 * 1024 * 1024;
 
-const SOURCE_EXTENSIONS = ['cpp', 'c', 'h', 'hpp', 'cc', 'cxx', 'hh', 'hxx'];
+const SOURCE_EXTENSIONS = ['py', 'java', 'cs', 'cpp', 'c', 'h', 'hpp', 'cc', 'cxx', 'hh', 'hxx'];
 // Write-ups and test data that sit next to solutions.
 const TEXT_EXTENSIONS = ['txt', 'md', 'inp', 'in', 'out', 'ans', 'ok', 'log', 'csv', 'json'];
 const ALL_FILES = { name: 'All Files', extensions: ['*'] };
@@ -28,6 +28,9 @@ function saveFilters(defaultPath) {
     const filters = [
         { name: 'C++ Source', extensions: ['cpp', 'cc', 'cxx'] },
         { name: 'C Source', extensions: ['c'] },
+        { name: 'Python', extensions: ['py'] },
+        { name: 'Java', extensions: ['java'] },
+        { name: 'C#', extensions: ['cs'] },
         { name: 'Header', extensions: ['h', 'hpp', 'hh', 'hxx'] },
         { name: 'Text', extensions: ['txt'] },
         { name: 'Markdown', extensions: ['md'] },
@@ -257,7 +260,7 @@ function registerHandlers() {
             properties: ['openFile', 'multiSelections'],
             filters: [
                 { name: 'Code, Text & Test Data', extensions: [...SOURCE_EXTENSIONS, ...TEXT_EXTENSIONS] },
-                { name: 'C/C++ Files', extensions: SOURCE_EXTENSIONS },
+                { name: 'Source Files', extensions: SOURCE_EXTENSIONS },
                 { name: 'Text & Test Data (.txt .md .inp .out …)', extensions: TEXT_EXTENSIONS },
                 ALL_FILES
             ]

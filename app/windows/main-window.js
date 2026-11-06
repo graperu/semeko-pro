@@ -265,6 +265,16 @@ function createMainWindow() {
     };
 
     mainWindow = new BrowserWindow(windowOptions);
+    if (IS_WIN) {
+        // Windows can relaunch a taskbar button without the original command-line
+        // arguments. In development Electron needs the source root to start Sameko.
+        mainWindow.setAppDetails({
+            appId: 'com.quangquy.cppide',
+            appIconPath: path.join(appRoot, 'src', 'assets', 'icon.ico'),
+            relaunchDisplayName: 'Semeko Pro',
+            relaunchCommand: app.isPackaged ? `"${process.execPath}"` : `"${process.execPath}" "${appRoot}"`
+        });
+    }
     attachDisplaySafetyListeners();
 
     // Restore maximized state

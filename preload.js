@@ -26,6 +26,16 @@ try {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    languageTools: () => ipcRenderer.invoke('language-tools'),
+    languageWorkspace: extension => ipcRenderer.invoke('language-workspace', extension),
+    languageRequest: data => ipcRenderer.invoke('language-request', data),
+    languageClose: file => ipcRenderer.invoke('language-close', file),
+    languageRestart: () => ipcRenderer.invoke('language-restart'),
+    onLanguageDiagnostics: callback => {
+        const handler = (_, data) => callback(data);
+        ipcRenderer.on('language-diagnostics', handler);
+        return () => ipcRenderer.removeListener('language-diagnostics', handler);
+    },
     // File operations
     openFile: (options) => ipcRenderer.invoke('open-file-dialog', options),
     getLaunchFiles: () => ipcRenderer.invoke('get-launch-files'),
@@ -55,6 +65,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Build operations
     compile: (data) => ipcRenderer.invoke('compile', data),
     run: (data) => ipcRenderer.invoke('run', data),
+    endInput: () => ipcRenderer.invoke('end-input'),
     sendInput: (input) => ipcRenderer.invoke('send-input', input),
     sendInputFile: (filePath) => ipcRenderer.invoke('send-input-file', filePath),
     inputFileInfo: (filePath) => ipcRenderer.invoke('input-file-info', filePath),
@@ -111,6 +122,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Competitive Companion
     ccStartServer: () => ipcRenderer.invoke('cc-start-server'),
+    ojListProblems: options => ipcRenderer.invoke('oj-list-problems', options),
+    ojProblemDetail: options => ipcRenderer.invoke('oj-problem-detail', options),
+    ojOpenProblem: options => ipcRenderer.invoke('oj-open-problem', options),
     ccOpenExtensionPage: () => ipcRenderer.invoke('cc-open-extension-page'),
     onProblemReceived: (callback) => ipcRenderer.on('problem-received', (event, data) => callback(data)),
 

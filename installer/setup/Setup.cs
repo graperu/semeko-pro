@@ -1,10 +1,10 @@
-// Sameko Dev C++ setup: a themed front end for the NSIS installer that electron-builder makes.
+// Semeko Pro setup: a themed front end for the NSIS installer that electron-builder makes.
 //
 // The window (Setup.xaml) asks where to install, then runs the embedded NSIS installer silently
 // (/S /D=<folder>) and shows its progress. NSIS still does the real work - files, shortcuts,
 // registry, uninstaller - so updates through electron-updater and uninstalling are unchanged.
 //
-// Built by scripts/build-setup.js with the C# 5 compiler that ships with .NET Framework 4.8
+// Built by scripts/build/build-setup.js with the C# 5 compiler that ships with .NET Framework 4.8
 // (present on every Windows 10/11), so it needs no SDK and no runtime download.
 //
 //   sameko-dev-cpp-<version>-installer.exe          install
@@ -45,8 +45,8 @@ namespace Sameko.Setup
 
     internal class SetupWindow
     {
-        const string ProductName = "Sameko Dev C++";
-        const string ExeName = "Sameko Dev C++.exe";
+        const string ProductName = "Semeko Pro";
+        const string ExeName = "Semeko Pro.exe";
 
         public readonly Window Window;
         readonly bool demo;
@@ -306,8 +306,8 @@ namespace Sameko.Setup
                     title.Text = "All set!";
                     text.Text = demo
                         ? "This was a preview: nothing was installed."
-                        : "Sameko Dev C++ and its compiler are installed. Updates will install themselves.";
-                    button.Content = Get<CheckBox>("LaunchBox").IsChecked == true && !demo ? "Open Sameko" : "Close";
+                        : "Semeko Pro and its compiler are installed. Updates will install themselves.";
+                    button.Content = Get<CheckBox>("LaunchBox").IsChecked == true && !demo ? "Open Semeko Pro" : "Close";
                 }
                 else
                 {
@@ -348,7 +348,7 @@ namespace Sameko.Setup
                             string loc = app.GetValue("InstallLocation") as string;
                             if (!string.IsNullOrEmpty(loc)) return loc.TrimEnd('\\');
                             // electron-builder leaves InstallLocation empty; the uninstaller sits in
-                            // the install folder: "D:\Sameko Dev C++\Uninstall Sameko Dev C++.exe" /currentuser
+                            // the install folder: "D:\Semeko Pro\Uninstall Semeko Pro.exe" /currentuser
                             string un = app.GetValue("UninstallString") as string ?? "";
                             int q = un.IndexOf('"', 1);
                             if (un.StartsWith("\"") && q > 1) return System.IO.Path.GetDirectoryName(un.Substring(1, q - 1));
@@ -459,7 +459,7 @@ namespace Sameko.Setup
                 uint options;
                 dialog.GetOptions(out options);
                 dialog.SetOptions(options | 0x20 | 0x40 | 0x800); // PICKFOLDERS | FORCEFILESYSTEM | PATHMUSTEXIST
-                dialog.SetTitle("Choose where to install Sameko Dev C++");
+                dialog.SetTitle("Choose where to install Semeko Pro");
                 if (!string.IsNullOrEmpty(start) && Directory.Exists(start))
                 {
                     IShellItem folder;

@@ -32,6 +32,7 @@ const ACTION_HANDLERS = {
     'saveAs': () => window.ThemeCustomizer?.popup ? ThemeCustomizer.save({ asNew: true }) : saveAs(),
     'newFile': () => newFile(),
     'openFile': () => openFile(),
+    'openFolder': () => FileExplorer.openFolderDialog(),
     'newTab': () => newFile(),
     'closeTab': () => { const id = getPreferredTabId(); if (id) closeTab(id); },
     'nextTab': () => cycleTab(1),
@@ -141,6 +142,7 @@ function updateMenuShortcutLabels() {
     const menuToKeybinding = {
         'new': 'newFile',
         'open': 'openFile',
+        'openfolder': 'openFolder',
         'save': 'save',
         'saveas': 'saveAs',
         'buildrun': 'buildRun',
@@ -338,7 +340,11 @@ async function formatCode(editor = null, { silent = false } = {}) {
     if (!editor) return false;
     const model = editor.getModel();
     // AStyle formats C/C++ only; on a write-up it would reflow the text as code.
-    if (!model || !isCppTab(getTabForModel(model))) return false;
+    if (!model) return false;
+    if (!isCppTab(getTabForModel(model))) {
+        if (isRunnableTab(getTabForModel(model)) && window.LanguageSupport) return LanguageSupport.format(editor);
+        return false;
+    }
 
     const code = model.getValue();
     if (!code.trim()) return false;

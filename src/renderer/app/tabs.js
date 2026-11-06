@@ -12,15 +12,37 @@
 // ============================================================================
 const pendingFileOpens = new Map();
 
-/** A new untitled tab. `ext` picks the file type (right-click the + button); C++ by default.
- *  .cpp and .c start from their template in Settings > Template, other types empty. */
-function newFile(ext = 'cpp') {
-    if (typeof ext !== 'string') ext = 'cpp';   // called as a click handler
+/** Switch an unsaved source tab; saved files keep their name and contents. */
+function switchSourceLanguage(ext) {
+    const tab = App.tabs.find(t => t.id === getPreferredTabId());
+    if (!tab || tab.path) { newFile(ext, helloWorldTemplate(ext)); return; }
+    const previousExt = fileExtension(tab.name);
+    if (previousExt === ext) return;
+    const template = type => type === 'cpp' ? (App.settings.template?.code ?? DEFAULT_CODE)
+        : type === 'c' ? (App.settings.template?.cCode ?? DEFAULT_SETTINGS.template.cCode) : languageTemplate(type);
+    const content = tab.model ? tab.model.getValue() : tab.content;
+    if (content.trim() && content !== template(previousExt) && content !== helloWorldTemplate(previousExt)) {
+        newFile(ext, helloWorldTemplate(ext));
+        return;
+    }
+    setTabText(tab, helloWorldTemplate(ext));
+    const stem = tab.name.replace(/\.[^.]+$/, '');
+    tab.name = (ext === 'java' ? 'Main' : stem) + '.' + ext;
+    tab.exePath = null;
+    syncTabLanguage(tab);
+    renderTabs();
+    updateLanguageStatus();
+    scheduleSessionSave();
+}
+
+/** New source tab from Settings > Template; without an extension use the selected language. */
+function newFile(ext = null, starter = null) {
+    if (typeof ext !== 'string') ext = defaultSourceExtension();   // called as a click handler
     const id = createRestoredTabId();
 
-    const templateCode = ext === 'cpp' ? (App.settings.template?.code ?? DEFAULT_CODE)
-        : ext === 'c' ? (App.settings.template?.cCode ?? DEFAULT_SETTINGS.template.cCode) : '';
-    const tab = { id, name: 'untitled.' + ext, path: null, untitledHistoryKey: createUntitledHistoryKey(), content: templateCode, original: templateCode, modified: false, viewState: null };
+    const templateCode = starter ?? (ext === 'cpp' ? (App.settings.template?.code ?? DEFAULT_CODE)
+        : ext === 'c' ? (App.settings.template?.cCode ?? DEFAULT_SETTINGS.template.cCode) : languageTemplate(ext));
+    const tab = { id, name: (ext === 'java' ? 'Main' : 'untitled') + '.' + ext, path: null, untitledHistoryKey: createUntitledHistoryKey(), content: templateCode, original: templateCode, modified: false, viewState: null };
     App.tabs.push(tab);
     setActive(id);
     updateUI();
@@ -399,8 +421,11 @@ function closeMenus() {
 
 function doAction(action) {
     const map = {
-        new: newFile, open: openFile, save, saveas: () => saveAs(), run, buildrun: buildRun, stop,
+        new: newFile, open: openFile, openfolder: () => FileExplorer.openFolderDialog(), save, saveas: () => saveAs(), run, buildrun: buildRun, stop,
         compile: compileOnly,
+        browseproblems: () => ProblemBrowser.open(),
+        runfolder: () => WorkspaceSupport.runFolder(),
+        setmain: () => WorkspaceSupport.setMain(),
         mdpreview: () => window.MarkdownPreview?.toggle(getActiveEditor()),
         // Same as the toolbar button, which narrow windows hide.
         gettests: () => document.getElementById('btn-cc')?.click(),

@@ -502,7 +502,7 @@ class AutoUpdateService {
 
             const parsed = installerFiles
                 .map(({ dir, file }) => {
-                    const versionMatch = file.match(/sameko-dev-cpp-setup-(\d+\.\d+\.\d+)/);
+                    const versionMatch = file.match(/(?:semeko-pro|sameko-dev-cpp)-setup-(\d+\.\d+\.\d+)/);
                     return {
                         dir,
                         file,

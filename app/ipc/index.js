@@ -12,10 +12,12 @@ const historyHandlers = require('./history-handlers');
 const discordHandlers = require('./discord-handlers');
 const debugHandlers = require('./debug-handlers');
 const stateHandlers = require('./state-handlers');
+const languageHandlers = require('./language-handlers');
 
 /** Point the handlers that talk to the window at this one (also a recreated window). */
 function bindWindow(mainWindow) {
     fileHandlers.setMainWindow(mainWindow);
+    languageHandlers.setMainWindow(mainWindow);
     compilerHandlers.setMainWindow(mainWindow);
     dialogHandlers.setMainWindow(mainWindow);
     competitiveHandlers.setMainWindow(mainWindow);
@@ -30,6 +32,7 @@ function registerAllHandlers(mainWindow) {
     require('../services/compiler').setFileWatcherCallback(fileHandlers.updateFileWatcherMtime);
 
     fileHandlers.registerHandlers();
+    languageHandlers.registerHandlers();
     compilerHandlers.registerHandlers();
     dialogHandlers.registerHandlers();
     windowHandlers.registerHandlers();

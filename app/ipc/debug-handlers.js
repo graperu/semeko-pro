@@ -53,7 +53,8 @@ function registerHandlers() {
             // Auto dry run needs the program to pause on its first line even with
             // no user breakpoints — a temporary breakpoint on main does that.
             if (breakAtMain) { try { await dbg.breakAtMain(); } catch (_) { } }
-            await dbg.run(stdin, stdinPath);
+            try { await dbg.run(stdin, stdinPath); }
+            catch (error) { await dbg.stop(); throw error; }
             return { breakpoints: registered };
         });
     });

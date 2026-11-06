@@ -2,7 +2,7 @@
 // VIM MODE - monaco-vim, Settings › Editor › Vim Mode
 // ============================================================================
 // The keymap is vendor/monaco/vim.js (a second entry of the Monaco bundle, see
-// scripts/build-monaco.js), imported on first use so the editor starts without it.
+// scripts/build/build-monaco.js), imported on first use so the editor starts without it.
 // While Vim Mode is on, shortcuts come from the Vim keybinding profile
 // (DEFAULT_SETTINGS.keybindingsVim), which leaves the Ctrl keys Vim needs to Vim.
 

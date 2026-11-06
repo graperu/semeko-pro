@@ -49,7 +49,10 @@ async function runTest({ exePath, input, expectedOutput, timeLimit = 3000, cwd, 
             stderrPreview: '',
         };
 
-        const workingDir = cwd || path.dirname(exePath);
+        let launch;
+        try { launch = require('../languages/runtime').resolveRun(exePath); }
+        catch (error) { resolve({ status: 'CE', error: error.message }); return; }
+        const workingDir = cwd || launch.cwd;
         let output = '';
         let errorOutput = '';
         let killed = false;
@@ -59,11 +62,11 @@ async function runTest({ exePath, input, expectedOutput, timeLimit = 3000, cwd, 
         // Create test process. On Windows it goes through the native launcher,
         // which measures the program's own wall time and peak memory exactly.
         // POSIX: its own process group, so a timeout can stop whatever it started.
-        const launcher = getLauncherIfReady();
+        const launcher = launch.managed ? null : getLauncherIfReady();
         const statsFile = launcher ? newStatsFile() : null;
         const testProcess = launcher
             ? spawn(launcher, [statsFile, exePath], { cwd: workingDir, env: getCompilerEnv(), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
-            : spawn(exePath, [], { cwd: workingDir, env: getCompilerEnv(), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, detached: !IS_WIN });
+            : spawn(launch.command, launch.args, { cwd: workingDir, env: getCompilerEnv(), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, detached: !IS_WIN });
 
         const pid = testProcess.pid;
         debugInfo.pid = pid || null;

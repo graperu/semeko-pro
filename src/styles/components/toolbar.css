@@ -1,4 +1,4 @@
-/* Header toolbar: Phosphor icons (see scripts/build-icons.js) on borderless buttons in the style of
+/* Header toolbar: Phosphor icons (see scripts/build/build-icons.js) on borderless buttons in the style of
  * the Windows 11 taskbar. Hover shows a soft tile, an active toggle gets a tinted tile, an indicator
  * bar under the icon and the filled icon weight. Loaded after themes.css so it applies to every
  * theme; colours come from theme tokens only. */

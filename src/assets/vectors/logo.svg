@@ -89,7 +89,7 @@
 
   <!-- Floating Group -->
   <g>
-    <!-- Main "SAMEKO" Text -->
+    <!-- Main "SEMEKO" Text -->
     <g transform="translate(400, 180)" filter="url(#drop-shadow)">
       <!-- Deepest shadow/outline -->
       <text x="0" y="0" text-anchor="middle" 
@@ -101,7 +101,7 @@
             stroke-width="32"
             stroke-linejoin="round"
             letter-spacing="5">
-        SAMEKO
+        SEMEKO
       </text>
 
       <!-- White outer rim -->
@@ -114,7 +114,7 @@
             stroke-width="18"
             stroke-linejoin="round"
             letter-spacing="5">
-        SAMEKO
+        SEMEKO
       </text>
 
       <!-- Inner dark blue outline -->
@@ -127,7 +127,7 @@
             stroke-width="10"
             stroke-linejoin="round"
             letter-spacing="5">
-        SAMEKO
+        SEMEKO
       </text>
 
       <!-- Full Unified Gradient Fill -->
@@ -137,7 +137,7 @@
             font-size="140" 
             fill="url(#text-grad)"
             letter-spacing="5">
-        SAMEKO
+        SEMEKO
       </text>
 
       <!-- Cute Highlights/Reflections on letters -->
@@ -166,7 +166,7 @@
               fill="#5FA8D3" 
               letter-spacing="4"
               filter="url(#sub-glow)">
-          IDE PROJECT
+          PRO
         </text>
 
         <!-- Little star icon next to text -->

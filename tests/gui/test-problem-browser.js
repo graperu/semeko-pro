@@ -1,0 +1,133 @@
+'use strict';
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { _electron } = require('playwright-core');
+const ROOT = path.resolve(__dirname, '../..');
+const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sameko-problems-gui-'));
+let app, page;
+async function search(provider, text, title) {
+    await page.locator('#btn-problem-browser').click();
+    await page.locator('#oj-provider').selectOption(provider);
+    await page.locator('#oj-search').fill(text);
+    await page.locator('#oj-search-form').evaluate(form => form.requestSubmit());
+    const result = page.locator('.oj-result').filter({ has: page.locator('strong', { hasText: title }) }).first();
+    await result.waitFor({ state: 'visible', timeout: 60000 });
+    await result.click();
+    await page.waitForFunction(() => !document.getElementById('oj-start').disabled, { timeout: 30000 });
+}
+async function main() {
+    const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+    app = await _electron.launch({ executablePath: require('electron'), args: [ROOT, '--user-data-dir=' + profile], cwd: ROOT, env });
+    for (let i = 0; i < 600; i++) {
+        page = app.windows().find(window => window.url().includes('index.html'));
+        if (page) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert(page);
+    const errors = []; page.on('pageerror', error => errors.push(error.message));
+    await page.waitForFunction(() => window.App?.ready);
+    await page.evaluate(() => ensureMonaco());
+    const draft = await page.evaluate(() => { App.settings.oj = { ...App.settings.oj, importTarget: 'current-tab' }; newFile('cpp'); const tab = App.tabs.find(t => t.id === getPreferredTabId()); setTabText(tab, '// keep my unsaved solution'); return tab.id; });
+    await search('codeforces', '4A', /^4A\. Watermelon$/);
+    await page.locator('#oj-language').selectOption('py');
+    const artifactDir = path.join(ROOT, 'plans/artifacts/gui'); fs.mkdirSync(artifactDir, { recursive: true });
+    await page.screenshot({ path: path.join(artifactDir, 'problem-browser-codeforces.png') });
+    await page.locator('#oj-start').click();
+    await page.waitForFunction(() => !document.getElementById('oj-browser').open);
+    assert.strictEqual(await page.evaluate(id => App.tabs.find(t => t.id === id).model.getValue(), draft), '// keep my unsaved solution');
+    assert(await page.evaluate(() => App.tabs.find(t => t.id === getPreferredTabId()).content.includes('codeforces.com/problemset/problem/4/A')));
+    console.log('PASS Codeforces: search exact ID, select problem, create Python source and preserve draft');
+    await search('leetcode', 'two sum', /^1\. Two Sum$/);
+    assert((await page.locator('#oj-statement').innerText()).includes('target'));
+    await page.locator('#oj-language').selectOption('cpp');
+    await page.locator('#oj-start').click();
+    await page.waitForFunction(() => !document.getElementById('oj-browser').open);
+    assert(await page.evaluate(() => App.tabs.find(t => t.id === getPreferredTabId()).content.includes('class Solution')));
+    await page.evaluate(() => buildRun());
+    assert.strictEqual(await page.evaluate(() => App.tabs.find(t => t.id === getPreferredTabId()).exePath || null), null);
+    assert((await page.locator('#status').innerText()).includes('LeetCode'));
+    console.log('PASS LeetCode: public statement, official C++ function template and honest local-run message');
+    await search('hackerrank', 'simple array sum', /^Simple Array Sum$/);
+    await page.screenshot({ path: path.join(artifactDir, 'problem-browser-hackerrank.png') });
+    await page.locator('#oj-language').selectOption('py');
+    await page.locator('#oj-start').click();
+    await page.waitForFunction(() => !document.getElementById('oj-browser').open);
+    const tests = await page.evaluate(() => App.tabs.find(t => t.id === getPreferredTabId()).testState.problem.tests);
+    console.log('Imported HackerRank sample:', JSON.stringify(tests[0]));
+    assert(tests.length && tests[0].output.trim() === '31');
+    await page.evaluate(() => {
+        const tab = App.tabs.find(t => t.id === getPreferredTabId());
+        const code = tab.model.getValue().replace(/def simpleArraySum\(ar\):[\s\S]*?(?=\nif __name__)/, 'def simpleArraySum(ar):\n    return sum(ar)\n');
+        if (!code.includes('return sum(ar)')) throw new Error('Official Python template did not contain the expected function');
+        setTabText(tab, code); App.settings.execution.autoSendInput = true;
+        window.ojRunErrors = [];
+        window.electronAPI.onProcessError(text => window.ojRunErrors.push(text));
+    });
+    await page.evaluate(() => buildRun());
+    await page.waitForFunction(() => !App.isRunning && !isBuilding);
+    const runResult = await page.evaluate(() => ({ output: App.outputByTab[getPreferredTabId()], code: App.tabs.find(t => t.id === getPreferredTabId()).model.getValue(), status: document.getElementById('status').textContent, input: document.getElementById('input-area').value, errors: window.ojRunErrors }));
+    assert.strictEqual(runResult.output?.text.trim(), '31', JSON.stringify(runResult));
+    console.log('PASS HackerRank: real statement/samples/starter, complete Python solution runs sample to 31');
+    for (const ext of ['cpp', 'c', 'java', 'cs']) {
+        const result = await page.evaluate(async ext => {
+            const response = await window.electronAPI.ojProblemDetail({ provider: 'hackerrank', id: 'simple-array-sum' });
+            if (!response.ok) throw new Error(response.error);
+            let code = ProblemBrowser.starter(response.data, ext);
+            if (ext === 'cpp') code = code.replace(/int simpleArraySum\(vector<int> ar\)\s*\{[\s\S]*?\n\}/, 'int simpleArraySum(vector<int> ar) { int total = 0; for (int n : ar) total += n; return total;\n}');
+            if (ext === 'c') code = code.replace(/int simpleArraySum\(int ar_count, int\* ar\)\s*\{[\s\S]*?\n\}/, 'int simpleArraySum(int ar_count, int* ar) { int total = 0; for (int i = 0; i < ar_count; i++) total += ar[i]; return total;\n}');
+            if (ext === 'java') code = code.replace(/public static int simpleArraySum\(List<Integer> ar\)\s*\{[\s\S]*?\n    \}/, 'public static int simpleArraySum(List<Integer> ar) { return ar.stream().mapToInt(Integer::intValue).sum();\n    }');
+            if (ext === 'cs') code = code.replace(/public static int simpleArraySum\(List<int> ar\)\s*\{[\s\S]*?\n    \}/, 'public static int simpleArraySum(List<int> ar) { return ar.Sum();\n    }');
+            const build = await window.electronAPI.compile({ fileName: ext === 'java' ? 'Solution.java' : 'solution.' + ext, untitledId: 'oj-wrapper-' + ext, content: code, flags: buildCompileFlags(), singleFileMode: true });
+            if (!build.success) throw new Error(ext + ': ' + build.error);
+            return window.electronAPI.runTest({ exePath: build.outputPath, input: '6\n1 2 3 4 10 11\n', expectedOutput: '31', timeLimit: 10000 });
+        }, ext);
+        assert.strictEqual(result.status, 'AC', ext + ': ' + JSON.stringify(result));
+        console.log(`PASS HackerRank ${ext}: full official starter with completed function runs local sample`);
+    }
+    const safe = await page.evaluate(async () => ProblemBrowser.safeStatement('<style>body{display:none}</style><script>window.ojInjected=1</script><img src="https://evil.example/x"><p id="header-language" onclick="alert(1)">Safe statement</p>', 'leetcode'));
+    assert(!safe.includes('onclick') && !safe.includes('<script') && !safe.includes('<style') && !safe.includes('evil.example'));
+    assert.deepStrictEqual(errors, []);
+    await search('leetcode', 'two sum', /^1\. Two Sum$/);
+    const artifacts = path.join(ROOT, 'plans/artifacts/gui'); fs.mkdirSync(artifacts, { recursive: true });
+    await page.screenshot({ path: path.join(artifacts, 'problem-browser.png') });
+    await page.keyboard.press('Escape');
+    assert.strictEqual(await page.locator('#oj-browser').evaluate(dialog => dialog.open), false);
+    console.log('PASS untrusted statements sanitized, Escape closes browser, no renderer errors');
+    await page.evaluate(() => saveSession(true));
+    const restored = await page.evaluate(async () => {
+        const session = await window.electronAPI.stateRead('session');
+        const leetcode = session.tabs.find(tab => tab.tests?.sourcePlatform === 'leetcode');
+        return leetcode && restoredTestState(leetcode)?.problem.solutionMode;
+    });
+    assert.strictEqual(restored, 'function');
+    console.log('PASS LeetCode function-solution metadata survives session checkpoint/restore');
+    await page.locator('#btn-problem-browser').click();
+    await page.locator('.oj-result').filter({ has: page.locator('strong', { hasText: /^1214\. Two Sum BSTs$/ }) }).click();
+    assert((await page.locator('#oj-problem-note').innerText()).includes('locked'));
+    assert(await page.locator('#oj-start').isDisabled());
+    await app.evaluate(({ shell }) => { shell.openExternal = async url => { global.ojOpenedURL = url; }; });
+    await page.locator('#oj-open-official').click();
+    assert.strictEqual(await app.evaluate(() => global.ojOpenedURL), 'https://leetcode.com/problems/two-sum-bsts/');
+    await page.keyboard.press('Escape');
+    console.log('PASS Premium stays locked and official-page action uses canonical platform URL');
+    await app.evaluate(() => {
+        const original = global.fetch;
+        global.fetch = (url, options) => {
+            if (options?.body?.includes('sameko-failure-fixture')) return Promise.resolve({ ok: false, status: 503 });
+            return original(url, options);
+        };
+    });
+    await page.locator('#btn-problem-browser').click();
+    await page.locator('#oj-search').fill('sameko-failure-fixture');
+    await page.locator('#oj-search-form').evaluate(form => form.requestSubmit());
+    await page.waitForFunction(() => document.getElementById('oj-status').textContent.includes('HTTP 503'));
+    assert.strictEqual(await page.locator('.oj-result').count(), 0);
+    assert(await page.locator('#oj-start').isDisabled());
+    await page.locator('#oj-search').fill('two sum');
+    await page.locator('#oj-search-form').evaluate(form => form.requestSubmit());
+    await page.locator('.oj-result').filter({ has: page.locator('strong', { hasText: /^1\. Two Sum$/ }) }).waitFor();
+    console.log('PASS platform error clears stale results and Search recovers');
+}
+main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (app) await app.close(); });

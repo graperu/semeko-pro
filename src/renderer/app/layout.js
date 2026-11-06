@@ -1,5 +1,5 @@
 /**
- * Sameko Dev C++ IDE - renderer: Panel visibility, header buttons, docking of Terminal and I/O, resizers, Discord presence.
+ * Semeko Pro IDE - renderer: Panel visibility, header buttons, docking of Terminal and I/O, resizers, Discord presence.
  *
  * One of the files that used to be the single renderer/app.js. They are plain
  * <script> files sharing one global scope and are loaded by index.html in a
@@ -37,6 +37,26 @@ function updateUI() {
 // HEADER
 // ============================================================================
 function initHeader() {
+    ProblemBrowser.init();
+    WorkspaceSupport.init();
+    document.getElementById('header-language').onclick = event => {
+        event.stopPropagation();
+        const rect = event.currentTarget.getBoundingClientRect();
+        openContextMenu({ clientX: rect.left, clientY: rect.bottom },
+            [['cpp', 'C++'], ['c', 'C'], ['py', 'Python'], ['java', 'Java'], ['cs', 'C#']].map(([ext, label]) => ({
+                label, hint: 'Workspace', icon: NEW_FILE_ICON,
+                action: () => WorkspaceSupport.openLanguage(ext)
+            })));
+    };
+    document.getElementById('status-std').onclick = event => {
+        event.stopPropagation();
+        const rect = event.currentTarget.getBoundingClientRect();
+        openContextMenu({ clientX: rect.left, clientY: rect.top },
+            [['cpp', 'C++'], ['c', 'C'], ['java', 'Java'], ['py', 'Python'], ['cs', 'C#']].map(([ext, label]) => ({
+                label, hint: '.' + ext, icon: NEW_FILE_ICON,
+                action: () => switchSourceLanguage(ext)
+            })));
+    };
     document.getElementById('btn-new-tab').onclick = () => newFile();
     document.getElementById('btn-new-tab').oncontextmenu = e => { e.preventDefault(); showNewFileMenu(e); };
     document.getElementById('btn-buildrun').onclick = buildRun;
@@ -48,6 +68,7 @@ function initHeader() {
 
     document.getElementById('welcome-new').onclick = newFile;
     document.getElementById('welcome-open').onclick = openFile;
+    document.getElementById('welcome-open-folder').onclick = () => FileExplorer.openFolderDialog();
 
     document.getElementById('btn-close').onclick = () => window.electronAPI?.closeWindow?.();
     document.getElementById('btn-min').onclick = () => window.electronAPI?.minimizeWindow?.();
@@ -207,6 +228,7 @@ function initPanels() {
     initBottomPanelCollapse();
 
     document.getElementById('btn-send').onclick = sendInput;
+    document.getElementById('btn-eof').onclick = () => window.electronAPI.endInput();
 
     // Input from a file (#49): the button, its clear button, or a file dropped on the Input card.
     document.getElementById('btn-input-file').onclick = () => chooseInputFile();
@@ -1043,7 +1065,7 @@ function scheduleDiscordCursorUpdate(line, col) {
 }
 
 // Discord's small image is the file type; the card shows it as a badge on the app icon.
-const DISCORD_BADGES = { cpp: 'C++', cc: 'C++', cxx: 'C++', c: 'C', h: 'H', hpp: 'H++', md: 'MD', json: 'JSON' };
+const DISCORD_BADGES = { py: 'Python', java: 'Java', cs: 'C#', cpp: 'C++', cc: 'C++', cxx: 'C++', c: 'C', h: 'H', hpp: 'H++', md: 'MD', json: 'JSON' };
 let _discordPreviewTimer = null;
 
 /** Elapsed time on the preview card, ticking once a second while Settings is open. */
@@ -1086,9 +1108,9 @@ function updateDiscordPreview() {
             : null;
         stateEl.textContent = folder
             ? `In ${folder} - Ln ${_discordLastPos.line}, Col ${_discordLastPos.col}`
-            : `Sameko Dev C++ - Ln ${_discordLastPos.line}, Col ${_discordLastPos.col}`;
+            : `Semeko Pro - Ln ${_discordLastPos.line}, Col ${_discordLastPos.col}`;
     } else {
         detailsEl.textContent = 'Idle';
-        stateEl.textContent = 'Sameko Dev C++';
+        stateEl.textContent = 'Semeko Pro';
     }
 }

@@ -157,8 +157,15 @@ async function runAllTests() {
     try {
         const compileFlags = buildCompileFlags();
 
+        if (!isRunnableTab(tab)) { log('Choose a source file to run tests.', 'warning'); return; }
+        if (tab.path) {
+            const saved = await window.electronAPI.saveFile({ path: tab.path, content });
+            if (!saved || saved.success === false) throw new Error(saved?.error || 'Could not save source before testing');
+            markTabSaved(tab, content);
+        }
         const compileResult = await window.electronAPI.compile({
             filePath: tab.path,
+            fileName: tab.name,
             untitledId: tab.path ? '' : tab.id,
             content: content,
             flags: compileFlags,
@@ -343,8 +350,15 @@ async function runSingleTestByIndex(testIndex) {
         setStatus(`Single test ${testIndex + 1}: compiling...`, '');
         const content = tabSourceText(tab);
         const compileFlags = buildCompileFlags();
+        if (!isRunnableTab(tab)) { log('Choose a source file to run tests.', 'warning'); return; }
+        if (tab.path) {
+            const saved = await window.electronAPI.saveFile({ path: tab.path, content });
+            if (!saved || saved.success === false) throw new Error(saved?.error || 'Could not save source before testing');
+            markTabSaved(tab, content);
+        }
         const compileResult = await window.electronAPI.compile({
             filePath: tab.path,
+            fileName: tab.name,
             untitledId: tab.path ? '' : tab.id,
             content: content,
             flags: compileFlags,

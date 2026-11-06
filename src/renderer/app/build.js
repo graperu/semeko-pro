@@ -76,7 +76,12 @@ async function buildActiveTab({ runAfter }) {
     const tab = App.tabs.find(t => t.id === getPreferredTabId());
     const editor = getActiveEditor();
     if (!tab) { log('No file open', 'warning'); return; }
-    if (!isCppTab(tab)) { log(`${tab.name} is not a C/C++ file. Switch to the solution's tab to ${verb.toLowerCase()} it.`, 'warning'); return; }
+    if (tab.testState?.problem?.solutionMode === 'function') {
+        log('This LeetCode solution uses a function signature. Run and submit it on LeetCode; a local stdin runner is not included.', 'warning');
+        setStatus('Run this solution on LeetCode', 'warning');
+        return;
+    }
+    if (!isRunnableTab(tab)) { log(`${tab.name} is not a supported source file. Switch to the solution's tab to ${verb.toLowerCase()} it.`, 'warning'); return; }
 
     setBuildingState(true);
     let built = false;
@@ -122,6 +127,8 @@ async function buildActiveTab({ runAfter }) {
         const t0 = Date.now();
         const r = await window.electronAPI.compile({
             filePath: tab.path,
+            fileName: tab.name,
+            workspaceRoot: window.WorkspaceSupport?.buildRoot(tab.path),
             untitledId: tab.path ? '' : tab.id,
             content: tab.content,
             flags: buildCompileFlags(),
@@ -286,7 +293,7 @@ async function runNow(clearTerminal) {
     try {
         runResult = await window.electronAPI.run({
             exePath,
-            cwd: sourceDir,
+            cwd: window.WorkspaceSupport?.buildRoot(exeTab.path) || sourceDir,
             useExternalTerminal: App.settings.execution.useExternalTerminal
         });
     } catch (err) {
@@ -310,7 +317,7 @@ async function runNow(clearTerminal) {
     }
 
     // Skip auto-send input if using external terminal
-    if (App.settings.execution.useExternalTerminal) {
+    if (runResult?.external) {
         return;
     }
 
@@ -469,6 +476,20 @@ function parseProblems(text, type) {
         }
     });
 
+    // javac and dotnet use different diagnostic formats from GCC.
+    for (const line of lines) {
+        const java = line.match(/^(.+\.java):(\d+):\s*(error|warning):\s*(.+)/);
+        const cs = line.match(/^\s*(.+\.cs)\((\d+),(\d+)\):\s*(error|warning)\s+([A-Z]+\d+):\s*(.+?)(?:\s+\[.+\])?$/);
+        if (java) App.problems.push({ file: java[1], line: Number(java[2]), col: 1, type: java[3], message: java[4] });
+        if (cs) {
+            const problem = { file: cs[1], line: Number(cs[2]), col: Number(cs[3]), type: cs[4], message: `${cs[5]}: ${cs[6]}` };
+            if (!App.problems.some(p => p.file === problem.file && p.line === problem.line && p.message === problem.message)) App.problems.push(problem);
+        }
+    }
+    const pythonLocation = [...String(text).matchAll(/File "([^"]+\.py)", line (\d+)/g)].pop();
+    const pythonError = String(text).match(/^(?:\w*Error|\w*Exception):\s*(.+)$/m);
+    if (pythonLocation && pythonError) App.problems.push({ file: pythonLocation[1], line: Number(pythonLocation[2]), col: 1, type, message: pythonError[0] });
+
     if (App.problems.length > 0) {
         App.showProblems = true;
         updateUI();
@@ -579,6 +600,7 @@ function setRunning(v) {
     document.getElementById('btn-stop').disabled = !v;
     document.getElementById('terminal-in').disabled = !v;
     document.getElementById('btn-send').disabled = !v;
+    document.getElementById('btn-eof').disabled = !v;
     document.getElementById('btn-buildrun')?.classList.toggle('running', v);
     document.getElementById('btn-run-only')?.classList.toggle('running', v);
     document.getElementById('btn-stop')?.classList.toggle('running', v);

@@ -64,6 +64,9 @@ function showTabContextMenu(e, tab) {
 const NEW_FILE_TYPES = [
     { ext: 'cpp', label: 'C++ file' },
     { ext: 'c', label: 'C file' },
+    { ext: 'py', label: 'Python file' },
+    { ext: 'java', label: 'Java file' },
+    { ext: 'cs', label: 'C# file' },
     { divider: true },
     { ext: 'inp', label: 'Input' },
     { ext: 'out', label: 'Output' },

@@ -185,7 +185,7 @@ function sendToRenderer(channel, data) {
  * @param {string} [options.flags] - Compiler flags
  * @returns {Promise<import('../../shared/types').CompileResult>}
  */
-async function compile({ filePath, content, flags, useLLD, noBuildCache = false, singleFileMode = false, realtimeOutput = true, untitledId = '' }) {
+async function compile({ filePath, fileName, content, flags, useLLD, noBuildCache = false, singleFileMode = false, realtimeOutput = true, untitledId = '' }) {
     const startTime = Date.now();
 
     const flagsCheck = validateCompilerFlags(flags);
@@ -228,7 +228,8 @@ async function compile({ filePath, content, flags, useLLD, noBuildCache = false,
         // One source (and so one .exe) per untitled tab: building another untitled
         // tab must not replace the program Run Only starts for this one.
         const tag = String(untitledId || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
-        actualFilePath = path.join(tempDir, tag ? `temp_code-${tag}.cpp` : 'temp_code.cpp');
+        const extension = path.extname(fileName || '').toLowerCase() === '.c' ? '.c' : '.cpp';
+        actualFilePath = path.join(tempDir, tag ? `temp_code-${tag}${extension}` : `temp_code${extension}`);
         usingTempFile = true;
     }
 
@@ -251,6 +252,7 @@ async function compile({ filePath, content, flags, useLLD, noBuildCache = false,
     }
 
     const dir = path.dirname(actualFilePath);
+    const isC = path.extname(actualFilePath).toLowerCase() === '.c';
     const baseName = path.basename(actualFilePath, path.extname(actualFilePath));
 
     // Use system temp directory for compiler output.
@@ -332,10 +334,13 @@ async function compile({ filePath, content, flags, useLLD, noBuildCache = false,
         resolvedFlags = '-std=c++17 -O0 -w';
     }
 
-    const unbufferObj = getUnbufferObjectPath();
+    if (isC) resolvedFlags = resolvedFlags.replace(/-std=(?:c\+\+|gnu\+\+)\S+/g, '-std=c17');
+    const unbufferObj = isC ? null : getUnbufferObjectPath();
 
     const args = [
+        ...(isC ? ['-x', 'c'] : []),
         ...sourceFiles,
+        ...(isC ? ['-x', 'none'] : []),
         '-o', outputPath,
         '-I', dir,
         '-pipe'
@@ -409,7 +414,7 @@ async function compile({ filePath, content, flags, useLLD, noBuildCache = false,
     }
 
     // PCH optimization - use resolvedFlags so PCH matches actual compilation
-    const pch = (!noBuildCache && content.includes('bits/stdc++.h'))
+    const pch = (!isC && !noBuildCache && content.includes('bits/stdc++.h'))
         ? await ensurePCH(resolvedFlags, (msg) => sendToRenderer('system-message', msg))
         : { ready: false };
 
@@ -512,10 +517,27 @@ async function runExternal({ exePath, cwd }) {
         return { success: false, error: 'Executable not found. Please compile first.' };
     }
 
-    const workingDir = cwd || path.dirname(exePath);
+    const launch = require('../languages/runtime').resolveRun(exePath);
+    const workingDir = cwd || launch.cwd;
     const env = getCompilerEnv();
     const startTime = Date.now();
 
+    if (IS_WIN && launch.managed) {
+        stopProcess();
+        const quote = value => "'" + String(value).replace(/'/g, "''") + "'";
+        const script = ["Set-Location -LiteralPath " + quote(workingDir),
+            '& ' + quote(launch.command) + ' ' + launch.args.map(quote).join(' '),
+            "Write-Host ''; Write-Host 'Program finished. Press ENTER to close...'; Read-Host"].join('\n');
+        const encoded = Buffer.from(script, 'utf16le').toString('base64');
+        const wrapper = "Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile','-EncodedCommand','" + encoded + "' -WindowStyle Normal -Wait";
+        const child = spawn('powershell.exe', ['-NoProfile', '-EncodedCommand', Buffer.from(wrapper, 'utf16le').toString('base64')], { cwd: workingDir, env, windowsHide: true, stdio: 'ignore' });
+        runningProcess = child;
+        const finish = () => { if (runningProcess === child) { runningProcess = null; sendToRenderer('process-external-exit', { executionTime: Date.now() - startTime, peakMemoryKB: 0 }); } };
+        child.on('close', finish);
+        child.on('error', error => { sendToRenderer('process-error', error.message); finish(); });
+        sendToRenderer('process-external-started');
+        return { success: true, external: true };
+    }
     if (IS_WIN) return runExternalWindows({ exePath, workingDir, env, startTime });
     if (IS_MAC) return runExternalMac({ exePath, workingDir, env, startTime });
     return runExternalLinux({ exePath, workingDir, env, startTime });
@@ -616,6 +638,7 @@ async function runExternalWindows({ exePath, workingDir, env, startTime }) {
  * @returns {string}
  */
 function buildPosixRunnerScript(exePath, workingDir) {
+    const launch = require('../languages/runtime').resolveRun(exePath);
     const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
     return [
         '#!/usr/bin/env bash',
@@ -623,7 +646,7 @@ function buildPosixRunnerScript(exePath, workingDir) {
         'rm -f -- "$0"',
         `cd ${q(workingDir)} || exit 1`,
         'clear',
-        `${q(exePath)}`,
+        [launch.command, ...launch.args].map(q).join(' '),
         'CODE=$?',
         'echo',
         'echo "--------------------------------"',
@@ -773,7 +796,8 @@ async function run({ exePath, cwd }) {
     // "Run only" pressed while a program is still running: never orphan it.
     stopProcess();
 
-    const workingDir = cwd || path.dirname(exePath);
+    const launch = require('../languages/runtime').resolveRun(exePath);
+    const workingDir = cwd || launch.cwd;
     const runStartTime = Date.now();
     let peakMemoryKB = 0;
 
@@ -782,12 +806,12 @@ async function run({ exePath, cwd }) {
     // Windows: run through the native launcher when it is available. It
     // reports the exact wall time and peak memory of the program itself, so no
     // sampling is needed (see run-launcher.js).
-    const launcher = getLauncherIfReady();
+    const launcher = launch.managed ? null : getLauncherIfReady();
     const statsFile = launcher ? newStatsFile() : null;
 
     runningProcess = launcher
         ? spawn(launcher, [statsFile, exePath], { cwd: workingDir, env: env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
-        : spawn(exePath, [], { cwd: workingDir, env: env, stdio: ['pipe', 'pipe', 'pipe'] });
+        : spawn(launch.command, launch.args, { cwd: workingDir, env: env, windowsHide: true, detached: !IS_WIN, stdio: ['pipe', 'pipe', 'pipe'] });
 
     const child = runningProcess;
     const pid = child.pid;
@@ -1045,19 +1069,11 @@ function stopProcess() {
         runningMemoryPollInterval = null;
     }
 
-    const pid = child.pid;
-    // Windows: /t takes the whole tree, in case the program spawned children.
-    if (IS_WIN && pid && child.exitCode === null) {
-        execFile('taskkill', ['/pid', String(pid), '/f', '/t'], { windowsHide: true }, () => { });
-    }
-
     // Tear the pipes down first so no buffered output arrives after "Stopped".
-    // NOTE (POSIX): this kills only the process itself, not a forked child tree.
-    // Killing a group would require spawning run() with `detached: true`, which
-    // risks breaking the stdin/stdout pipes the output panel depends on.
     try { if (child.stdin) child.stdin.destroy(); } catch (_) { }
     try { if (child.stdout) child.stdout.destroy(); } catch (_) { }
     try { if (child.stderr) child.stderr.destroy(); } catch (_) { }
+    require('../../shared/platform').killProcessTree(child);
     try { child.kill('SIGKILL'); } catch (_) { }
 
     sendToRenderer('process-stopped');

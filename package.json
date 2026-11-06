@@ -1,17 +1,17 @@
 {
     "name": "sameko-dev-cpp",
     "version": "1.3.2",
-    "description": "A fast, modern, and beautiful C++ IDE built with Electron and Monaco Editor",
+    "description": "Semeko Pro: the upgraded Semeko C++ IDE for C/C++, Python, Java and C#",
     "main": "app/main.js",
     "author": "QuangquyNguyenvo",
     "license": "MIT",
-    "homepage": "https://sameko.dev",
+    "homepage": "https://github.com/graperu/semeko-pro",
     "repository": {
         "type": "git",
-        "url": "https://github.com/QuangquyNguyenvo/Sameko-Dev-CPP.git"
+        "url": "https://github.com/graperu/semeko-pro.git"
     },
     "bugs": {
-        "url": "https://github.com/QuangquyNguyenvo/Sameko-Dev-CPP/issues"
+        "url": "https://github.com/graperu/semeko-pro/issues"
     },
     "keywords": [
         "cpp",
@@ -55,36 +55,51 @@
         "cpp20"
     ],
     "scripts": {
-        "build:monaco": "node scripts/build-monaco.js",
-        "prestart": "node scripts/build-monaco.js --if-stale",
+        "build:monaco": "node scripts/build/build-monaco.js",
+        "prestart": "node scripts/build/build-monaco.js --if-stale",
         "start": "electron .",
-        "predev": "node scripts/build-monaco.js --if-stale",
+        "predev": "node scripts/build/build-monaco.js --if-stale",
         "dev": "electron . --enable-logging",
-        "clean": "node scripts/clean.js settings",
+        "clean": "node scripts/maintenance/clean.js settings",
         "clean-start": "npm run clean && npm start",
         "build": "npm run build:win && npm run build:appimage",
-        "prebuild:win": "node scripts/build-monaco.js",
+        "prebuild:win": "node scripts/build/build-monaco.js",
         "build:win": "electron-builder --win nsis zip",
-        "build:setup": "node scripts/build-setup.js",
-        "prebuild:appimage": "node scripts/build-monaco.js",
-        "build:appimage": "node scripts/build-appimage.js",
-        "prebuild:mac": "node scripts/build-monaco.js",
+        "build:setup": "node scripts/build/build-setup.js",
+        "prebuild:appimage": "node scripts/build/build-monaco.js",
+        "build:appimage": "node scripts/build/build-appimage.js",
+        "prebuild:mac": "node scripts/build/build-monaco.js",
         "build:mac": "electron-builder --mac",
-        "prebuild:linux": "node scripts/build-monaco.js",
-        "build:linux": "electron-builder --linux AppImage deb tar.gz -c.productName=Sameko-Dev-CPP",
-        "prebuild:all": "node scripts/build-monaco.js",
-        "build:all": "npm run build:win && electron-builder --linux AppImage deb tar.gz -c.productName=Sameko-Dev-CPP",
-        "clean:dist": "node scripts/clean.js dist",
+        "prebuild:linux": "node scripts/build/build-monaco.js",
+        "build:linux": "electron-builder --linux AppImage deb tar.gz -c.productName=Semeko-Pro",
+        "prebuild:all": "node scripts/build/build-monaco.js",
+        "build:all": "npm run build:win && electron-builder --linux AppImage deb tar.gz -c.productName=Semeko-Pro",
+        "clean:dist": "node scripts/maintenance/clean.js dist",
         "rebuild:win": "npm run clean:dist && npm run build:win",
         "rebuild": "npm run clean:dist && npm run build",
-        "icons": "node scripts/build-icons.js",
+        "icons": "node scripts/build/build-icons.js",
+        "icons:material": "node scripts/build/build-material-icons.js",
         "codegraph:sync": "codegraph sync",
         "codegraph:status": "codegraph status",
-        "test:debugger": "node scripts/test-debugger.js",
-        "pretest:gui": "node scripts/build-monaco.js --if-stale",
-        "test:gui": "node scripts/test-gui-smoke.js",
-        "pretest:themes": "node scripts/build-monaco.js --if-stale",
-        "test:themes": "node scripts/test-theme-customizer-gui.js"
+        "setup:languages": "node scripts/setup/setup-languages.js",
+        "test:languages": "node tests/integration/test-languages.js",
+        "test:languages:tools": "node tests/integration/test-language-tools.js",
+        "test:languages:gui": "node scripts/build/build-monaco.js --if-stale && node tests/gui/test-language-gui.js",
+        "test:debugger": "node tests/integration/test-debugger.js",
+        "test:unit": "node tests/unit/test-theme-manager.js && node tests/unit/test-theme-tokens.js && node tests/unit/test-theme-customizer-state.js",
+        "pretest:editor": "node scripts/build/build-monaco.js --if-stale",
+        "test:editor": "node tests/gui/test-editor-state.js",
+        "pretest:folders": "node scripts/build/build-monaco.js --if-stale",
+        "test:folders": "node tests/gui/test-folder-open.js",
+        "pretest:collections": "node scripts/build/build-monaco.js --if-stale",
+        "test:collections": "node tests/gui/test-contest-collections.js",
+        "test:problems": "node tests/integration/test-problem-browser.js",
+        "pretest:problems:gui": "node scripts/build/build-monaco.js --if-stale",
+        "test:problems:gui": "node tests/gui/test-problem-browser.js",
+        "pretest:gui": "node scripts/build/build-monaco.js --if-stale",
+        "test:gui": "node tests/gui/test-gui-smoke.js",
+        "pretest:themes": "node scripts/build/build-monaco.js --if-stale",
+        "test:themes": "node tests/gui/test-theme-customizer-gui.js"
     },
     "dependencies": {
         "@xterm/addon-fit": "^0.11.0",
@@ -101,6 +116,7 @@
         "electron": "^44.9.3",
         "electron-builder": "^26.15.3",
         "esbuild": "^0.28.2",
+        "material-icon-theme": "5.40.0",
         "monaco-editor": "^0.57.0",
         "monaco-vim": "0.4.4",
         "playwright-core": "^1.64.1",
@@ -108,7 +124,7 @@
     },
     "build": {
         "appId": "com.quangquy.cppide",
-        "productName": "Sameko Dev C++",
+        "productName": "Semeko Pro",
         "artifactName": "${productName}-${version}.${ext}",
         "directories": {
             "output": "samekodevcpp"
@@ -139,14 +155,13 @@
             "!plans/**",
             "!docs/**",
             "!scripts/**",
+            "!tests/**",
             "!.github/**",
             "!CLAUDE.md",
             "!AGENTS.md",
-            "!CODEBASE.md",
             "!PLANNING.md",
             "!CONTRIBUTING.md",
             "!CHANGELOG.md",
-            "!setup-bundled-mingw.md",
             "!compile_error.log",
             "!compile_flags.txt",
             "!**/*.js.map",
@@ -161,8 +176,8 @@
         "publish": [
             {
                 "provider": "github",
-                "owner": "QuangquyNguyenvo",
-                "repo": "Sameko-Dev-CPP",
+                "owner": "graperu",
+                "repo": "semeko-pro",
                 "releaseType": "release"
             }
         ],
@@ -185,7 +200,7 @@
             "signtoolOptions": {
                 "publisherName": "Sameko Project"
             },
-            "artifactName": "sameko-dev-cpp-${version}-portable.${ext}",
+            "artifactName": "semeko-pro-${version}-portable.${ext}",
             "verifyUpdateCodeSignature": false,
             "signExts": [],
             "extraResources": [
@@ -211,12 +226,12 @@
             ]
         },
         "nsis": {
-            "artifactName": "sameko-dev-cpp-setup-${version}.${ext}",
+            "artifactName": "semeko-pro-setup-${version}.${ext}",
             "oneClick": false,
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
             "createStartMenuShortcut": true,
-            "shortcutName": "Sameko Dev C++",
+            "shortcutName": "Semeko Pro",
             "perMachine": false,
             "allowElevation": true,
             "include": "installer/installer.nsh",
@@ -235,15 +250,15 @@
                 "deb",
                 "tar.gz"
             ],
-            "artifactName": "sameko-dev-cpp-${version}-linux-${arch}.${ext}",
+            "artifactName": "semeko-pro-${version}-linux-${arch}.${ext}",
             "icon": "src/assets/icons/linux",
             "category": "Development",
-            "synopsis": "A fast, modern C++ IDE",
+            "synopsis": "The upgraded Semeko C++ IDE with multi-language support",
             "maintainer": "QuangquyNguyenvo <QuangquyNguyenvo@users.noreply.github.com>",
             "desktop": {
                 "entry": {
-                    "Name": "Sameko Dev C++",
-                    "Comment": "A fast, modern C++ IDE",
+                    "Name": "Semeko Pro",
+                    "Comment": "The upgraded Semeko C++ IDE with multi-language support",
                     "Categories": "Development;IDE;",
                     "StartupWMClass": "sameko-dev-cpp"
                 }

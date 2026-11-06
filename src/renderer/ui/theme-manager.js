@@ -46,6 +46,7 @@ const ThemeManager = {
         'sakura',
         'dracula',
         'monokai',
+        'dark-molokai',
         'nord'
     ],
 
@@ -451,6 +452,79 @@ const ThemeManager = {
                         number: { color: 'ae81ff' },
                         type: { color: '66d9ef', fontStyle: 'italic' },
                         function: { color: 'a6e22e' }
+                    }
+                }
+            },
+            // Adapted from nonylene Dark Molokai (MIT).
+            'dark-molokai': {
+                meta: { id: 'dark-molokai', name: 'Dark Molokai', type: 'dark', author: 'nonylene', description: 'Adapted from nonylene/vscode-dark-molokai-theme (MIT); see assets/licenses/dark-molokai.txt.' },
+                colors: {
+                    appBackground: '',
+                    appOverlay: '27, 29, 30',
+                    bgOceanLight: '#303030',
+                    bgOceanMedium: '#1b1d1e',
+                    bgOceanDeep: '#a6e22e',
+                    bgOceanDark: '#252526',
+                    bgGlass: 'rgba(27, 29, 30, 0.95)',
+                    bgGlassHeavy: 'rgba(37, 37, 38, 0.97)',
+                    bgGlassBorder: 'rgba(69, 69, 69, 0.9)',
+                    accent: '#a6e22e',
+                    accentHover: '#b8f32e',
+                    textPrimary: '#f8f8f2',
+                    textSecondary: '#bbbbbb',
+                    textMuted: '#7e8e91',
+                    success: '#a6e22e',
+                    error: '#f92672',
+                    warning: '#e6db74',
+                    border: '#454545',
+                    borderStrong: '#a6e22e',
+                    shadowSoft: '0 8px 32px rgba(0, 0, 0, 0.5)',
+                    shadowCard: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                    glow: '0 0 15px rgba(166, 226, 46, 0.4)',
+                    bgHeader: 'rgba(37, 37, 38, 0.4)',
+                    bgPanel: 'rgba(27, 29, 30, 0.95)',
+                    bgInput: '#1b1d1e',
+                    bgButton: '#303030',
+                    bgButtonHover: '#454545',
+                    editorBg: '#1b1d1e',
+                    terminalBg: '#252526',
+                    settingsLabelColor: '#f8f8f2',
+                    settingsSectionColor: '#a6e22e',
+                    buttonTextOnAccent: '#1b1d1e',
+
+                    btnBg: 'rgba(255, 255, 255, 0.08)',
+                    btnBgHover: 'rgba(255, 255, 255, 0.12)',
+                    btnBorder: '#454545',
+                    btnText: '#f8f8f2',
+                    btnTextHover: '#a6e22e',
+                    btnPrimaryBg: '#a6e22e',
+                    btnPrimaryBgHover: '#b8f32e',
+                    btnPrimaryText: '#1b1d1e',
+                    // Load-bearing tokens moved from themes.css [data-theme] (Phase 06)
+                    successDark: '#8cc919',
+                    successHover: '#7ab918',
+                    errorDark: '#d91862',
+                    folderIconClosed: '#e6db74',
+                    folderIconOpen: '#fd971f',
+                    borderGlassEdge: 'rgba(255, 255, 255, 0.1)',
+                    welcomeBoxBg: 'rgba(27, 29, 30, 0.4)'
+                },
+                editor: {
+                    base: 'vs-dark', inherit: true,
+                    background: '#1b1d1e', foreground: '#f8f8f2',
+                    lineHighlight: '#303030', selection: '#403d3d',
+                    cursor: '#f8f8f0', lineNumber: '#90908a', lineNumberActive: '#c2c2bf',
+                    syntax: {
+                        comment: { color: '7e8e91' },
+                        keyword: { color: 'f92672' },
+                        string: { color: 'e6db74' },
+                        escape: { color: 'ae81ff', fontStyle: 'bold' },
+                        number: { color: 'ae81ff' },
+                        type: { color: '66d9ef', fontStyle: 'italic' },
+                        function: { color: 'a6e22e' },
+                        variable: { color: 'f8f8f2' },
+                        operator: { color: 'f92672' },
+                        bracket: { color: 'f8f8f2' }
                     }
                 }
             },

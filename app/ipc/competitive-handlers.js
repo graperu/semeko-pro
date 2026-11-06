@@ -42,6 +42,18 @@ function setMainWindow(window) {
  * Register all competitive programming IPC handlers
  */
 function registerHandlers() {
+    for (const [channel, work] of Object.entries({
+        'oj-list-problems': options => require('../services/competitive/problem-browser').list(options),
+        'oj-problem-detail': ({ provider, id }) => require('../services/competitive/problem-browser').detail(provider, id),
+        'oj-open-problem': async ({ provider, id }) => {
+            const url = require('../services/competitive/problem-browser').officialURL(provider, id);
+            await require('electron').shell.openExternal(url);
+            return true;
+        }
+    })) ipcMain.handle(channel, async (_, value) => {
+        try { return { ok: true, data: await work(value || {}) }; }
+        catch (error) { return { ok: false, error: error.message }; }
+    });
     // CP Companion server control
     ipcMain.handle('cc-start-server', async () => {
         return await competitive.startServer();
@@ -94,8 +106,10 @@ function registerHandlers() {
     /**
      * Create a new contest folder with problem files and .sameko metadata
      */
-    ipcMain.handle('create-contest', async (event, { parentDir, name, problemIds, platform }) => {
+    ipcMain.handle('create-contest', async (event, { parentDir, name, problemIds, platform, extension = 'cpp', template }) => {
         try {
+            if (!['cpp', 'c', 'py', 'java', 'cs'].includes(extension)) throw new Error('Unsupported contest language');
+            if (!Array.isArray(problemIds) || problemIds.some(id => typeof id !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(id))) throw new Error('Invalid problem identifier');
             const contestDir = path.join(parentDir, name);
             const samekoPath = path.join(contestDir, '.sameko');
 
@@ -136,15 +150,19 @@ int main() {
             const known = new Set(problems.map(p => p && p.id));
             const added = [];
             for (const id of problemIds) {
-                const filePath = path.join(contestDir, `${id}.cpp`);
-                if (!fs.existsSync(filePath)) {
-                    fs.writeFileSync(filePath, cppTemplate(id), 'utf-8');
-                }
                 if (known.has(id)) continue;
+                const fileName = `${id}.${extension}`;
+                const filePath = path.join(contestDir, fileName);
+                if (!fs.existsSync(filePath)) {
+                    let code = typeof template === 'string' ? template : extension === 'cpp' ? cppTemplate(id) : '';
+                    if (extension === 'java') code = code.replace(/public class Main\b/, `public class ${id}`);
+                    fs.writeFileSync(filePath, code, 'utf-8');
+                }
                 known.add(id);
                 added.push(id);
                 problems.push({
                     id,
+                    fileName,
                     label: '',
                     status: 'todo',
                     timeSpentMs: 0,
@@ -167,7 +185,8 @@ int main() {
                 writeFileAtomicSync(samekoPath, JSON.stringify(samekoData, null, 2), 'utf-8');
             }
 
-            return { success: true, contestDir: contestDir.replace(/\\/g, '/'), existed: !!existing, added };
+            const files = Object.fromEntries(problems.map(problem => [problem.id, problem.fileName || `${problem.id}.cpp`]));
+            return { success: true, contestDir: contestDir.replace(/\\/g, '/'), existed: !!existing, added, files };
         } catch (err) {
             console.error('[Competitive] Failed to create contest:', err);
             return { success: false, error: err.message };

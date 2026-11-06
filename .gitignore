@@ -4,7 +4,7 @@ node_modules/
 # ===== Build Output =====
 dist/
 out/
-build/
+/build/
 local_build_cache/
 release_build/
 samekodevcpp/
@@ -71,9 +71,12 @@ codegraph.json
 compile_flags.txt
 
 
-# Installer art previews (scripts/build-installer-art.js)
+# Installer art previews (scripts/build/build-installer-art.js)
 installer/*.preview.png
 
 # ===== Generated =====
-# Monaco bundle, rebuilt by scripts/build-monaco.js (npm start / build run it)
+# Monaco bundle, rebuilt by scripts/build/build-monaco.js (npm start / build run it)
 src/vendor/
+
+# Optional isolated language servers and debug adapters
+.sameko-tools/

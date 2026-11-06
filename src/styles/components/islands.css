@@ -1122,11 +1122,23 @@ body.performance-mode .main .editor-section {
 }
 
 .status-bar .status-std {
+    border: 0;
+    font: inherit;
+    cursor: pointer;
     padding: 1px 10px;
     border-radius: 999px;
     background: var(--btn-primary-bg, var(--accent));
     color: var(--btn-primary-text, #fff);
 }
+
+.status-bar .status-std::after { content: ' ▾'; }
+.workspace-language-picker { cursor: pointer; }
+.material-file-icon { object-fit: contain; flex-shrink: 0; vertical-align: middle; }
+.welcome-btns { flex-wrap: wrap; }
+.welcome-box { width: min(620px, calc(100% - 32px)); max-width: 620px; box-sizing: border-box; }
+.welcome-btn { padding: 16px 12px; white-space: nowrap; }
+.workspace-language-picker:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+.status-bar .status-std:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
 
 @media (max-width: 1100px) {
     .app-container > .header-bar {

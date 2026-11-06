@@ -24,6 +24,7 @@ function loadSettings() {
             App.settings = {
                 editor: { ...DEFAULT_SETTINGS.editor, ...saved.editor },
                 compiler: { ...DEFAULT_SETTINGS.compiler, ...saved.compiler },
+                languages: { ...saved.languages },
                 execution: { ...DEFAULT_SETTINGS.execution, ...saved.execution },
                 appearance: sanitizeAppearanceSettings({
                     ...DEFAULT_SETTINGS.appearance,
@@ -137,7 +138,7 @@ function initSettings() {
         headerUpdateBtn.onclick = () => {
             if (isPortableVersion) {
                 // Portable: Open download page
-                window.electronAPI?.openReleasePage?.('https://github.com/QuangquyNguyenvo/Sameko-Dev-CPP/releases');
+                window.electronAPI?.openReleasePage?.('https://github.com/graperu/semeko-pro/releases');
             } else if (updateDownloaded && window.electronAPI?.quitAndInstall) {
                 // Installer: Restart to install
                 window.electronAPI.quitAndInstall();
@@ -441,8 +442,8 @@ function clearSettingsSearch() {
 let templateEditor = null;
 let templateLang = 'cpp';
 const templateModels = {};
-const TEMPLATE_FIELDS = { cpp: 'set-template', c: 'set-template-c' };
-const TEMPLATE_DEFAULTS = { cpp: () => DEFAULT_SETTINGS.template.code, c: () => DEFAULT_SETTINGS.template.cCode };
+const TEMPLATE_FIELDS = { cpp: 'set-template', c: 'set-template-c', py: 'set-template-py', java: 'set-template-java', cs: 'set-template-cs' };
+const TEMPLATE_DEFAULTS = { cpp: () => DEFAULT_SETTINGS.template.code, c: () => DEFAULT_SETTINGS.template.cCode, py: () => languageTemplate('py', true), java: () => languageTemplate('java', true), cs: () => languageTemplate('cs', true) };
 
 function setTemplateText(lang, code) {
     document.getElementById(TEMPLATE_FIELDS[lang]).value = code;
@@ -468,7 +469,7 @@ function initTemplateEditor() {
 
     for (const lang of Object.keys(TEMPLATE_FIELDS)) {
         const field = document.getElementById(TEMPLATE_FIELDS[lang]);
-        templateModels[lang] = monaco.editor.createModel(field.value, 'cpp');
+        templateModels[lang] = monaco.editor.createModel(field.value, ({ py: 'python', java: 'java', cs: 'csharp' })[lang] || 'cpp');
         templateModels[lang].onDidChangeContent(() => {
             field.value = templateModels[lang].getValue();
             if (lang === templateLang) updateTemplateLineCount();
@@ -866,6 +867,7 @@ function openSettings() {
     if (singleFileToggle) singleFileToggle.checked = App.settings.compiler.singleFileMode !== false;
     const extraFlagsInput = document.getElementById('set-extraFlags');
     if (extraFlagsInput) extraFlagsInput.value = App.settings.compiler.extraFlags || '';
+    if (window.LanguageSupport) LanguageSupport.loadSettings();
 
     document.getElementById('set-timeLimitEnabled').checked = App.settings.execution.timeLimitEnabled;
     document.getElementById('set-timeLimitSeconds').value = App.settings.execution.timeLimitSeconds;
@@ -918,6 +920,7 @@ function openSettings() {
     // The mini editor is created only when its tab is visible.
     setTemplateText('cpp', App.settings.template?.code ?? DEFAULT_SETTINGS.template.code);
     setTemplateText('c', App.settings.template?.cCode ?? DEFAULT_SETTINGS.template.cCode);
+    for (const ext of ['py', 'java', 'cs']) setTemplateText(ext, languageTemplate(ext));
 
 
     renderKeybindings();
@@ -988,6 +991,7 @@ async function saveSettingsAndClose() {
         if (singleFileToggle) App.settings.compiler.singleFileMode = singleFileToggle.checked;
         const extraFlagsInput = document.getElementById('set-extraFlags');
         if (extraFlagsInput) App.settings.compiler.extraFlags = extraFlagsInput.value.trim();
+        if (window.LanguageSupport) LanguageSupport.saveSettings();
 
         App.settings.execution.timeLimitEnabled = document.getElementById('set-timeLimitEnabled').checked;
         App.settings.execution.timeLimitSeconds = parseInt(document.getElementById('set-timeLimitSeconds').value);
@@ -1021,6 +1025,7 @@ async function saveSettingsAndClose() {
         if (!App.settings.template) App.settings.template = {};
         App.settings.template.code = document.getElementById('set-template').value;
         App.settings.template.cCode = document.getElementById('set-template-c').value;
+        for (const ext of ['py', 'java', 'cs']) App.settings.template[`${ext}Code`] = document.getElementById(`set-template-${ext}`).value;
 
         const prereleaseEl = document.getElementById('set-updatesPrerelease');
         if (prereleaseEl) {
@@ -1114,6 +1119,7 @@ const KEYBINDING_LABELS = {
     saveAs: 'Save File As',
     newFile: 'New File',
     openFile: 'Open File',
+    openFolder: 'Open Folder',
     newTab: 'New Tab',
     closeTab: 'Close Tab',
     nextTab: 'Next Tab',

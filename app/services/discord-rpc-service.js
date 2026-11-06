@@ -120,7 +120,7 @@ async function updatePresence(fileName, workspaceName, line, col) {
     try {
         const activity = {
             largeImageKey: 'sameko_icon',
-            largeImageText: 'Sameko Dev C++',
+            largeImageText: 'Semeko Pro',
             // instance: true gives higher priority over other RPC apps (e.g. VS Code extension)
             instance: true,
         };
@@ -131,12 +131,12 @@ async function updatePresence(fileName, workspaceName, line, col) {
             activity.details = `Working on ${fileName}`;
             activity.state = workspaceName
                 ? `In ${workspaceName}${posLabel}`
-                : `Sameko Dev C++${posLabel}`;
+                : `Semeko Pro${posLabel}`;
             activity.smallImageKey = getFileIcon(fileName);
             activity.smallImageText = getFileTypeText(fileName);
         } else {
             activity.details = 'Idle';
-            activity.state = 'Sameko Dev C++';
+            activity.state = 'Semeko Pro';
         }
 
         if (startTimestamp) {

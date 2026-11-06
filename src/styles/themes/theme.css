@@ -4772,6 +4772,7 @@ body.split-active .editor-pane {
 /* C++ / C switch: the active file reads like an open tab, the other one is dimmed. */
 .template-langs {
     display: inline-flex;
+    flex-wrap: wrap;
     gap: 4px;
     padding: 3px;
     border-radius: 999px;

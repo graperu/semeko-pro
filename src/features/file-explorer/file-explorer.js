@@ -589,10 +589,15 @@ const FileExplorer = {
         try {
             if (window.electronAPI && window.electronAPI.showOpenDialog) {
                 const result = await window.electronAPI.showOpenDialog({
+                    title: 'Open Folder',
+                    buttonLabel: 'Select Folder',
+                    defaultPath: this.currentFolder || undefined,
                     properties: ['openDirectory']
                 });
 
                 if (!result.canceled && result.filePaths.length > 0) {
+                    this.saveCategoriesForFolder(this.currentFolder);
+                    this.leaveContest();
                     // Migrate global categories to the new folder if needed
                     const globalCats = this.categories.filter(c => !c.folderPath);
                     this.currentFolder = result.filePaths[0];
@@ -618,6 +623,7 @@ const FileExplorer = {
 
                     await this.refreshTree();
                     this.saveState();
+                    if (!this.isOpen) this.open();
                 }
             } else {
                 console.warn('Electron API not available for folder dialog');
@@ -631,6 +637,7 @@ const FileExplorer = {
      * Refresh the tree view
      */
     async refreshTree() {
+        if (window.WorkspaceSupport) WorkspaceSupport.refresh();
         if (!this.currentFolder) {
             this.renderEmptyState();
             return;
@@ -684,7 +691,7 @@ const FileExplorer = {
     generateContestMeta(items) {
         const problems = [];
         for (const item of items) {
-            if (!item.isDirectory && /^[A-Z]\.(cpp|c|cc|cxx)$/i.test(item.name)) {
+            if (!item.isDirectory && /^[A-Z]\.(cpp|c|cc|cxx|py|java|cs)$/i.test(item.name)) {
                 const id = item.name.charAt(0).toUpperCase();
                 problems.push({
                     id,
@@ -790,7 +797,7 @@ const FileExplorer = {
      */
     detectFolderType(items) {
         const singleLetterCpp = items.filter(
-            i => !i.isDirectory && /^[A-Z]\.(cpp|c|cc|cxx)$/i.test(i.name)
+            i => !i.isDirectory && /^[A-Z]\.(cpp|c|cc|cxx|py|java|cs)$/i.test(i.name)
         );
         if (singleLetterCpp.length >= 2) return 'contest';
         return 'normal';
@@ -1260,7 +1267,7 @@ const FileExplorer = {
 
         // First pass: find all .cpp files
         for (const item of items) {
-            if (!item.isDirectory && /\.(cpp|c|cc|cxx)$/i.test(item.name)) {
+            if (!item.isDirectory && /\.(cpp|c|cc|cxx|py|java|cs)$/i.test(item.name)) {
                 const baseName = item.name.replace(/\.[^.]+$/, '').toLowerCase();
                 cppFiles.set(baseName, item);
                 item.companions = [];
@@ -1409,7 +1416,7 @@ const FileExplorer = {
         if (!this.recentSectionCollapsed) {
             html += recent.map(path => {
                 const name = path.split(/[/\\]/).pop();
-                const isSource = /\.(cpp|c|cc|cxx)$/i.test(name);
+                const isSource = /\.(cpp|c|cc|cxx|py|java|cs)$/i.test(name);
                 return `
                     <div class="explorer-item file recent-item ${this.isActiveFile(path) ? 'active' : ''}" data-path="${escHtml(path)}" style="padding-left: 12px">
                         ${this.getFileIcon(name)}
@@ -1456,7 +1463,7 @@ const FileExplorer = {
             const name = escHtml(f.name.slice(0, at)) + '<mark>' + escHtml(f.name.slice(at, at + q.length)) + '</mark>' + escHtml(f.name.slice(at + q.length));
             const rel = f.path.startsWith(root + '/') ? f.path.slice(root.length + 1) : f.path;
             const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
-            const isSource = /\.(cpp|c|cc|cxx)$/i.test(f.name);
+            const isSource = /\.(cpp|c|cc|cxx|py|java|cs)$/i.test(f.name);
             return `
                 <div class="explorer-item file filter-hit ${this.isActiveFile(f.path) ? 'active' : ''}" data-path="${escHtml(f.path)}" style="padding-left: 12px">
                     ${this.getFileIcon(f.name)}
@@ -1614,7 +1621,7 @@ const FileExplorer = {
                                 <polyline points="9 18 15 12 9 6"/>
                             </svg>
                         </span>
-                        ${this.getFolderIcon(isExpanded)}
+                        ${this.getFolderIcon(isExpanded, item.name)}
                         <span class="explorer-item-name">${escHtml(item.name)}</span>
                         ${done ? `<span class="explorer-folder-done" title="${done} marked Done">${this.ICONS.check}${done}</span>` : ''}
                     </div>
@@ -1623,7 +1630,7 @@ const FileExplorer = {
                         : ''}
                 `;
             } else {
-                const isCpp = /\.(cpp|c|cc|cxx|h|hpp)$/i.test(item.name);
+                const isCpp = /\.(cpp|c|cc|cxx|h|hpp|py|java|cs)$/i.test(item.name);
                 const hasCompanions = item.companions && item.companions.length > 0;
                 const isFileExpanded = this.expandedFiles.has(item.path);
                 const note = this.fileNotes[item.path];
@@ -1910,7 +1917,7 @@ const FileExplorer = {
 
                     if (this.displayMode === 'contest' && item.dataset.problemId) {
                         this.showContestFileContextMenu(e, path, item.dataset.problemId);
-                    } else if (/\.(cpp|c|cc|cxx|h|hpp)$/i.test(path)) {
+                    } else if (/\.(cpp|c|cc|cxx|h|hpp|py|java|cs)$/i.test(path)) {
                         this.showContextMenu(e, path);
                     } else {
                         this.showSimpleContextMenu(e, path);
@@ -2361,12 +2368,12 @@ const FileExplorer = {
 
         menu.querySelector('[data-action="new-file"]').onclick = () => {
             menu.remove();
-            this.showInputDialog('New File in ' + folderName, 'solution.cpp', (fileName) => {
+            this.showInputDialog('New File in ' + folderName, 'solution.' + defaultSourceExtension(), (fileName) => {
                 if (!fileName || !fileName.trim()) return;
                 const filePath = `${folderPath}/${fileName.trim()}`.replace(/\\/g, '/');
 
                 let template = '';
-                if (/\.(cpp|c|cc|cxx)$/i.test(fileName)) {
+                if (/\.(cpp|c|cc|cxx|py|java|cs)$/i.test(fileName)) {
                     const baseName = fileName.replace(/\.[^.]+$/, '');
                     template = this.newFileTemplate(baseName, fileName.trim());
                 }
@@ -2494,7 +2501,12 @@ const FileExplorer = {
      * Ctrl+N uses; the C template for a .c file), or a starter solution when none is set.
      */
     newFileTemplate(baseName, fileName = '') {
-        const isC = /\.c$/i.test(fileName);
+        const ext = fileName ? fileName.split('.').pop().toLowerCase() : defaultSourceExtension();
+        if (['py', 'java', 'cs'].includes(ext)) {
+            const template = languageTemplate(ext);
+            return ext === 'java' ? template.replace(/public class Main\b/, 'public class ' + baseName.replace(/[^A-Za-z0-9_$]/g, '_')) : template;
+        }
+        const isC = ext === 'c';
         const tpl = (typeof App !== 'undefined') ? App.settings?.template : null;
         const custom = isC ? (tpl?.cCode ?? DEFAULT_SETTINGS.template.cCode) : tpl?.code;
         if (custom && custom.trim()) return custom.endsWith('\n') ? custom : custom + '\n';
@@ -2865,85 +2877,12 @@ const FileExplorer = {
     /**
      * Get folder icon SVG
      */
-    getFolderIcon(isOpen) {
-        if (isOpen) {
-            return `<svg class="explorer-icon folder-open" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
-                <path d="M2 10h20"/>
-            </svg>`;
-        }
-        return `<svg class="explorer-icon folder-closed" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
-        </svg>`;
+    getFolderIcon(isOpen, name = '') {
+        return MaterialIcons.folder(name, isOpen);
     },
 
-    /**
-     * Get file icon based on extension
-     */
     getFileIcon(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
-
-        const iconMap = {
-            // C/C++
-            'cpp': { color: '#519aba', icon: 'code' },
-            'c': { color: '#519aba', icon: 'code' },
-            'cc': { color: '#519aba', icon: 'code' },
-            'cxx': { color: '#519aba', icon: 'code' },
-            'h': { color: '#a074c4', icon: 'code' },
-            'hpp': { color: '#a074c4', icon: 'code' },
-            'hxx': { color: '#a074c4', icon: 'code' },
-
-            // Web
-            'js': { color: '#f1e05a', icon: 'code' },
-            'ts': { color: '#3178c6', icon: 'code' },
-            'jsx': { color: '#61dafb', icon: 'code' },
-            'tsx': { color: '#3178c6', icon: 'code' },
-            'html': { color: '#e34c26', icon: 'code' },
-            'htm': { color: '#e34c26', icon: 'code' },
-            'css': { color: '#563d7c', icon: 'code' },
-            'scss': { color: '#c6538c', icon: 'code' },
-            'less': { color: '#1d365d', icon: 'code' },
-
-            // Data
-            'json': { color: '#f5de19', icon: 'braces' },
-            'xml': { color: '#f16529', icon: 'code' },
-            'yaml': { color: '#cb171e', icon: 'file' },
-            'yml': { color: '#cb171e', icon: 'file' },
-
-            // Text
-            'txt': { color: '#6d8086', icon: 'file' },
-            'md': { color: '#083fa1', icon: 'file' },
-            'markdown': { color: '#083fa1', icon: 'file' },
-
-            // Python
-            'py': { color: '#3572A5', icon: 'code' },
-
-            // Java
-            'java': { color: '#b07219', icon: 'code' },
-
-            // Config
-            'gitignore': { color: '#f14e32', icon: 'file' },
-            'env': { color: '#faf743', icon: 'file' },
-        };
-
-        const config = iconMap[ext] || { color: '#6d8086', icon: 'file' };
-
-        if (config.icon === 'code') {
-            return `<svg class="explorer-icon" style="color: ${config.color}" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="16 18 22 12 16 6"/>
-                <polyline points="8 6 2 12 8 18"/>
-            </svg>`;
-        } else if (config.icon === 'braces') {
-            return `<svg class="explorer-icon" style="color: ${config.color}" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 3H7a2 2 0 00-2 2v5a2 2 0 01-2 2 2 2 0 012 2v5c0 1.1.9 2 2 2h1"/>
-                <path d="M16 21h1a2 2 0 002-2v-5c0-1.1.9-2 2-2a2 2 0 01-2-2V5a2 2 0 00-2-2h-1"/>
-            </svg>`;
-        }
-
-        return `<svg class="explorer-icon file-icon" style="color: ${config.color}" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-        </svg>`;
+        return MaterialIcons.file(filename);
     },
 
     /**
@@ -3856,6 +3795,8 @@ const FileExplorer = {
 
             if (window.electronAPI && window.electronAPI.createContest) {
                 const result = await window.electronAPI.createContest({
+                    extension: defaultSourceExtension(),
+                    template: this.newFileTemplate('Main', 'Main.' + defaultSourceExtension()),
                     parentDir: parentFolder,
                     name: safeName,
                     problemIds,
@@ -3885,12 +3826,12 @@ const FileExplorer = {
 
                     // Add the created problem files to the category
                     for (const pid of problemIds) {
-                        const filePath = `${result.contestDir}/${pid}.cpp`.replace(/\\/g, '/');
+                        const filePath = `${result.contestDir}/${result.files?.[pid] || pid + ".cpp"}`.replace(/\\/g, '/');
                         if (newCat.items.some(i => key(i.filePath) === key(filePath))) continue;
                         newCat.items.push({
                             filePath,
                             name: pid,
-                            fileName: `${pid}.cpp`,
+                            fileName: result.files?.[pid] || `${pid}.cpp`,
                             status: 'todo',
                             addedAt: Date.now(),
                         });
@@ -3915,7 +3856,7 @@ const FileExplorer = {
                     const newCat = { id: catId, name, color, type: 'contest', folderPath: subFolder, items: [], createdAt: new Date().toISOString() };
 
                     for (const pid of problemIds) {
-                        const filePath = `${subFolder}/${pid}.cpp`.replace(/\\/g, '/');
+                        const filePath = `${subFolder}/${pid}.${defaultSourceExtension()}`.replace(/\\/g, '/');
                         const template = this.newFileTemplate(pid);
                         if (window.electronAPI && window.electronAPI.saveFile) {
                             await window.electronAPI.saveFile({ path: filePath, content: template });
@@ -3923,7 +3864,7 @@ const FileExplorer = {
                         newCat.items.push({
                             filePath,
                             name: pid,
-                            fileName: `${pid}.cpp`,
+                            fileName: `${pid}.${defaultSourceExtension()}`,
                             status: 'todo',
                             addedAt: Date.now(),
                         });
@@ -4199,6 +4140,8 @@ const FileExplorer = {
 
             if (window.electronAPI && window.electronAPI.createContest) {
                 const result = await window.electronAPI.createContest({
+                    extension: defaultSourceExtension(),
+                    template: this.newFileTemplate('Main', 'Main.' + defaultSourceExtension()),
                     parentDir,
                     name,
                     problemIds,
@@ -4462,12 +4405,12 @@ const FileExplorer = {
 
         // Sanitize problem name for file
         const safeName = problemName.trim().replace(/[<>:"/\\|?*]/g, '_');
-        const fileName = safeName.endsWith('.cpp') ? safeName : `${safeName}.cpp`;
+        const fileName = /\.(cpp|c|cc|cxx|py|java|cs)$/i.test(safeName) ? safeName : `${safeName}.${defaultSourceExtension()}`;
         const filePath = `${folderPath}/${fileName}`.replace(/\\/g, '/');
 
         // Generate template
         const baseName = fileName.replace(/\.[^.]+$/, '');
-        const template = this.newFileTemplate(baseName);
+        const template = this.newFileTemplate(baseName, fileName);
 
         // A name that is taken opens that file: writing the template replaced
         // a finished solution.
@@ -4504,7 +4447,7 @@ const FileExplorer = {
             if (!entries || !Array.isArray(entries) || entries.length === 0) return;
 
             const key = (p) => (typeof pathKey === 'function' ? pathKey(p) : String(p || '').replace(/\\/g, '/'));
-            const files = entries.filter(e => e.isFile && /\.(cpp|c|cc|cxx|h|hpp|py|java)$/i.test(e.name));
+            const files = entries.filter(e => e.isFile && /\.(cpp|c|cc|cxx|h|hpp|py|java|cs)$/i.test(e.name));
             const existingPaths = new Set(cat.items.map(i => key(i.filePath)));
             // Files moved to another collection or removed from this one stay out.
             const excluded = new Set((cat.excluded || []).map(key));
@@ -4701,7 +4644,7 @@ const FileExplorer = {
                 iconHtml = `<svg class="icon-contest glowing" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#ffa726" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
             } else {
                 // Folder icon
-                iconHtml = this.getFolderIcon(!isCollapsed);
+                iconHtml = this.getFolderIcon(!isCollapsed, cat.folderPath || cat.name);
             }
 
             html += `
@@ -4917,7 +4860,7 @@ const FileExplorer = {
      * Check if a file path matches the currently open file
      */
     isActiveFile(filePath) {
-        const currentPath = window.App?.currentFilePath || window.currentFilePath;
+        const currentPath = App.tabs.find(tab => tab.id === getPreferredTabId())?.path;
         if (!currentPath) return false;
         return currentPath.replace(/\\/g, '/') === filePath.replace(/\\/g, '/');
     },
@@ -5718,7 +5661,7 @@ const FileExplorer = {
                 const result = await window.electronAPI.showOpenDialog({
                     properties: ['openFile', 'multiSelections'],
                     filters: [
-                        { name: 'Source Files', extensions: ['cpp', 'c', 'cc', 'cxx', 'h', 'hpp', 'py', 'java'] },
+                        { name: 'Source Files', extensions: ['cpp', 'c', 'cc', 'cxx', 'h', 'hpp', 'py', 'java', 'cs'] },
                         { name: 'All Files', extensions: ['*'] }
                     ]
                 });
@@ -5743,12 +5686,13 @@ const FileExplorer = {
      */
     promptNewFile() {
         if (!this.currentFolder) return;
-        this.showInputDialog('New File Name', 'solution.cpp', (fileName) => {
+        const ext = defaultSourceExtension();
+        this.showInputDialog('New File Name', (ext === 'java' ? 'Main' : ext === 'cs' ? 'Program' : 'main') + '.' + ext, (fileName) => {
             if (!fileName || !fileName.trim()) return;
             const filePath = `${this.currentFolder}/${fileName.trim()}`.replace(/\\/g, '/');
 
             let template = '';
-            if (/\.(cpp|c|cc|cxx)$/i.test(fileName)) {
+            if (/\.(cpp|c|cc|cxx|py|java|cs)$/i.test(fileName)) {
                 const baseName = fileName.replace(/\.[^.]+$/, '');
                 template = this.newFileTemplate(baseName, fileName.trim());
             }

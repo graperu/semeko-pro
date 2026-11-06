@@ -94,7 +94,7 @@ function buildSessionRestoreSummary(session) {
 
 function restoredTestState(tabData) {
     const p = tabData && tabData.tests;
-    return (p && Array.isArray(p.tests) && p.tests.length) ? { problem: p, index: 0, results: [] } : null;
+    return (p && Array.isArray(p.tests) && (p.tests.length || p.sourcePlatform)) ? { problem: p, index: 0, results: [] } : null;
 }
 
 /**
@@ -265,7 +265,7 @@ function saveSession(sync = false) {
                 // not stored (it doubled the checkpoint for every open file).
                 original: t.path ? '' : (t.original || ''),
                 modified: t.modified || false,
-                tests: (t.testState && t.testState.problem && Array.isArray(t.testState.problem.tests) && t.testState.problem.tests.length)
+                tests: (t.testState && t.testState.problem && Array.isArray(t.testState.problem.tests) && (t.testState.problem.tests.length || t.testState.problem.sourcePlatform))
                     ? t.testState.problem
                     : null,
             })),

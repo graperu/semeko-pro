@@ -47,7 +47,8 @@ async function start({ exePath, cwd }) {
     // run. The newest one owns the debugger.
     if (mine !== lifecycle) throw new Error('Debug start cancelled');
 
-    session = new GdbSession({
+    const build = require('../languages/runtime').getBuild(exePath);
+    session = build ? new (require('../languages/dap-session').DapSession)({ build, cwd }) : new GdbSession({
         gdbPath: getDebuggerPath(),
         exePath,
         printerPythonDir: getPrinterPythonDir(),
@@ -89,7 +90,7 @@ async function start({ exePath, cwd }) {
         send('debug:stopped', payload);
     });
 
-    await session.start();
+    try { await session.start(); } catch (error) { await disposeSession(); throw error; }
     return { ok: true };
 }
 

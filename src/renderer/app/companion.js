@@ -307,7 +307,7 @@ async function startCCServer(silent = false) {
     }
 }
 
-async function handleProblemReceived(problem) {
+async function handleProblemReceived(problem, options = {}) {
 
     if (!ccHasReceivedProblem) {
         ccHasReceivedProblem = true;
@@ -316,7 +316,7 @@ async function handleProblemReceived(problem) {
         saveSettings();
     }
 
-    const importTarget = App.settings.oj?.importTarget || 'new-tab';
+    const importTarget = options.newTab ? 'new-tab' : App.settings.oj?.importTarget || 'new-tab';
     const importMerge = App.settings.oj?.importMerge || 'replace';
     const useCurrentTab = importTarget === 'current-tab' && App.activeTabId && App.tabs.length > 0;
 
@@ -352,10 +352,12 @@ async function handleProblemReceived(problem) {
             .replace(/[^a-z0-9]+/g, '_')
             .replace(/^_+|_+$/g, '')
             .substring(0, 50);
-        const fileName = safeName + '.cpp';
+        const extension = options.extension || defaultSourceExtension();
+        const sourceName = extension === 'java' ? 'Problem_' + (safeName || 'solution') : (safeName || 'solution');
+        const fileName = sourceName + '.' + extension;
 
         const id = 'tab_' + Date.now();
-        const template = App.settings.template?.code || DEFAULT_CODE;
+        let template = options.starter ?? (extension === 'cpp' ? (App.settings.template?.code ?? DEFAULT_CODE) : extension === 'c' ? (App.settings.template?.cCode ?? DEFAULT_SETTINGS.template.cCode) : languageTemplate(extension));
 
         let targetPath = null;
         let finalFileName = fileName;
@@ -398,8 +400,9 @@ async function handleProblemReceived(problem) {
             let counter = 1;
             while (await FileExplorer.fileExistsIn(folder, finalFileName)) {
                 counter++;
-                finalFileName = `${safeName}_${counter}.cpp`;
+                finalFileName = `${sourceName}_${counter}.${extension}`;
             }
+            if (extension === 'java') template = template.replace(/public class (?:Main|Solution)\b/, 'public class ' + finalFileName.replace(/\.java$/, ''));
             targetPath = `${folder}/${finalFileName}`.replace(/\\/g, '/');
 
             // Save file physically to disk
@@ -431,6 +434,7 @@ async function handleProblemReceived(problem) {
             }
         }
 
+        if (extension === 'java') template = template.replace(/public class (?:Main|Solution)\b/, 'public class ' + finalFileName.replace(/\.java$/, ''));
         App.tabs.push({
             id,
             name: targetPath ? finalFileName : fileName,

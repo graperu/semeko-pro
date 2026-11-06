@@ -1297,9 +1297,9 @@
         const gen = ++startGen;
         const cancelled = () => gen !== startGen;
         let tab = activeTab();
-        if (!tab) { sys('⚠ Open a C++ file before debugging.', 'error'); return; }
-        if (typeof isCppTab === 'function' && !isCppTab(tab)) {
-            sys(`⚠ ${tab.name} is not a C/C++ file. Switch to the solution's tab to debug it.`, 'error');
+        if (!tab) { sys('⚠ Open a source file before debugging.', 'error'); return; }
+        if (typeof isRunnableTab === 'function' && !isRunnableTab(tab)) {
+            sys(`⚠ ${tab.name} is not a supported source file. Switch to the solution's tab to debug it.`, 'error');
             return;
         }
         if (!tab.path) {
@@ -1335,11 +1335,11 @@
         if (!hasAnyBreakpoint() && !breakAtMain) {
             sys('No breakpoints — the program won’t pause. Click the gutter to add one.', 'warning');
         }
-        sys('Compiling with -g …', 'info');
+        sys(isCppTab(tab) ? 'Compiling with -g …' : 'Preparing debug build …', 'info');
 
         const flags = debugCompileFlags();
         const r = await api().compile({
-            filePath: tab.path, content: tab.content, flags,
+            filePath: tab.path, fileName: tab.name, content: tab.content, flags, debug: true,
             singleFileMode: (window.App.settings?.compiler?.singleFileMode !== false),
             // The PCH is keyed by every relevant flag (incl. -g), so a debug
             // build gets its own and no longer has to parse bits/stdc++.h.
@@ -1538,7 +1538,7 @@
             endSession('Finished (exit ' + code + ') · F5 to run again.');
         });
         a.onDebugTerminated(() => { freshLine(); endSession('Session ended · F5 to run again.'); });
-        a.onDebugError((d) => { if (d && d.message) sys('[gdb] ' + d.message, 'error'); });
+        a.onDebugError((d) => { if (d && d.message) sys('[debug] ' + d.message, 'error'); });
         a.onDebugNotify((n) => onNotify(n));
     }
 
@@ -2020,7 +2020,7 @@
         const monaco = mon();
         if (!monaco || hoverProviderReg) return;
         // Register for both C++ and C so hover-to-evaluate works on .c files too.
-        for (const lang of ['cpp', 'c']) {
+        for (const lang of ['cpp', 'c', 'python', 'java', 'csharp']) {
             monaco.languages.registerHoverProvider(lang, { provideHover });
         }
         hoverProviderReg = true;
