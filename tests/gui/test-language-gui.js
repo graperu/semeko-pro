@@ -199,6 +199,21 @@ async function main() {
     assert.deepStrictEqual(errors, []);
     const artifacts = path.join(ROOT, 'plans', 'artifacts', 'languages'); fs.mkdirSync(artifacts, { recursive: true });
     await page.screenshot({ path: path.join(artifacts, 'languages-settings.png') });
+    for (const [ext, key] of [['cpp', null], ['c', null], ['py', 'python'], ['java', 'javac'], ['cs', 'dotnet']]) {
+        await page.evaluate(ext => { closeSettings(); newFile(ext); openSettings(); }, ext);
+        await page.locator('.settings-tab[data-tab="compiler"]').click();
+        assert.strictEqual(await page.locator('#settings-build-language').inputValue(), ext);
+        assert.strictEqual(await page.locator('#compiler-native-controls').isVisible(), !key);
+        for (const runtime of ['python', 'java', 'javac', 'dotnet']) {
+            const expected = ext === 'java' ? ['java', 'javac'].includes(runtime) : runtime === key;
+            assert.strictEqual(await page.locator('#set-language-' + runtime).isVisible(), expected);
+        }
+    }
+    await page.locator('#settings-build-language').selectOption('py');
+    assert(await page.locator('#set-language-python').isVisible());
+    assert.strictEqual(await page.locator('#set-cppStandard').isVisible(), false);
+    assert.deepStrictEqual(errors, []);
+    console.log('PASS settings automatically follow all five file languages and allow manual switching');
     console.log('PASS language settings, templates, Dark Molokai registry, no renderer exceptions');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (app) await app.close(); });

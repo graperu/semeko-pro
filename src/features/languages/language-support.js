@@ -198,7 +198,7 @@ window.LanguageSupport = (() => {
     }
     function loadSettings() {
         mountSettings();
-        document.getElementById('set-language-default').value = defaultSourceExtension();
+        document.getElementById('set-language-default').value = App.settings.languages?.defaultExtension || 'cpp';
         for (const key of runtimeKeys) document.getElementById(`set-language-${key}`).value = App.settings.languages?.[key] || '';
         for (const id of ids) for (const type of ['Lsp', 'Debug']) {
             const key = `${id}${type}`;

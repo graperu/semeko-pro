@@ -1176,3 +1176,5 @@ body.performance-mode .main .editor-section {
         display: none;
     }
 }
+
+#settings-overlay [hidden] { display: none !important; }

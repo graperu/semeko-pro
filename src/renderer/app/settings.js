@@ -868,6 +868,7 @@ function openSettings() {
     const extraFlagsInput = document.getElementById('set-extraFlags');
     if (extraFlagsInput) extraFlagsInput.value = App.settings.compiler.extraFlags || '';
     if (window.LanguageSupport) LanguageSupport.loadSettings();
+    syncCompilerSettingsLanguage();
 
     document.getElementById('set-timeLimitEnabled').checked = App.settings.execution.timeLimitEnabled;
     document.getElementById('set-timeLimitSeconds').value = App.settings.execution.timeLimitSeconds;
@@ -951,6 +952,43 @@ function openSettings() {
 
 function closeSettings() {
     document.getElementById('settings-overlay').classList.remove('show');
+}
+
+function syncCompilerSettingsLanguage(selected) {
+    const panel = document.getElementById('panel-compiler');
+    const section = document.getElementById('language-settings');
+    if (!panel || !section) return;
+    let controls = document.getElementById('compiler-native-controls');
+    if (!controls) {
+        controls = document.createElement('div');
+        controls.id = 'compiler-native-controls';
+        while (panel.firstChild) controls.append(panel.firstChild);
+        panel.append(controls);
+        const row = document.createElement('div'); row.className = 'setting-row';
+        row.innerHTML = '<label for="settings-build-language">Compiler / Runtime</label><select id="settings-build-language"><option value="cpp">C++</option><option value="c">C</option><option value="py">Python</option><option value="java">Java</option><option value="cs">C#</option></select>';
+        row.querySelector('select').onchange = event => syncCompilerSettingsLanguage(event.target.value);
+        panel.prepend(row);
+        panel.append(section);
+        const nav = document.querySelector('.settings-tab[data-tab="compiler"]');
+        document.querySelector('.settings-tab[data-tab="languages"]').onclick = () => nav.click();
+        nav.lastChild.textContent = ' Compiler / Runtime';
+        if (document.getElementById('panel-languages').classList.contains('active')) nav.click();
+    }
+    const tab = App.tabs.find(item => item.id === getPreferredTabId());
+    const ext = (tab?.name || '').split('.').pop().toLowerCase();
+    const language = selected || ({ cc: 'cpp', cxx: 'cpp' })[ext] || (['cpp', 'c', 'py', 'java', 'cs'].includes(ext) ? ext : defaultSourceExtension());
+    document.getElementById('settings-build-language').value = language;
+    const native = language === 'cpp' || language === 'c';
+    controls.hidden = !native;
+    controls.querySelector('h3').textContent = language === 'c' ? 'C Compiler Settings' : 'C++ Compiler Settings';
+    document.getElementById('set-cppStandard').closest('.setting-row').hidden = language !== 'cpp';
+    section.querySelector('h3').textContent = ({ cpp: 'C++', c: 'C', py: 'Python', java: 'Java', cs: 'C#' })[language] + ' Language Settings';
+    const allowed = { py: ['python'], java: ['java', 'javac'], cs: ['dotnet'] }[language] || [];
+    for (const key of ['python', 'java', 'javac', 'dotnet']) document.getElementById('set-language-' + key).closest('.setting-row').hidden = !allowed.includes(key);
+    section.querySelector('details').hidden = native;
+    for (const id of ['python', 'java', 'csharp']) for (const type of ['Lsp', 'Debug']) {
+        document.getElementById(`set-language-${id}${type}`).closest('.setting-row').hidden = id !== ({ py: 'python', java: 'java', cs: 'csharp' })[language];
+    }
 }
 
 async function saveSettingsAndClose() {
