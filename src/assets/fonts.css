@@ -1,5 +1,14 @@
 /* Local bundled fonts - replaces Google Fonts CDN for offline + faster startup */
 
+/* Full character set, including Vietnamese; OFL in licenses/nunito/OFL.txt. */
+@font-face {
+  font-family: 'Nunito UI';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('fonts/nunito-ui-full.woff2') format('woff2');
+}
+
 /* Fredoka 300 latin-ext */
 @font-face {
   font-family: 'Fredoka';

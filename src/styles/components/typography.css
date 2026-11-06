@@ -1,0 +1,30 @@
+:root {
+    --font-ui: 'Nunito UI', 'Segoe UI', sans-serif;
+    --font-heading: 'Fredoka', 'Nunito UI', sans-serif;
+}
+
+/* Use one face for letters and accents instead of mixing Fredoka with fallback glyphs. */
+html[lang="vi"] { --font-heading: 'Nunito UI', 'Segoe UI', sans-serif; }
+
+.explorer-sidebar {
+    font-family: var(--font-ui);
+    font-synthesis: none;
+}
+.explorer-sidebar :is(.explorer-item-name, .cat-list-item-name, .cat-item-name, .cat-name) {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    letter-spacing: normal;
+    line-height: 1.5;
+}
+.explorer-sidebar .explorer-title {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    line-height: 1.5;
+}
+.explorer-sidebar :is(.cat-section-title, .ex-section-header, .cp-sub-contest-title) {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .25px;
+    line-height: 1.5;
+}

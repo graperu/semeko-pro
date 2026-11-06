@@ -78,7 +78,7 @@
 
 .tcf-dirty {
     color: var(--text-muted);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
@@ -100,7 +100,7 @@
     align-items: center;
     gap: 8px;
     color: var(--settings-label-color, var(--text-secondary));
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 600;
 }
@@ -241,7 +241,7 @@
 .tcf-panel-name {
     margin-right: auto;
     color: var(--settings-section-color, var(--accent));
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 1px;
@@ -419,7 +419,7 @@
 .tcf-card-title {
     margin: 0 0 10px;
     color: var(--settings-label-color, var(--text-primary));
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 14px;
     font-weight: 700;
 }
@@ -498,7 +498,7 @@
 
 .tcf-range-row output {
     color: var(--accent);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 700;
     text-align: right;
@@ -526,7 +526,7 @@
     display: grid;
     gap: 8px;
     color: var(--settings-label-color, var(--text-secondary));
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 600;
 }
@@ -624,7 +624,7 @@
 .tcf-preview-heading h3 {
     margin: 0;
     color: var(--settings-section-color, var(--accent));
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 14px;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -665,7 +665,7 @@
 .tcf-status {
     overflow: hidden;
     color: var(--text-muted);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 600;
     text-overflow: ellipsis;
@@ -681,7 +681,7 @@
     border: none;
     background: none;
     color: var(--error);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;

@@ -46,7 +46,7 @@
 .note-dialog-header h3,
 .update-header h2,
 .cc-header h2 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 700 !important;
 }
 
@@ -97,7 +97,7 @@
     flex: 1 1 0;
     min-height: 42px;
     padding: 0 18px !important;
-    font-family: 'Fredoka', sans-serif !important;
+    font-family: var(--font-heading, 'Fredoka', sans-serif) !important;
     font-size: 15px !important;
 }
 

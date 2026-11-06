@@ -73,7 +73,7 @@
     font-size: 1.3em;
     color: var(--bg-ocean-dark, #3a7ca5);
     font-weight: 800;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
 }
 
 .btn-close-snippet-editor {
@@ -114,7 +114,7 @@
     font-weight: 700;
     color: var(--text-primary);
     font-size: 0.95em;
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
 }
 
 .snippet-field input[type="text"] {
@@ -169,7 +169,7 @@
     font-size: 0.85em;
     color: var(--bg-ocean-dark, #3a7ca5);
     margin-bottom: 6px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
 }
 
 .tips-content {
@@ -214,7 +214,7 @@
     font-size: 0.95em;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     border: 2px solid transparent;
 }
 
@@ -368,7 +368,7 @@
     border: 2px solid var(--btn-primary-bg, var(--accent));
     border-radius: 12px;
     cursor: pointer;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
     font-size: 14px;
     display: flex;

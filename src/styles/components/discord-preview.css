@@ -4,7 +4,7 @@
 .discord-preview-heading span {
     margin-left: 8px;
     color: var(--text-muted);
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0;
@@ -62,7 +62,7 @@
     margin-top: 6px;
     padding-left: 0;
     color: var(--settings-section-color, var(--accent));
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
@@ -93,7 +93,7 @@
     background: var(--dp-card);
     color: var(--dp-text);
     box-shadow: 6px 6px 0 var(--shadow-card, transparent);
-    font-family: 'Nunito', 'Segoe UI', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
 }
 
 .dp-banner {
@@ -142,7 +142,7 @@
 }
 
 .dp-name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 19px;
     font-weight: 700;
     line-height: 1.1;
@@ -202,7 +202,7 @@
     border-radius: 999px;
     background: var(--btn-primary-bg, var(--accent));
     color: var(--btn-primary-text, #fff);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 10px;
     font-weight: 700;
     line-height: 22px;

@@ -189,7 +189,7 @@ body.performance-mode .problems-panel {
 }
 
 body {
-    font-family: 'Nunito', 'Segoe UI', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     /* Dark background underneath for transparency slider to work */
     background-color: #1a2530;
     /* Default Background Image - moved to pseudo-element for opacity support */
@@ -293,7 +293,7 @@ body.customizer-open::before {
 }
 
 .logo {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
     font-size: 20px;
     color: var(--btn-primary-text, white);
@@ -355,7 +355,7 @@ body.customizer-open::before {
     border-radius: 8px;
     color: var(--text-secondary);
     cursor: pointer;
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 14px;
     font-weight: 700;
     transform: translateZ(0);
@@ -815,7 +815,7 @@ body.customizer-open::before {
 }
 
 .panel-title {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
     font-size: 11px;
     color: var(--text-secondary);
@@ -944,7 +944,7 @@ body.customizer-open::before {
 }
 
 .welcome-box h1 {
-    font-family: 'Fredoka', cursive;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 48px;
     font-weight: 600;
     color: var(--text-secondary, #8fbcbb);
@@ -1061,7 +1061,7 @@ body.customizer-open::before {
 }
 
 .settings-header h2 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 22px;
     color: var(--text-secondary);
     display: flex;
@@ -1220,7 +1220,7 @@ body.customizer-open::before {
     color: var(--text-secondary);
     font-size: 14px;
     font-weight: 600;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
     text-align: left;
@@ -1273,7 +1273,7 @@ body.customizer-open::before {
 }
 
 .settings-panel h3 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 14px;
     color: var(--settings-section-color);
     margin-bottom: 16px;
@@ -1748,7 +1748,7 @@ html:not([data-theme]) .setting-row>label:not(.switch) {
     border-radius: 25px 20px 22px 18px;
     font-weight: 700;
     font-size: 14px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     box-shadow: 4px 4px 0 var(--shadow-card);
@@ -1770,7 +1770,7 @@ html:not([data-theme]) .setting-row>label:not(.switch) {
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
@@ -1923,7 +1923,7 @@ input[type="color"] {
     color: var(--text-secondary);
     font-weight: 700;
     font-size: 13px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
 }
 
 .tooltip {
@@ -3115,7 +3115,7 @@ body.split-active .editor-pane {
 }
 
 .cc-header h2 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 17px;
     font-weight: 600;
     color: var(--accent, #5a9fc8);
@@ -3192,7 +3192,7 @@ body.split-active .editor-pane {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 600;
     flex-shrink: 0;
@@ -3200,7 +3200,7 @@ body.split-active .editor-pane {
 
 .cc-step-text {
     color: var(--text-secondary, #5a9fc8);
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 13px;
     font-weight: 600;
     line-height: 1.5;
@@ -3232,7 +3232,7 @@ body.split-active .editor-pane {
 
 .cc-option-label {
     color: var(--text-secondary, #5a9fc8);
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 13px;
     font-weight: 600;
     flex-shrink: 0;
@@ -3246,7 +3246,7 @@ body.split-active .editor-pane {
     border: 2px solid var(--border, #c8e4f5);
     background: var(--btn-bg, #fff);
     color: var(--text, #2a4a64);
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -3275,7 +3275,7 @@ body.split-active .editor-pane {
 .cc-btn {
     padding: 10px 22px;
     border-radius: 12px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -3364,7 +3364,7 @@ body.split-active .editor-pane {
 
 .problems-panel:has(.docked-tab) .panel-title {
     position: relative;
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-weight: 800;
     font-size: 12px;
     letter-spacing: 0.4px;
@@ -3670,7 +3670,7 @@ body.split-active .editor-pane {
 }
 
 .docked-io-title {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary, #8aa0b0);
@@ -3961,7 +3961,7 @@ body.split-active .editor-pane {
 }
 
 .reload-notification-title {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
     font-size: 15px;
     color: var(--text-primary);
@@ -4170,7 +4170,7 @@ body.split-active .editor-pane {
 }
 
 .update-header h2 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 18px;
     color: var(--btn-primary-text, white);
     display: flex;
@@ -4327,7 +4327,7 @@ body.split-active .editor-pane {
 }
 
 .header-progress-text {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary, #6b7a8f) !important;
@@ -4813,7 +4813,7 @@ body.split-active .editor-pane {
     border-radius: 999px;
     background: color-mix(in srgb, var(--accent) 16%, transparent);
     color: var(--accent);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 11px;
     font-weight: 700;
 }
@@ -4839,7 +4839,7 @@ body.split-active .editor-pane {
     border: 1px solid var(--border);
     border-radius: 999px;
     color: var(--text-secondary);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -4979,7 +4979,7 @@ body.split-active .editor-pane {
 }
 
 .explorer-title {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
     font-size: 11px;
     text-transform: uppercase;
@@ -5055,7 +5055,7 @@ body.split-active .editor-pane {
     border: 1.5px solid color-mix(in srgb, var(--accent, #88c9ea) 34%, transparent);
     border-radius: 12px;
     color: var(--text-primary, #2a5a75);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 700;
     font-size: 13px;
     cursor: pointer;
@@ -5078,7 +5078,7 @@ body.split-active .editor-pane {
 }
 
 .explorer-folder-name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13px;
     font-weight: 700;
     color: var(--text-primary, #2a5a75);
@@ -5103,7 +5103,7 @@ body.split-active .editor-pane {
     color: var(--text-primary, #2a5a75);
     transition: background 0.12s, color 0.12s, transform 0.1s, box-shadow 0.12s;
     user-select: none;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
 }
 
@@ -5262,7 +5262,7 @@ body.split-active .editor-pane {
 
 /* ===== COMPACT DIFF VISUALIZATION ===== */
 .diff-hint {
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -5681,7 +5681,7 @@ body.split-active .editor-pane {
 }
 
 .note-dialog-header h3 {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary, #2a5a75);
@@ -5720,7 +5720,7 @@ body.split-active .editor-pane {
     border: 2px solid var(--border, #e0f0ff);
     border-radius: 12px;
     color: var(--text-primary, #2a5a75);
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 14px;
     resize: vertical;
     transition: border-color 0.2s;
@@ -5743,7 +5743,7 @@ body.split-active .editor-pane {
     padding: 8px 20px;
     border: 2px solid var(--border, #e0f0ff);
     border-radius: 12px;
-    font-family: 'Nunito', sans-serif;
+    font-family: var(--font-ui, 'Nunito', sans-serif);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -5968,7 +5968,7 @@ body.split-active .editor-pane {
 }
 
 .explorer-section-title {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
     font-size: 10px;
     text-transform: uppercase;
@@ -6089,7 +6089,7 @@ body.split-active .editor-pane {
 }
 
 .cp-contest-name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 700;
     font-size: 13.5px;
     color: var(--text-primary, #2a5a75);
@@ -6289,7 +6289,7 @@ body.split-active .editor-pane {
 }
 
 .cp-row-id {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 800;
     font-size: 14px;
     color: var(--text-primary, #2a5a75);
@@ -6486,7 +6486,7 @@ body.split-active .editor-pane {
 }
 
 .cp-prob-id {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 700;
     font-size: 12px;
     color: var(--text-primary, #2a5a75);
@@ -6819,7 +6819,7 @@ body.split-active .editor-pane {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 700;
     font-size: 12px;
     text-transform: uppercase;
@@ -7009,7 +7009,7 @@ body.split-active .editor-pane {
 }
 
 .cat-name {
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 700;
     font-size: 13.5px;
     color: var(--text-primary, #2a5a75);
@@ -7271,7 +7271,7 @@ body.split-active .editor-pane {
     border: none;
     border-radius: 8px;
     color: var(--text-secondary, #7eb8c5);
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-weight: 600;
     font-size: 12px;
     cursor: pointer;
@@ -7353,7 +7353,7 @@ body.split-active .editor-pane {
     border: 2px solid transparent;
     background: var(--bg-glass, rgba(255, 255, 255, 0.4));
     transition: background 0.12s, border-color 0.15s, opacity 0.15s, transform 0.1s;
-    font-family: 'Fredoka', sans-serif;
+    font-family: var(--font-heading, 'Fredoka', sans-serif);
     font-size: 13.5px;
     font-weight: 600;
     min-height: 32px;

@@ -103,7 +103,8 @@
         "test:themes": "node tests/gui/test-theme-customizer-gui.js",
         "build:release": "node scripts/build/prepare-runtimes.js && node scripts/build/build-monaco.js --if-stale && electron-builder --config scripts/build/windows-release.cjs --win nsis --publish never",
         "test:release": "node tests/gui/test-packaged-release.js",
-        "test:i18n": "node tests/gui/test-i18n.js"
+        "test:i18n": "node tests/gui/test-i18n.js",
+        "test:fonts": "node tests/gui/test-ui-fonts.js"
     },
     "dependencies": {
         "@xterm/addon-fit": "^0.11.0",
