@@ -53,6 +53,8 @@ window.ProblemBrowser = (() => {
     async function safeStatement(html, provider) {
         if (provider === 'codeforces') {
             const parsed = new DOMParser().parseFromString(html, 'text/html');
+            for (const math of parsed.querySelectorAll('script[type^="math/tex"]')) math.replaceWith(' ' + math.textContent + ' ');
+            for (const duplicate of parsed.querySelectorAll('.MathJax_Preview, .MathJax, .MathJax_Display, .MathJax_SVG, .MathJax_SVG_Display, .MJX_Assistive_MathML')) duplicate.remove();
             html = parsed.querySelector('.problem-statement')?.innerHTML || '';
         }
         await loadScript('../node_modules/dompurify/dist/purify.min.js');
@@ -80,8 +82,8 @@ window.ProblemBrowser = (() => {
         }
         for (const image of doc.querySelectorAll('img')) {
             try {
-                const url = new URL(image.getAttribute('src'), { leetcode: 'https://leetcode.com', hackerrank: 'https://www.hackerrank.com' }[provider]);
-                const allowed = ['leetcode.com', 'hrcdn.net', 'hackerrank.com', 'amazonaws.com'];
+                const url = new URL(image.getAttribute('src'), { codeforces: 'https://codeforces.com', leetcode: 'https://leetcode.com', hackerrank: 'https://www.hackerrank.com' }[provider]);
+                const allowed = ['codeforces.com', 'codeforces.org', 'leetcode.com', 'hrcdn.net', 'hackerrank.com', 'amazonaws.com'];
                 if (url.protocol !== 'https:' || !allowed.some(host => url.hostname === host || url.hostname.endsWith('.' + host))) { image.remove(); continue; }
                 image.src = url.href; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer';
             } catch (_) { image.remove(); }

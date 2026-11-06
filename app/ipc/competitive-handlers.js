@@ -47,6 +47,17 @@ function registerHandlers() {
         'oj-problem-detail': ({ provider, id }) => require('../services/competitive/problem-browser').detail(provider, id),
         'oj-open-problem': async ({ provider, id }) => {
             const url = require('../services/competitive/problem-browser').officialURL(provider, id);
+            if (provider === 'codeforces' && process.platform === 'win32') {
+                const chrome = [process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA]
+                    .filter(Boolean).map(root => path.join(root, 'Google', 'Chrome', 'Application', 'chrome.exe')).find(file => fs.existsSync(file));
+                if (chrome) {
+                    await new Promise((resolve, reject) => {
+                        const child = require('child_process').spawn(chrome, [url], { detached: true, stdio: 'ignore', windowsHide: true });
+                        child.once('error', reject); child.once('spawn', () => { child.unref(); resolve(); });
+                    });
+                    return true;
+                }
+            }
             await require('electron').shell.openExternal(url);
             return true;
         }

@@ -112,10 +112,13 @@ async function detail(provider, id) {
             const item = (await codeforces()).find(p => p.id === id);
             if (!item) throw new Error('This Codeforces problem is not in the public catalog.');
             let html = '';
-            try {
-                const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(12000) });
-                if (response.ok) { const raw = await response.text(); if (raw.length < 3000000 && raw.includes('problem-statement')) html = raw; }
-            } catch (_) {}
+            try { html = await require('./codeforces-statement').loadStatement(url); } catch (_) {}
+            if (!html) {
+                try {
+                    const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(12000) });
+                    if (response.ok) { const raw = await response.text(); if (raw.length < 3000000 && raw.includes('problem-statement')) html = raw; }
+                } catch (_) {}
+            }
             return { ...item, url, html, snippets: {}, note: html ? 'Public samples load automatically. Run All Tests reports each sample result.' : 'Codeforces blocked automatic statement loading. Open the official page and use Competitive Companion to import samples.', mode: 'stdin' };
         }
         if (provider === 'leetcode') {
