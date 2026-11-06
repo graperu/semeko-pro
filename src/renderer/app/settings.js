@@ -1287,7 +1287,7 @@ async function resetTemplate() {
     const lang = templateLang;
     const confirmed = await showConfirmDialog({
         title: 'Reset Template',
-        message: `Reset the ${lang === 'c' ? 'C' : 'C++'} template to default?`,
+        message: `Reset the ${({ cpp: 'C++', c: 'C', py: 'Python', java: 'Java', cs: 'C#' })[lang]} template to default?`,
         confirmText: 'Reset'
     });
     if (confirmed) setTemplateText(lang, TEMPLATE_DEFAULTS[lang]());
@@ -1298,7 +1298,7 @@ async function importTemplateFromFile() {
     input.type = 'file';
     
     // Restrict to C++ or text file formats
-    input.accept = '.cpp,.cc,.cxx,.c,.h,.hpp,.hxx,.txt';
+    input.accept = '.cpp,.cc,.cxx,.c,.h,.hpp,.hxx,.py,.java,.cs,.txt';
 
     input.onchange = (e) => {
         const file = e.target.files[0];
@@ -1306,7 +1306,7 @@ async function importTemplateFromFile() {
         // The extension picks the template (.c -> C, .cpp/.cc/.cxx/.hpp/.hxx -> C++);
         // .h and .txt go to the template on screen.
         const ext = (file.name.match(/\.([^.]+)$/) || [])[1]?.toLowerCase();
-        const lang = ext === 'c' ? 'c' : /^(cpp|cc|cxx|hpp|hxx)$/.test(ext) ? 'cpp' : templateLang;
+        const lang = ['c', 'py', 'java', 'cs'].includes(ext) ? ext : /^(cpp|cc|cxx|hpp|hxx)$/.test(ext) ? 'cpp' : templateLang;
 
         const reader = new FileReader();
         reader.onload = (event) => {

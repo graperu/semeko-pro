@@ -334,7 +334,7 @@
                         </button>
                         <button class="settings-tab" data-tab="execution">
                             <svg class="ico" data-icon="play" data-weight="duo" data-alt="fill" width="16" height="16"><use href="#i-play-duo"/><use class="ico-alt" href="#i-play-fill"/></svg>
-                            Execution
+                            Execution &amp; Tests
                         </button>
                         <button class="settings-tab" data-tab="appearance">
                             <svg class="ico" data-icon="palette" data-weight="duo" data-alt="fill" width="16" height="16"><use href="#i-palette-duo"/><use class="ico-alt" href="#i-palette-fill"/></svg>
@@ -557,7 +557,8 @@
 
                         <!-- Compiler Tab -->
                         <div class="settings-panel" id="panel-compiler">
-                            <h3>Compiler Settings</h3>
+                            <h3>C / C++ Compiler Settings</h3>
+                            <p class="setting-desc">These options apply to C/C++ only. Configure Python, Java and C# in Languages. To run a project, use Run Folder and Use Current File as Main in the Run menu.</p>
                             <div class="setting-row">
                                 <label>C++ Standard</label>
                                 <select id="set-cppStandard">
@@ -619,7 +620,12 @@
                         <div class="settings-panel" id="panel-languages"></div>
                         <!-- Execution Tab -->
                         <div class="settings-panel" id="panel-execution">
-                            <h3>Execution Settings</h3>
+                            <h3>Execution &amp; Tests</h3>
+                            <p class="setting-desc">Practice imports problems from Codeforces, LeetCode and HackerRank into a new tab. Official sample inputs and expected outputs are read only: they cannot be edited or deleted. Your own files can use editable custom tests.</p>
+                            <div class="setting-row"><label>Test status colors</label><span>Blue: running<br>Yellow: missing / waiting<br>Red: failed<br>Green: passed</span></div>
+                            <p class="setting-desc">Run shows compilation and individual test progress. Select a test to compare input, actual output and expected output. Status colors remain consistent across themes. Local sample results do not include the platform's hidden tests.</p>
+                            <div class="setting-row"><label>LeetCode local runner</label><span>C++ and Python</span></div>
+                            <p class="setting-desc">Supported function signatures run locally. Tree, linked-list, design and unsupported signatures require the official platform. Choose the solution language in Practice.</p>
                             <div class="setting-row">
                                 <label>Time Limit <span class="tooltip"
                                         title="Auto-stop after X seconds&#10;Disable for games/long-running programs">?</span></label>
@@ -770,7 +776,7 @@
                         <!-- Template Tab -->
                         <div class="settings-panel" id="panel-template">
                             <h3>Code Template</h3>
-                            <p class="setting-desc">Choose the code that appears whenever you create a new C++ or C file.</p>
+                            <p class="setting-desc">Choose starter code for C++, C, Python, Java and C#. New files use this template; existing workspace files are preserved.</p>
                             <div class="template-editor">
                                 <div class="template-editor-header">
                                     <span class="template-editor-file">

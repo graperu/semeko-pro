@@ -206,11 +206,11 @@ window.LanguageSupport = (() => {
         }
     }
     function saveSettings() {
-        const next = { defaultExtension: document.getElementById('set-language-default').value };
+        const next = { ...App.settings.languages, defaultExtension: document.getElementById('set-language-default').value };
         for (const key of runtimeKeys) next[key] = document.getElementById(`set-language-${key}`).value.trim();
         for (const id of ids) for (const type of ['Lsp', 'Debug']) {
             const key = `${id}${type}`, text = document.getElementById(`set-language-${key}`).value.trim();
-            if (!text) continue;
+            if (!text) { delete next[key]; continue; }
             let value;
             try { value = JSON.parse(text); } catch (_) { throw new Error(`${key}: enter valid JSON.`); }
             if (typeof value.command !== 'string' || !value.command.trim() || !Array.isArray(value.args) || value.args.some(arg => typeof arg !== 'string')) throw new Error(`${key}: provide a command and an array of string arguments.`);
