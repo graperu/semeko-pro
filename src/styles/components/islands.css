@@ -1178,3 +1178,19 @@ body.performance-mode .main .editor-section {
 }
 
 #settings-overlay [hidden] { display: none !important; }
+
+/* Keep long settings names inside their buttons at every window size. */
+#settings-popup > .settings-container > .settings-sidebar {
+    flex-shrink: 0;
+    overflow-x: hidden;
+}
+#settings-popup > .settings-container > .settings-sidebar > .settings-tab {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+    min-height: 48px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    gap: 8px;
+    padding: 10px;
+}
