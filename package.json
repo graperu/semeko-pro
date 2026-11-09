@@ -1,7 +1,7 @@
 {
     "name": "sameko-dev-cpp",
     "version": "1.4.1",
-    "description": "Semeko Pro: the upgraded Semeko C++ IDE for C/C++, Python, Java and C#",
+    "description": "Semeko: the upgraded Semeko C++ IDE for C/C++, Python, Java and C#",
     "main": "app/main.js",
     "author": "QuangquyNguyenvo",
     "license": "MIT",
@@ -71,9 +71,9 @@
         "prebuild:mac": "node scripts/build/build-monaco.js",
         "build:mac": "electron-builder --mac",
         "prebuild:linux": "node scripts/build/build-monaco.js",
-        "build:linux": "electron-builder --linux AppImage deb tar.gz -c.productName=Semeko-Pro",
+        "build:linux": "electron-builder --linux AppImage deb tar.gz -c.productName=Semeko",
         "prebuild:all": "node scripts/build/build-monaco.js",
-        "build:all": "npm run build:win && electron-builder --linux AppImage deb tar.gz -c.productName=Semeko-Pro",
+        "build:all": "npm run build:win && electron-builder --linux AppImage deb tar.gz -c.productName=Semeko",
         "clean:dist": "node scripts/maintenance/clean.js dist",
         "rebuild:win": "npm run clean:dist && npm run build:win",
         "rebuild": "npm run clean:dist && npm run build",
@@ -82,6 +82,7 @@
         "codegraph:sync": "codegraph sync",
         "codegraph:status": "codegraph status",
         "setup:languages": "node scripts/setup/setup-languages.js",
+        "setup:runtimes": "node scripts/setup/setup-runtimes.js",
         "test:languages": "node tests/integration/test-languages.js",
         "test:languages:tools": "node tests/integration/test-language-tools.js",
         "test:languages:gui": "node scripts/build/build-monaco.js --if-stale && node tests/gui/test-language-gui.js",
@@ -103,8 +104,24 @@
         "test:themes": "node tests/gui/test-theme-customizer-gui.js",
         "build:release": "node scripts/build/prepare-runtimes.js && node scripts/build/build-monaco.js --if-stale && electron-builder --config scripts/build/windows-release.cjs --win nsis --publish never",
         "test:release": "node tests/gui/test-packaged-release.js",
-        "test:i18n": "node tests/gui/test-i18n.js",
-        "test:fonts": "node tests/gui/test-ui-fonts.js"
+        "test:i18n": "node tests/unit/test-native-i18n.js && node tests/gui/test-i18n.js && node tests/gui/test-i18n-coverage.js",
+        "test:fonts": "node tests/gui/test-ui-fonts.js",
+        "test:code": "node tests/unit/test-function-judge.js && node tests/gui/test-coding-corpus.js",
+        "test:code:advanced": "node tests/gui/test-advanced-coding.js && node tests/gui/test-advanced-coding-ui.js",
+        "test:terminal": "node tests/gui/test-terminal-interactive.js",
+        "test:practice": "node tests/gui/test-practice-library.js",
+        "test:learning": "node tests/gui/test-tech-library-full.js",
+        "test:learning:28tech": "node tests/gui/test-tech-library-full.js",
+        "test:learning:28tech:native": "node tests/unit/test-pdf-exercise.js && node tests/gui/test-native-28tech.js",
+        "test:tabs:titles": "node tests/gui/test-tab-title-clipping.js",
+        "test:hackerrank:cpp": "node tests/gui/test-hackerrank-cpp.js",
+        "test:translation:bulk": "node tests/gui/test-bulk-translation.js",
+        "test:math": "node tests/gui/test-statement-math.js",
+        "test:contests": "node tests/unit/test-codeforces-groups.js && node tests/gui/test-contest-groups.js",
+        "test:online:new": "node tests/gui/test-new-online-problems.js",
+        "test:translation": "node tests/unit/test-statement-translation.js && node tests/gui/test-statement-translation.js",
+        "test:accounts": "node tests/unit/test-accounts.js && node tests/gui/test-accounts.js",
+        "test:updates": "node tests/unit/test-update-discovery.js"
     },
     "dependencies": {
         "@xterm/addon-fit": "^0.11.0",
@@ -114,7 +131,10 @@
         "electron-log": "^5.4.4",
         "electron-updater": "^6.8.9",
         "gsap": "^3.15.0",
-        "marked": "18.1.1"
+        "katex": "^0.19.1",
+        "marked": "18.1.1",
+        "pdfjs-dist": "^6.5.438",
+        "tesseract.js": "^7.0.0"
     },
     "devDependencies": {
         "@phosphor-icons/core": "^2.1.1",
@@ -129,7 +149,7 @@
     },
     "build": {
         "appId": "com.quangquy.cppide",
-        "productName": "Semeko Pro",
+        "productName": "Semeko",
         "artifactName": "${productName}-${version}.${ext}",
         "directories": {
             "output": "samekodevcpp"
@@ -236,7 +256,7 @@
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
             "createStartMenuShortcut": true,
-            "shortcutName": "Semeko Pro",
+            "shortcutName": "Semeko",
             "perMachine": false,
             "allowElevation": true,
             "include": "installer/installer.nsh",
@@ -262,7 +282,7 @@
             "maintainer": "QuangquyNguyenvo <QuangquyNguyenvo@users.noreply.github.com>",
             "desktop": {
                 "entry": {
-                    "Name": "Semeko Pro",
+                    "Name": "Semeko",
                     "Comment": "The upgraded Semeko C++ IDE with multi-language support",
                     "Categories": "Development;IDE;",
                     "StartupWMClass": "sameko-dev-cpp"

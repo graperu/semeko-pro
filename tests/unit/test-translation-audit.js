@@ -1,0 +1,10 @@
+const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path'),vm=require('vm');
+const audit=require('../../app/services/competitive/translation-audit'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-audit-'));fs.mkdirSync(path.join(dir,'leetcode'));
+let job={auditEnabled:true,items:['good','partial','missing'].map(id=>({provider:'leetcode',id,status:'done'}))};
+const save=(id,translated)=>fs.writeFileSync(path.join(dir,'leetcode',id+'.json'),JSON.stringify({detail:{provider:'leetcode',id},original:'original',translated}));save('good','Vietnamese');save('partial','UNTRANSLATED');
+const worker={webContents:{executeJavaScript:async code=>vm.runInNewContext(code,{StatementTranslation:{auditArticle:(_source,text)=>text==='UNTRANSLATED'?1:0}})}};
+const options={worker,dir,read:()=>JSON.parse(JSON.stringify(job)),write:next=>{job=next;},allowed:()=>true};
+(async()=>{await audit(options);assert.strictEqual(job.audit.queued,2);assert.strictEqual(job.items.find(i=>i.id==='good').status,'done');assert(job.items.find(i=>i.id==='partial').repairTranslation);assert(job.items.find(i=>i.id==='missing').repairTranslation);
+save('partial','Vietnamese');save('missing','Vietnamese');for(const item of job.items)item.status='done';await audit(options);assert.strictEqual(job.audit.queued,0);assert.strictEqual(job.audit.needsReview,0);assert(job.items.every(i=>i.auditFingerprint));
+save('partial','UNTRANSLATED');await audit(options);assert.strictEqual(job.audit.queued,1);job.items.find(i=>i.id==='partial').status='done';await audit(options);assert.strictEqual(job.audit.queued,0);assert(job.items.find(i=>i.id==='partial').needsReview);
+console.log('PASS saved-pair audit, selective repair, missing-file recovery, source fingerprint checkpoints and bounded repeat repairs');})().catch(e=>{console.error(e);process.exitCode=1;});

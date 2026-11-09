@@ -8,6 +8,7 @@ window.UILanguage = (() => {
         'Languages':'Ngôn ngữ','Execution & Tests':'Chạy & Kiểm thử','Execution':'Chạy chương trình','Appearance':'Giao diện','Template':'Mã mẫu','Code Template':'Mã mẫu',
         'Keybindings':'Phím tắt','Snippets':'Đoạn mã','About':'Giới thiệu','Save & Close':'Lưu và đóng','Reset to Defaults':'Khôi phục mặc định',
         'Interface language':'Ngôn ngữ giao diện','Search settings':'Tìm cài đặt','File':'Tệp','Edit':'Chỉnh sửa','View':'Hiển thị','Run':'Chạy','Practice':'Luyện tập',
+        'Archive & close folder':'Lưu vào kho và đóng thư mục','Open folder':'Mở thư mục','Folder':'Thư mục','files':'tệp','No folder open':'Chưa mở thư mục','Stop the running program before closing a folder.':'Hãy dừng chương trình trước khi đóng thư mục.','Files changed while saving. Save the folder again.':'Tệp đã thay đổi trong lúc lưu. Hãy lưu thư mục lại.','Folder saved to archive and closed':'Đã lưu thư mục vào kho và đóng',
         'New File':'Tệp mới','Open File':'Mở tệp','Open Folder':'Mở thư mục','Open Folder...':'Mở thư mục...','Open File...':'Mở tệp...',
         'Save':'Lưu','Save As':'Lưu thành','Save All':'Lưu tất cả','Close':'Đóng','Close All':'Đóng tất cả','Close Others':'Đóng các tệp khác','Exit':'Thoát',
         'Undo':'Hoàn tác','Redo':'Làm lại','Cut':'Cắt','Copy':'Sao chép','Paste':'Dán','Select All':'Chọn tất cả','Find':'Tìm kiếm','Replace':'Thay thế',
@@ -58,7 +59,7 @@ window.UILanguage = (() => {
         'Color Theme':'Chủ đề màu','Marketplace':'Kho chủ đề','Interface Scale':'Tỉ lệ giao diện','Keyboard Shortcuts':'Phím tắt',
         'Click on a shortcut to change it. Press Escape to cancel.':'Bấm vào phím tắt để thay đổi. Nhấn Escape để hủy.',
         'Code Snippets':'Đoạn mã mẫu','Enable Snippets':'Bật đoạn mã mẫu','Add New Snippet':'Thêm đoạn mã mẫu','Import from File(s)':'Nhập từ tệp',
-        'Discord Rich Presence':'Trạng thái Discord','Show what you\'re working on in Discord with Semeko Pro.':'Hiển thị hoạt động của bạn trong Semeko Pro lên Discord.',
+        'Discord Rich Presence':'Trạng thái Discord','Show what you\'re working on in Discord with Semeko.':'Hiển thị hoạt động của bạn trong Semeko lên Discord.',
         'Enable Discord RPC':'Bật trạng thái Discord','Preview':'Xem trước','How your profile shows it in Discord':'Cách hiển thị trên hồ sơ Discord',
         'Version':'Phiên bản','Get beta updates':'Nhận bản cập nhật thử nghiệm',
         'Start with a blank workspace':'Bắt đầu với workspace trống','Restore previous session':'Khôi phục phiên trước','Reopen saved files':'Mở lại các tệp đã lưu',
@@ -100,15 +101,87 @@ window.UILanguage = (() => {
         'C++ settings use the bundled compiler or the configured toolchain.':'C++ sử dụng trình biên dịch đi kèm hoặc bộ công cụ bạn đã chọn.',
         'C settings use the bundled compiler or the configured toolchain.':'C sử dụng trình biên dịch đi kèm hoặc bộ công cụ bạn đã chọn.'
     };
-    const excluded = 'script,style,textarea,input,.monaco-editor,.monaco-aria-container,.xterm,.terminal-output,#terminal-output,#expected-diff,#oj-statement,#oj-problem-title,.oj-result,.tab-name,.explorer-item-name,.cat-list-item-name,.cat-item-name,.cat-name,.cp-contest-name,.snippet-name,.snippet-list-name,.file-note,.markdown-preview,.md-preview,pre,code';
+    Object.assign(vi, {
+        'Default programming language': 'Ngôn ngữ lập trình mặc định',
+        'Choose an installed Python interpreter. Its version determines the Python version used to run your program. Optimization and warning settings apply when running your program.': 'Chọn trình thông dịch Python đã cài. Phiên bản của trình thông dịch là phiên bản Python dùng để chạy chương trình. Tối ưu hóa và cảnh báo được áp dụng khi chạy.',
+        'Configure Python language tools with an executable and a JSON argument array. The default debugger uses python -m debugpy.adapter. Changes apply after saving.': 'Cấu hình công cụ Python bằng tệp thực thi và mảng tham số JSON. Bộ gỡ lỗi mặc định dùng python -m debugpy.adapter. Thay đổi có hiệu lực sau khi lưu.',
+        'Configure Java language tools with an executable and a JSON argument array. The default debugger uses the JDT LS Java Debug plugin. Changes apply after saving.': 'Cấu hình công cụ Java bằng tệp thực thi và mảng tham số JSON. Bộ gỡ lỗi mặc định dùng plugin Java Debug của JDT LS. Thay đổi có hiệu lực sau khi lưu.',
+        'Configure C# language tools with an executable and a JSON argument array. The default debugger uses netcoredbg --interpreter=vscode. Changes apply after saving.': 'Cấu hình công cụ C# bằng tệp thực thi và mảng tham số JSON. Bộ gỡ lỗi mặc định dùng netcoredbg --interpreter=vscode. Thay đổi có hiệu lực sau khi lưu.'
+    });
+    Object.assign(vi, window.UIVietnamese || {});
+    const normalizeKey = value => value.replace(/\s+/g, ' ').trim();
+    const normalized = Object.fromEntries(Object.entries(vi).map(([key,value]) => [normalizeKey(key),value]));
+    const excluded = 'script,style,textarea,input,.monaco-editor,.monaco-aria-container,.xterm,.terminal-output,#terminal-output,#expected-diff,#oj-statement,#oj-problem-title,.oj-result,.tab-name,.explorer-item-name,.cat-list-item-name,.cat-item-name,.cat-name,.cp-contest-name,.snippet-name,.snippet-list-name,.file-note,.markdown-preview,.md-preview,.code-line,.tcf-json-highlight,.sdbg-name,.sdbg-val,[data-i18n-preserve],pre,code';
     const original = new WeakMap(), attributes = new WeakMap();
     let language = 'en', scheduled = false, observer;
+    const patterns = [
+        [/^(\d+) (?:tests|test)$/, '$1 ca kiểm thử'],
+        [/^(\d+) results$/, '$1 kết quả'],
+        [/^(\d+) spaces$/, '$1 dấu cách'],
+        [/^([\d.]+)s \/ line$/, '$1 giây / dòng'],
+        [/^Downloading: ([\d.]+)%$/, 'Đang tải: $1%'],
+        [/^Testing (\d+)\/(\d+)\.\.\.$/, 'Đang kiểm thử $1/$2...'],
+        [/^Running test (\d+)\.\.\.$/, 'Đang chạy ca kiểm thử $1...'],
+        [/^Re-checking test (\d+) alone\.\.\.$/, 'Đang chạy lại riêng ca kiểm thử $1...'],
+        [/^Single test (\d+): compiling\.\.\.$/, 'Ca kiểm thử $1: đang biên dịch...'],
+        [/^Test (\d+): (.+)$/, 'Ca kiểm thử $1: $2'],
+        [/^Single Test (\d+): (.+)$/, 'Ca kiểm thử $1: $2'],
+        [/^Compiled in (.+)ms$/, 'Biên dịch xong trong $1 ms'],
+        [/^(?:Build|Compile): (.+)ms$/, 'Biên dịch: $1 ms'],
+        [/^Saved (.+)$/, 'Đã lưu $1'],
+        [/^Main file: (.+)$/, 'Tệp chính: $1'],
+        [/^Auto-save failed: (.+)$/, 'Tự động lưu thất bại: $1'],
+        [/^Save failed: (.+)$/, 'Lưu thất bại: $1'],
+        [/^Rename failed: (.+)$/, 'Đổi tên thất bại: $1'],
+        [/^Could not save settings: (.+)$/, 'Không lưu được cài đặt: $1'],
+        [/^Error running tests: (.+)$/, 'Lỗi chạy kiểm thử: $1'],
+        [/^Exit: (.+)$/, 'Mã thoát: $1'],
+        [/^Interface scale: (\d+)%$/, 'Tỉ lệ giao diện: $1%'],
+        [/^(\d+) errors?$/, '$1 lỗi'],
+        [/^(\d+) warnings?$/, '$1 cảnh báo'],
+        [/^Time: (.+)$/, 'Thời gian: $1'],
+        [/^Memory: (.+)$/, 'Bộ nhớ: $1'],
+        [/^(\d+) sample tests loaded\. C\+\+\/Python: press Run to test your function\.$/, 'Đã tải $1 ca mẫu. C++/Python: bấm Chạy để kiểm thử hàm.'],
+        [/^([\d,\.]+) problems? · (Codeforces|LeetCode|HackerRank) · select one to preview(.*)$/, '$1 bài tập · $2 · chọn bài để xem trước'],
+        [/^([\d.]+) tokens?$/, '$1 thành phần'],
+        [/^"(.+)" already exists: opened it instead\.$/, '"$1" đã tồn tại: đã mở tệp hiện có.'],
+        [/^Revert to (.+)$/, 'Khôi phục về $1'],
+        [/^Revert (.+)$/, (_, label) => 'Khôi phục ' + (normalized[normalizeKey(label)] || label)],
+        [/^(.+) live preview$/, 'Xem trước trực tiếp $1'],
+        [/^Process exited with code (.+)$/, 'Chương trình kết thúc với mã $1'],
+        [/^(✓ )?Build succeeded in (.+)$/, '$1Biên dịch thành công trong $2'],
+        [/^Delete "(.+)"\?$/, 'Xóa "$1"?'],
+        [/^Delete folder "(.+)" and ALL its contents\? This cannot be undone\.$/, 'Xóa thư mục "$1" và TOÀN BỘ nội dung? Không thể hoàn tác thao tác này.'],
+        [/^Delete entire contest folder "(.+)" and ALL its files\? This cannot be undone\.$/, 'Xóa thư mục kỳ thi "$1" và TOÀN BỘ tệp? Không thể hoàn tác thao tác này.'],
+        [/^Delete approach "(.+)"\?$/, 'Xóa cách giải "$1"?'],
+        [/^Will create: (.+)$/, 'Sẽ tạo: $1'],
+        [/^Failed to rename file: (.+)$/, 'Đổi tên tệp thất bại: $1'],
+        [/^Failed to delete folder: (.+)$/, 'Xóa thư mục thất bại: $1'],
+        [/^Failed to delete file: (.+)$/, 'Xóa tệp thất bại: $1'],
+        [/^Export failed: (.+)$/, 'Xuất thất bại: $1'],
+        [/^Runtime error (.+)$/, 'Lỗi khi chạy $1'],
+        [/^(?:Search|Find) (\d+) of (\d+)$/, 'Kết quả $1 / $2'],
+        [/^by (.+)$/, (_, author) => 'Tác giả: ' + (normalized[normalizeKey(author)] || author)],
+        [/^Download v(.+)$/, 'Tải phiên bản $1'],
+        [/^Add to "(.+)"$/, 'Thêm vào "$1"'],
+        [/^Action unavailable: (.+)$/, 'Thao tác chưa khả dụng: $1'],
+        [/^Checkpoints: (.+)$/, 'Lịch sử phiên bản: $1'],
+        [/^Untitled Checkpoints: (.+)$/, 'Lịch sử thẻ chưa đặt tên: $1'],
+        [/^Working on (.+)$/, 'Đang làm việc với $1'],
+        [/^Semeko - Ln (\d+), Col (\d+)$/, 'Semeko - Dòng $1, Cột $2'],
+        [/^([\d:]+) elapsed$/, 'Đã dùng $1'],
+        [/^([\d,.]+) contests · ([\d,.]+) problems$/, '$1 kỳ thi · $2 bài tập']
+    ];
     function translate(value) {
+        if (typeof value !== 'string') return value;
         if (language !== 'vi') return value;
         const trimmed = value.trim();
-        let result = vi[trimmed];
+        let result = normalized[normalizeKey(trimmed)];
+        if (!result) for (const [pattern, replacement] of patterns) {
+            if (pattern.test(trimmed)) { result = trimmed.replace(pattern, replacement); break; }
+        }
         if (!result) {
-            result = trimmed.replace(/^Test (\d+)$/, 'Test $1').replace(/^(\d+) tests$/, '$1 test')
+            result = trimmed.replace(/^Test (\d+)$/, 'Ca kiểm thử $1').replace(/^(\d+) tests$/, '$1 ca kiểm thử')
                 .replace(/^(✓\s*)?(\d+) passed$/, '$1$2 thành công').replace(/^(✗\s*)?(\d+) failed$/, '$1$2 thất bại')
                 .replace(/^Ln (\d+), Col (\d+)$/, 'Dòng $1, Cột $2')
                 .replace(/^(Passed|Wrong answer|Runtime error|Time limit exceeded|Compile error)( · .*)?$/, (_, label, details) => vi[label] + (details || ''))
@@ -134,22 +207,45 @@ window.UILanguage = (() => {
             attributes.set(node, values);
         }
     }
-    function apply(value = App.settings.appearance.language || 'en') {
-        language = value === 'vi' ? 'vi' : 'en'; document.documentElement.lang = language;
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+    const observedRoots = new WeakSet();
+    function applyRoot(root) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
             acceptNode: node => node.nodeType === Node.ELEMENT_NODE && node.matches(excluded) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
         });
-        let node; while ((node = walker.nextNode())) update(node);
+        let node; while ((node = walker.nextNode())) {
+            update(node);
+            if (node.shadowRoot) {
+                if (observer && !observedRoots.has(node.shadowRoot)) { observer.observe(node.shadowRoot, observerOptions); observedRoots.add(node.shadowRoot); }
+                applyRoot(node.shadowRoot);
+            }
+        }
         // Translate only placeholder/labels of input fields, never their values.
-        for (const input of document.querySelectorAll('input,textarea,[data-placeholder]')) update(input);
+        for (const input of root.querySelectorAll('input,textarea,[data-placeholder]')) update(input);
     }
+    function apply(value = App.settings.appearance.language || 'en') {
+        language = value === 'vi' ? 'vi' : 'en'; document.documentElement.lang = language;
+        applyRoot(document.body);
+        for (const node of document.querySelectorAll('[data-ui-text]')) {
+            const text = translate(node.dataset.uiText);
+            if (node.textContent !== text) node.textContent = text;
+        }
+        for (const menu of document.querySelectorAll('.monaco-editor .monaco-menu,.monaco-editor .find-widget')) applyRoot(menu);
+    }
+    const observerOptions = { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title','placeholder','aria-label','data-placeholder'] };
     function init() {
         if (observer) return;
+        for (const method of ['alert','confirm','prompt']) {
+            const native = window[method]?.bind(window);
+            if (native) window[method] = (message, ...args) => native(translate(String(message)), ...args);
+        }
         observer = new MutationObserver(records => {
-            if (scheduled || !records.some(record => !(record.target.nodeType === 1 ? record.target : record.target.parentElement)?.closest(excluded))) return;
+            if (scheduled || !records.some(record => {
+                const target = record.target.nodeType === 1 ? record.target : record.target.parentElement;
+                return !target?.closest(excluded) || target?.closest('.monaco-menu,.find-widget');
+            })) return;
             scheduled = true; requestAnimationFrame(() => { scheduled = false; apply(); });
         });
-        observer.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title','placeholder','aria-label','data-placeholder'] });
+        observer.observe(document.body, observerOptions);
         apply();
     }
     document.addEventListener('DOMContentLoaded', init);

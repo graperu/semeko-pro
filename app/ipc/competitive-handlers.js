@@ -43,10 +43,17 @@ function setMainWindow(window) {
  */
 function registerHandlers() {
     for (const [channel, work] of Object.entries({
+        'oj-statement-image': options => require('../services/competitive/statement-image')(options.url),
+        'learning-tech-list': () => require('../services/competitive/tech-library').list(),
+        'learning-tech-source': options => require('../services/competitive/tech-library').source(options.id),
+        'learning-tech-open': options => require('../services/competitive/tech-library').openMaterial(options.id),
+        'learning-tech-describe': options => require('../services/competitive/tech-library').describe(options.id),
+        'oj-contest-standings': options => require('../services/competitive/standings')(options),
         'oj-list-problems': options => require('../services/competitive/problem-browser').list(options),
         'oj-problem-detail': ({ provider, id }) => require('../services/competitive/problem-browser').detail(provider, id),
-        'oj-open-problem': async ({ provider, id }) => {
-            const url = require('../services/competitive/problem-browser').officialURL(provider, id);
+        'oj-contest-workspace': options => require('../services/competitive/contest-workspace')(options),
+        'oj-open-problem': async ({ provider, id, track }) => {
+            const url = require('../services/competitive/problem-browser').officialURL(provider, id, track);
             if (provider === 'codeforces' && process.platform === 'win32') {
                 const chrome = [process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA]
                     .filter(Boolean).map(root => path.join(root, 'Google', 'Chrome', 'Application', 'chrome.exe')).find(file => fs.existsSync(file));
@@ -75,8 +82,8 @@ function registerHandlers() {
     });
 
     // Batch testing
-    ipcMain.handle('run-test', async (event, { exePath, input, expectedOutput, timeLimit, cwd }) => {
-        return await competitive.runTest({ exePath, input, expectedOutput, timeLimit, cwd });
+    ipcMain.handle('run-test', async (event, { exePath, input, expectedOutput, timeLimit, cwd, functionMetadata, problemURL, debug, testMeta }) => {
+        return await competitive.runTest({ exePath, input, expectedOutput, timeLimit, cwd, functionMetadata, problemURL, debug, testMeta });
     });
 
     // ==================== .sameko file handlers ====================

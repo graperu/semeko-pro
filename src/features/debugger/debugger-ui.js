@@ -187,7 +187,7 @@
         #sameko-debug-panel{position:relative;flex:0 0 344px;width:344px;min-height:0;margin:2px 12px 12px 0;
           background:var(--bg-glass-heavy,rgba(26,37,48,.97));color:var(--text-primary,#e0f0ff);
           border:1.5px solid var(--border-strong,var(--accent,#88c9ea));border-radius:var(--radius,20px);
-          z-index:1;display:none;flex-direction:column;font-family:'Nunito','Segoe UI',sans-serif;
+          z-index:1;display:none;flex-direction:column;font-family:var(--font-ui);
           font-size:12.5px;box-shadow:var(--shadow-soft,0 12px 44px rgba(0,0,0,.4));overflow:hidden}
         #sameko-debug-panel.open{display:flex}
         /* Row 1: what the session is doing + the two window-ish buttons. */
@@ -234,7 +234,7 @@
         .sdbg-auto-stop{flex:0 0 auto;border:none;cursor:pointer;border-radius:8px;
           background:var(--accent,#88c9ea);color:#11212e;font-weight:800;font-size:10px;
           text-transform:uppercase;letter-spacing:.05em;padding:5px 11px;
-          font-family:'Nunito','Segoe UI',sans-serif}
+          font-family:var(--font-ui)}
         .sdbg-auto-stop:hover{filter:brightness(1.08)}
         /* Time-travel strip: shown only while browsing recorded history. */
         .sdbg-hist{display:none;align-items:center;gap:9px;padding:7px 11px;flex:0 0 auto;
@@ -246,7 +246,7 @@
           color:var(--text-secondary,#a9c2d4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .sdbg-hist-live{flex:0 0 auto;border:none;cursor:pointer;border-radius:8px;background:#ffcf5e;
           color:#241300;font-weight:800;font-size:10px;padding:5px 11px;
-          font-family:'Nunito','Segoe UI',sans-serif}
+          font-family:var(--font-ui)}
         .sdbg-hist-live:hover{filter:brightness(1.08)}
         /* Rows shown from a recording are not live values — say so quietly. */
         .sdbg-body.replay .sdbg-val{color:var(--text-secondary,#a9c2d4)}
@@ -396,7 +396,7 @@
         /* First-run coach marks */
         #sameko-debug-guide{position:fixed;inset:0;z-index:1600;display:flex;align-items:flex-start;
           justify-content:center;padding-top:96px;background:rgba(6,12,18,.45);
-          font-family:'Nunito','Segoe UI',sans-serif}
+          font-family:var(--font-ui)}
         .sdbg-guide-card{background:var(--bg-glass-heavy,rgba(26,37,48,.98));color:var(--text-primary,#e0f0ff);
           border:2.5px solid var(--accent,#88c9ea);border-radius:18px;padding:18px 20px;max-width:440px;
           box-shadow:0 18px 60px rgba(0,0,0,.5)}
@@ -415,7 +415,7 @@
            breakpoints. Same card language as the coach-mark guide. */
         #sameko-debug-prompt{position:fixed;inset:0;z-index:1700;display:flex;align-items:flex-start;
           justify-content:center;padding-top:120px;background:rgba(6,12,18,.5);
-          font-family:'Nunito','Segoe UI',sans-serif}
+          font-family:var(--font-ui)}
         .sdbg-prompt-card{background:var(--bg-glass-heavy,rgba(26,37,48,.98));color:var(--text-primary,#e0f0ff);
           border:2px solid var(--accent,#88c9ea);border-radius:var(--radius-sm,14px);padding:16px 18px;
           width:min(420px,90vw);box-shadow:var(--shadow-soft,0 18px 60px rgba(0,0,0,.5))}
@@ -427,7 +427,7 @@
         .sdbg-prompt-in:focus{border-color:var(--accent,#88c9ea)}
         .sdbg-prompt-row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
         .sdbg-prompt-row button{border:none;border-radius:9px;padding:7px 16px;font-weight:800;
-          font-size:12px;cursor:pointer;font-family:'Nunito','Segoe UI',sans-serif}
+          font-size:12px;cursor:pointer;font-family:var(--font-ui)}
         .sdbg-prompt-cancel{background:var(--btn-bg,#2a4050);color:var(--text-primary,#e0f0ff)}
         .sdbg-prompt-ok{background:var(--accent,#88c9ea);color:#11212e}
         .sdbg-prompt-ok:hover,.sdbg-prompt-cancel:hover{filter:brightness(1.08)}`;

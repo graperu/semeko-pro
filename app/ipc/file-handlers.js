@@ -12,6 +12,7 @@ const fs = require('fs');
 const fsp = fs.promises;
 const { IPC } = require('../shared/constants');
 const { writeFileAtomic } = require('../shared/fs-atomic');
+const { translate, dialogOptions } = require('../shared/ui-language');
 
 let mainWindow = null;
 
@@ -255,7 +256,8 @@ function updateFileWatcherMtime(filePath) {
  */
 function registerHandlers() {
     ipcMain.handle(IPC.FILE.OPEN_DIALOG, async (event, options) => {
-        const result = await dialog.showOpenDialog(mainWindow, {
+        const result = await dialog.showOpenDialog(mainWindow, dialogOptions({
+            title: 'Open File', buttonLabel: 'Open',
             defaultPath: openDialogDir(options?.defaultPath),
             properties: ['openFile', 'multiSelections'],
             filters: [
@@ -264,7 +266,7 @@ function registerHandlers() {
                 { name: 'Text & Test Data (.txt .md .inp .out …)', extensions: TEXT_EXTENSIONS },
                 ALL_FILES
             ]
-        });
+        }));
 
         if (!result.canceled && result.filePaths.length > 0) {
             rememberDialogDir(result.filePaths[0]);
@@ -273,7 +275,7 @@ function registerHandlers() {
                     const content = await readTextFile(filePath);
                     mainWindow.webContents.send(IPC.EVENTS.FILE_OPENED, { path: filePath, content });
                 } catch (error) {
-                    dialog.showErrorBox('Cannot open file', `${path.basename(filePath)}: ${error.message}`);
+                    dialog.showErrorBox(translate('Cannot open file'), `${path.basename(filePath)}: ${error.message}`);
                 }
             }
         }
@@ -285,7 +287,7 @@ function registerHandlers() {
             const content = await readTextFile(filePath);
             mainWindow.webContents.send(IPC.EVENTS.FILE_OPENED, { path: filePath, content });
         } catch (error) {
-            dialog.showErrorBox('Cannot open file', path.basename(filePath) + ': ' + error.message);
+            dialog.showErrorBox(translate('Cannot open file'), path.basename(filePath) + ': ' + error.message);
         }
     }));
 
@@ -302,10 +304,11 @@ function registerHandlers() {
         const content = typeof payload === 'object' && payload !== null ? payload.content : payload;
         const defaultPath = typeof payload === 'object' && payload !== null ? payload.defaultPath : undefined;
 
-        const result = await dialog.showSaveDialog(mainWindow, {
+        const result = await dialog.showSaveDialog(mainWindow, dialogOptions({
+            title: 'Save File', buttonLabel: 'Save',
             defaultPath,
             filters: saveFilters(defaultPath)
-        });
+        }));
 
         if (!result.canceled) {
             rememberDialogDir(result.filePath);

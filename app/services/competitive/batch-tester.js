@@ -11,7 +11,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { spawn, exec } = require('child_process');
 const { getCompilerEnv } = require('../compiler/detector');
-const { normalizeOutput, compareOutputs } = require('../../shared/judge');
+const { normalizeOutput, compareOutputs, compareFunctionOutputs } = require('../../shared/judge');
 const { IS_WIN, IS_LINUX, readProcMemoryKB, killProcessTree } = require('../../shared/platform');
 const { getLauncherIfReady, newStatsFile, readStats } = require('../compiler/run-launcher');
 
@@ -26,7 +26,7 @@ const { getLauncherIfReady, newStatsFile, readStats } = require('../compiler/run
  * @param {string} [options.cwd] - Working directory
  * @returns {Promise<import('../../shared/types').BatchTestResult>}
  */
-async function runTest({ exePath, input, expectedOutput, timeLimit = 3000, cwd, debug = false, testMeta = null }) {
+async function runTest({ exePath, input, expectedOutput, timeLimit = 3000, cwd, functionMetadata = null, problemURL = null, debug = false, testMeta = null }) {
     return new Promise((resolve) => {
         if (!exePath || !fs.existsSync(exePath)) {
             resolve({ status: 'CE', error: 'Executable not found' });
@@ -201,7 +201,8 @@ async function runTest({ exePath, input, expectedOutput, timeLimit = 3000, cwd, 
                 // This avoids false WA when users only want to execute and inspect output.
                 if (hasExpected) {
                     // Compare output using shared judge rules
-                    const compared = compareOutputs(output, expectedOutput);
+                    const compared = (functionMetadata ? compareFunctionOutputs : compareOutputs)(output, expectedOutput);
+                    if(!functionMetadata){const semantic=require('../../shared/problem-checkers')(problemURL,input,output);if(semantic!==null)compared.matched=semantic;}
                     debugInfo.expectedNormHash = hashText(compared.expectedNorm);
                     debugInfo.actualNormHash = hashText(compared.actualNorm);
 

@@ -16,9 +16,13 @@ function settings() {
     const { app } = require('electron');
     const roots = [path.join(app.getPath('userData'), 'language-tools'), path.join(__dirname, '..', '..', '..', '.sameko-tools')];
     for (const root of roots) {
+        try { installed = { ...installed, ...JSON.parse(fs.readFileSync(path.join(root, 'runtimes.json'), 'utf8')) }; } catch (_) {}
         try { installed = { ...installed, ...JSON.parse(fs.readFileSync(path.join(root, 'tools.json'), 'utf8')) }; } catch (_) {}
     }
-    return { ...installed, ...(readUserSettings()?.languages || {}) };
+    const user = { ...(readUserSettings()?.languages || {}) };
+    // Empty path fields mean automatic detection, including setup defaults.
+    for (const key of ['python','java','javac','dotnet']) if (typeof user[key] === 'string' && !user[key].trim()) delete user[key];
+    return { ...installed, ...user };
 }
 function tool(key) {
     const configured = settings()[key];
@@ -130,7 +134,7 @@ async function buildSource(options, language, key) {
     if (language === 'python') {
         command = tool('python');
         result = await capture(command, ['-c', 'import ast,sys; ast.parse(open(sys.argv[1], encoding="utf-8-sig").read(), filename=sys.argv[1])', source], { cwd });
-        args = ['-u'];
+        args = ['-u', '-X', 'utf8'];
         if (['1', '2'].includes(String(config.pythonOptimization))) args.push(Number(config.pythonOptimization) === 2 ? '-OO' : '-O');
         if (config.pythonNoBytecode) args.push('-B');
         if (config.pythonDevMode) args.push('-X', 'dev');

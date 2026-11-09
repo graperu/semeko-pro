@@ -54,6 +54,7 @@ yarn-error.log*
 # ===== AI Agent =====
 # Agent rules and settings are personal, not part of the repo.
 plans/
+/CHO_XOA*/
 AGENTS.md
 CLAUDE.md
 PLANNING.md

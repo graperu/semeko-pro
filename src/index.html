@@ -10,7 +10,7 @@
          styles are used throughout the UI and by Monaco itself. -->
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-eval' blob:; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https:; media-src 'self' data: blob: file: https:; font-src 'self' data:; connect-src 'self' https://api.github.com https://gist.githubusercontent.com; object-src 'none'; base-uri 'self'; form-action 'none'">
-    <title>Semeko Pro</title>
+    <title>Semeko</title>
     <!-- Local bundled fonts (offline, no CDN round-trip on startup) -->
     <link rel="stylesheet" href="assets/fonts.css">
     <link rel="stylesheet" href="styles/base.css">
@@ -21,7 +21,10 @@
     <link rel="stylesheet" href="styles/components/toolbar.css">
     <link rel="stylesheet" href="styles/components/islands.css">
     <link rel="stylesheet" href="styles/components/typography.css">
+    <link rel="stylesheet" href="styles/components/practice-library.css">
+    <link rel="stylesheet" href="features/learning/learning.css">
     <link rel="stylesheet" href="features/problem-browser/problem-browser.css">
+    <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css">
     <link rel="stylesheet" href="styles/components/local-history.css">
     <link rel="stylesheet" href="styles/components/confirm-dialog.css">
     <link rel="stylesheet" href="styles/components/popups.css">
@@ -200,7 +203,8 @@
             <header class="oj-header"><div><h2 id="oj-browser-title">Choose a problem</h2><p>Codeforces · LeetCode · HackerRank</p></div><button type="button" id="oj-close" aria-label="Close problem browser">×</button></header>
             <form id="oj-search-form" class="oj-filters">
                 <label>Platform<select id="oj-provider"><option value="codeforces">Codeforces</option><option value="leetcode">LeetCode</option><option value="hackerrank">HackerRank</option></select></label>
-                <label id="oj-track-label" hidden>Category<select id="oj-track"><option value="algorithms">Algorithms</option><option value="data-structures">Data structures</option><option value="mathematics">Mathematics</option><option value="python">Python</option><option value="java">Java</option></select></label>
+                <label id="oj-track-label" hidden>Category<select id="oj-track"><option value="cpp">C++</option><option value="algorithms">Algorithms</option><option value="data-structures">Data structures</option><option value="mathematics">Mathematics</option><option value="python">Python</option><option value="java">Java</option></select></label>
+                <label id="oj-view-label">Browse by<select id="oj-view"><option value="contests">Contests</option><option value="problems">Problems</option></select></label>
                 <label class="oj-search-label">Search<input id="oj-search" type="search" placeholder="Problem name, ID or topic" maxlength="120" autocomplete="off"></label>
                 <label>Difficulty<select id="oj-difficulty"><option value="">All levels</option><option value="easy">Easy / CF ≤1200</option><option value="medium">Medium / CF 1300–2000</option><option value="hard">Hard / CF &gt;2000</option></select></label>
                 <button type="submit" id="oj-search-submit">Search</button>
@@ -862,7 +866,7 @@
                                 <svg class="ico" data-icon="discord-logo" data-weight="duo" width="20" height="20"><use href="#i-discord-logo-duo"/></svg>
                                 Discord Rich Presence
                             </h3>
-                            <p class="setting-desc">Show what you're working on in Discord with Semeko Pro.</p>
+                            <p class="setting-desc">Show what you're working on in Discord with Semeko.</p>
 
                             <div class="setting-row">
                                 <label>Enable Discord RPC <span class="tooltip" title="Show your current file in Discord status">?</span></label>
@@ -892,7 +896,7 @@
                                             <span class="dp-badge" id="discord-preview-badge">C++</span>
                                         </div>
                                         <div class="dp-text">
-                                            <div class="dp-title">Semeko Pro</div>
+                                            <div class="dp-title">Semeko</div>
                                             <div class="dp-line" id="discord-preview-details">Working on untitled.cpp</div>
                                             <div class="dp-line dp-dim" id="discord-preview-state">In project - Ln 1, Col 1</div>
                                             <div class="dp-time">
@@ -922,7 +926,7 @@
                             <div style="text-align: center; padding: 20px 0;">
                                 <img src="assets/icons/icon-256.png" alt="Logo"
                                     style="width: 80px; height: 80px; margin-bottom: 10px;">
-                                <h3 style="margin: 0; font-size: 24px;">Semeko Pro</h3>
+                                <h3 style="margin: 0; font-size: 24px;">Semeko</h3>
                                 <p style="opacity: 0.7; margin: 5px 0 20px;">The upgraded Semeko C++ · C/C++, Python, Java &amp; C#</p>
 
                                 <div
@@ -1136,7 +1140,7 @@
                 <!-- Welcome -->
                 <div class="welcome" id="welcome">
                     <div class="welcome-box">
-                        <h1>Semeko Pro</h1>
+                        <h1>Semeko</h1>
                         <p>Upgraded from Semeko C++ · Multi-language IDE</p>
                         <div class="welcome-btns">
                             <button class="welcome-btn" id="welcome-new">
@@ -1279,7 +1283,7 @@
                         <div class="terminal-body" id="terminal"></div>
                         <div class="terminal-input">
                             <span class="prompt"></span>
-                            <textarea id="terminal-in" rows="1" placeholder="Input..." disabled></textarea>
+                            <textarea id="terminal-in" rows="1" aria-label="Terminal input" placeholder="Run a program to enter input" disabled></textarea>
                             <button class="send-btn" id="btn-eof" disabled title="Close standard input (EOF), for programs that read until end of input" aria-label="Close standard input">EOF</button>
                             <button class="send-btn" id="btn-send" disabled title="Send">
                                 <svg class="ico" data-icon="paper-plane-right" data-weight="fill"><use href="#i-paper-plane-right-fill"/></svg>
@@ -1318,6 +1322,7 @@
          built by scripts/build/build-monaco.js) and, on first use, xterm, marked and gsap.
          No inline <script> anywhere - the CSP forbids it. -->
     <script src="renderer/boot.js"></script>
+    <script src="renderer/ui/i18n-vi.js"></script>
     <script src="renderer/ui/i18n.js"></script>
     <script src="features/suggestions/cpp-suggestions.js"></script>
     <script src="features/snippets/snippet-editor.js"></script>
@@ -1338,6 +1343,7 @@
     <!-- The app itself, in load order (formerly one renderer/app.js). -->
     <script src="features/languages/language-support.js"></script>
     <script src="features/problem-browser/problem-browser.js"></script>
+    <script src="features/problem-browser/standings.js"></script>
     <script src="renderer/app/core.js"></script>
     <script src="renderer/app/split.js"></script>
     <script src="renderer/app/settings.js"></script>
@@ -1356,6 +1362,10 @@
     <script src="renderer/app/terminal-input.js"></script>
     <script src="renderer/app/updates.js"></script>
     <script src="renderer/app/tab-menu.js"></script>
+    <script src="features/practice-library.js"></script>
+    <script src="features/learning/tech-library-full.js"></script>
+    <script src="features/statement-translation.js"></script>
+    <script src="features/accounts.js"></script>
 </body>
 
 </html>

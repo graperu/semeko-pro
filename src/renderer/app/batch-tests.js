@@ -177,6 +177,7 @@ async function runAllTests() {
         }
         const compileResult = await window.electronAPI.compile({
             functionMetadata: problem.solutionMode === 'function' ? problem.functionMetadata : null,
+            problemURL: problem.url || null,
             filePath: tab.path,
             fileName: tab.name,
             untitledId: tab.path ? '' : tab.id,
@@ -247,6 +248,8 @@ async function runAllTests() {
                     exePath,
                     input: test.input || '',
                     expectedOutput: test.output || '',
+                    functionMetadata: problem.solutionMode === 'function' ? problem.functionMetadata : null,
+            problemURL: problem.url || null,
                     timeLimit: timeLimit,
                     cwd: sourceDir,
                     debug: true,
@@ -279,6 +282,8 @@ async function runAllTests() {
                     exePath,
                     input: tests[i].input || '',
                     expectedOutput: tests[i].output || '',
+                    functionMetadata: problem.solutionMode === 'function' ? problem.functionMetadata : null,
+            problemURL: problem.url || null,
                     timeLimit: timeLimit,
                     cwd: sourceDir,
                     debug: true,
@@ -335,6 +340,7 @@ async function runAllTests() {
 
         // Sync status with explorer
         syncProblemStatusWithExplorer(tab, problem, finalResults);
+        try { await window.PracticeLibrary?.record(tab, problem, finalResults); } catch (error) { showToast(error.message, 'error'); }
 
     } catch (e) {
         log(`Error running tests: ${e.message}`, 'error');
@@ -385,6 +391,7 @@ async function runSingleTestByIndex(testIndex) {
         }
         const compileResult = await window.electronAPI.compile({
             functionMetadata: problem.solutionMode === 'function' ? problem.functionMetadata : null,
+            problemURL: problem.url || null,
             filePath: tab.path,
             fileName: tab.name,
             untitledId: tab.path ? '' : tab.id,
@@ -417,6 +424,8 @@ async function runSingleTestByIndex(testIndex) {
             exePath: tab.exePath,
             input: test.input || '',
             expectedOutput: test.output || '',
+                    functionMetadata: problem.solutionMode === 'function' ? problem.functionMetadata : null,
+            problemURL: problem.url || null,
             timeLimit: timeLimit,
             cwd: sourceDir,
             debug: true,
@@ -453,6 +462,7 @@ async function runSingleTestByIndex(testIndex) {
 
         // Sync status with explorer
         syncProblemStatusWithExplorer(tab, problem, list);
+        try { await window.PracticeLibrary?.record(tab, problem, list); } catch (error) { showToast(error.message, 'error'); }
     } catch (e) {
         log(`Single test error: ${e.message}`, 'error');
         setStatus('Single Test Error', 'error');

@@ -581,7 +581,7 @@ function log(msg, type = '') {
         }
     }
 
-    TerminalManager.writeMessage(msg, hexColor, colorEnabled);
+    TerminalManager.writeMessage(window.UILanguage && normalizedType !== 'input' ? UILanguage.translate(msg) : msg, hexColor, colorEnabled);
 }
 
 // Raw program output (stdout/stderr): written verbatim so the program controls
@@ -609,6 +609,7 @@ function setRunning(v) {
     App.isRunning = v;
     document.getElementById('btn-stop').disabled = !v;
     document.getElementById('terminal-in').disabled = !v;
+    document.getElementById('terminal-in').placeholder = v ? 'Type input and press Enter (Shift+Enter for a new line)' : 'Run a program to enter input';
     document.getElementById('btn-send').disabled = !v;
     document.getElementById('btn-eof').disabled = !v;
     document.getElementById('btn-buildrun')?.classList.toggle('running', v);

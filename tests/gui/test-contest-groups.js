@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path'),{_electron}=require('playwright-core');
+const ROOT=path.resolve(__dirname,'../..');let app;
+(async()=>{const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:require('electron'),args:[ROOT,'--user-data-dir='+fs.mkdtempSync(path.join(os.tmpdir(),'semeko-groups-'))],env,cwd:ROOT});let page;for(let i=0;i<300;i++){page=app.windows().find(p=>p.url().includes('index.html'));if(page)break;await new Promise(r=>setTimeout(r,100));}await page.waitForFunction(()=>window.App?.ready);
+await page.evaluate(()=>{App.settings.appearance.language='vi';UILanguage.apply();ProblemBrowser.open();});await page.locator('#oj-search').fill('1205');await page.locator('#oj-search-submit').click();await page.waitForFunction(()=>!document.getElementById('oj-search-submit').disabled,{timeout:60000});
+const groups=await page.locator('.oj-contest').evaluateAll(ns=>ns.map(n=>({title:n.querySelector('summary').textContent,items:[...n.querySelectorAll('.oj-result strong')].map(x=>x.textContent)})));
+assert(groups.some(g=>g.title.includes('#1205')&&g.items.some(x=>x.startsWith('A.'))&&g.items.some(x=>x.startsWith('F.'))));
+await page.locator('#oj-view').selectOption('problems');await page.waitForFunction(()=>!document.getElementById('oj-search-submit').disabled);assert.strictEqual(await page.locator('.oj-contest').count(),0);assert(await page.locator('.oj-result').count());
+await page.locator('#oj-view').selectOption('contests');await page.waitForFunction(()=>!document.getElementById('oj-search-submit').disabled);await page.locator('.oj-contest summary').first().click();await page.locator('.oj-contest summary').first().click();
+fs.mkdirSync(path.join(ROOT,'plans/artifacts/gui'),{recursive:true});await page.screenshot({path:path.join(ROOT,'plans/artifacts/gui/codeforces-contest-groups.png')});console.log('PASS live contest names, A-F nested problem rows, expand/collapse and flat/grouped switch');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(app)await app.close();});

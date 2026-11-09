@@ -1,0 +1,45 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),Module=require('module');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-translate-unit-'));let secure=true;
+const load=Module._load;Module._load=function(name,...args){if(name==='electron')return{app:{getPath:()=>root},safeStorage:{isEncryptionAvailable:()=>secure,encryptString:s=>Buffer.from([...s].reverse().join('')),decryptString:b=>[...b.toString()].reverse().join('')}};return load.call(this,name,...args);};
+const service=require('../../app/services/competitive/statement-translation');Module._load=load;
+const secret='unit-test-secret-not-a-real-key';let calls=0,mode='valid';
+assert.strictEqual(service.validate({baseUrl:'http://localhost:20128/v1',model:'local-model'}).baseUrl,'http://localhost:20128/v1');
+assert.strictEqual(service.validate({baseUrl:'http://127.0.0.1:20128/v1',model:'local-model'}).model,'local-model');
+assert.throws(()=>service.validate({baseUrl:'http://localhost.evil.example/v1',model:'x'}),/HTTPS/);
+assert.throws(()=>service.validate({baseUrl:'http://192.168.1.2/v1',model:'x'}),/HTTPS/);
+global.fetch=async(url,options)=>{calls++;assert.strictEqual(url,'https://translator.example/v1/chat/completions');assert.strictEqual(options.headers.Authorization,'Bearer '+secret);const body=JSON.parse(options.body);assert.strictEqual(body.model,'test-model');assert.strictEqual(body.stream,false);const texts=JSON.parse(body.messages[1].content).texts;if(mode==='http')return{ok:false,status:401};if(mode==='throw')throw Error(secret);return{ok:true,json:async()=>({choices:[{message:{content:mode==='json'?'not-json':JSON.stringify({translations:mode==='missing'?[]:texts.map(t=>mode==='tokens'?t.replace('SEMEKO_KEEP_0_END','123'):'Bản dịch '+t)})}}]})};};
+(async()=>{
+assert.throws(()=>service.save({baseUrl:'http://host/v1',model:'x',apiKey:secret}),/HTTPS/);secure=false;assert.throws(()=>service.save({baseUrl:'https://translator.example/v1',model:'test-model',apiKey:secret}),/Secure/);secure=true;
+service.save({baseUrl:'https://translator.example/v1/chat/completions',model:'test-model',apiKey:secret});const stored=fs.readFileSync(path.join(root,'translation-provider.json'),'utf8');assert(!stored.includes(secret));assert(!JSON.stringify(service.info()).includes(secret));assert(service.info().hasKey);
+assert.throws(()=>service.save({baseUrl:'https://other.example/v1',model:'test-model'}),/again/);
+const texts=['At most SEMEKO_KEEP_0_END vertices.'];const first=await service.translate(texts);assert(first[0].includes('SEMEKO_KEEP_0_END'));await service.translate(texts);assert.strictEqual(calls,1);
+const savedFiles=fs.readdirSync(path.join(root,'statement-translations'));assert.strictEqual(savedFiles.length,1);assert(!fs.readFileSync(path.join(root,'statement-translations',savedFiles[0]),'utf8').includes(secret));
+// Saving config clears the in-memory cache; persisted translation still avoids a request.
+service.save({baseUrl:'https://translator.example/v1',model:'test-model'});assert.deepStrictEqual(await service.translate(texts),first);assert.strictEqual(calls,1);
+for(const [bad,pattern]of [['http',/HTTP 401/],['json',/JSON/],['missing',/match/],['tokens',/protected/],['throw',/connect/]]){mode=bad;await assert.rejects(service.translate(['case-'+bad+' SEMEKO_KEEP_0_END']),pattern);}
+await assert.rejects(service.translate(Array(1501).fill('x')),/large/);service.remove();assert(!service.info().hasKey);await assert.rejects(service.translate(['text']),/Configure/);
+service.save({baseUrl:'https://translator.example/v1',model:'test-model',apiKey:secret});
+const batches=[];global.fetch=async(url,options)=>{const texts=JSON.parse(JSON.parse(options.body).messages[1].content).texts;batches.push(texts.length);return{ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({translations:texts.length>1?[]:texts.map(t=>'VN '+t)})}}]})};};
+assert.deepStrictEqual(await service.translate(['adaptive one','adaptive two','adaptive three']),['VN adaptive one','VN adaptive two','VN adaptive three']);assert(batches.includes(3)&&batches.filter(n=>n===1).length===3);service.remove();
+service.save({baseUrl:'https://translator.example/v1',model:'test-model',apiKey:secret});
+const models=[];let claudeStatus=401;
+global.fetch=async(url,options)=>{const body=JSON.parse(options.body);models.push(body.model);if(body.model==='ag/claude-sonnet-4-6')return{ok:false,status:claudeStatus,text:async()=>claudeStatus===429?'quota_exceeded '+secret:'unauthorized '+secret};const texts=JSON.parse(body.messages[1].content).texts;return{ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({translations:texts.map(t=>'VN '+t)})}}]})};};
+await assert.rejects(service.translate(['Claude auth failure'],'ag/claude-sonnet-4-6'),/HTTP 401/);
+assert.deepStrictEqual(models,['ag/claude-sonnet-4-6']);models.length=0;claudeStatus=429;
+assert.deepStrictEqual(await service.translate(['Claude quota fallback'],'ag/claude-sonnet-4-6'),['VN Claude quota fallback']);
+assert.deepStrictEqual(await service.translate(['Next Claude task'],'ag/claude-sonnet-4-6'),['VN Next Claude task']);
+assert.deepStrictEqual(models,['ag/claude-sonnet-4-6','ag/gemini-3.8-flash','ag/gemini-3.8-flash']);
+service.save({baseUrl:'https://translator.example/v1',model:'agy/gemini-3.8-flash'});models.length=0;
+await service.translate(['OmniRoute default']);await service.translate(['OmniRoute high review'],'ag/gemini-3.8-flash-high');await service.translate(['OmniRoute quota fallback'],'ag/claude-sonnet-4-6');
+assert.deepStrictEqual(models,['agy/gemini-3.8-flash','agy/gemini-3.8-flash-high','agy/gemini-3.8-flash']);
+service.save({baseUrl:'https://translator.example/v1',model:'agy/gemini-3.8-flash-low'});models.length=0;await service.translate(['Low default']);await service.translate(['Low fallback'],'ag/claude-sonnet-4-6');assert.deepStrictEqual(models,['agy/gemini-3.8-flash-low','agy/gemini-3.8-flash-low']);
+let active=0,peak=0;
+global.fetch=async(url,options)=>{active++;peak=Math.max(peak,active);const texts=JSON.parse(JSON.parse(options.body).messages[1].content).texts;await new Promise(r=>setTimeout(r,15));active--;if(texts[0]==='limited-42')throw Error('temporary disconnect');return{ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({translations:texts.map(t=>'VN '+t)})}}]})};};
+const parallel=await Promise.allSettled(Array.from({length:100},(_,i)=>service.translate(['limited-'+i])));
+assert.strictEqual(peak,50);assert.strictEqual(parallel.filter(r=>r.status==='fulfilled').length,99);assert.strictEqual(parallel.filter(r=>r.status==='rejected').length,1);
+const prompts=[];global.fetch=async(url,options)=>{const body=JSON.parse(options.body);prompts.push(body.messages[0].content);const texts=JSON.parse(body.messages[1].content).texts;return{ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({translations:texts.map(t=>'Result '+t)})}}]})};};
+await service.translate(['Same bilingual source'],undefined,false,'en');await service.translate(['Same bilingual source'],undefined,false,'vi');assert.strictEqual(prompts.length,2);assert(prompts[0].includes('into English'));assert(!prompts[0].includes('Vietnamese'));assert(prompts[1].includes('into Vietnamese'));await assert.rejects(service.translate(['source'],undefined,false,'xx'),/Unsupported translation language/);
+service.remove();
+console.log('PASS translation validation, caching, adaptive batches, Claude quota fallback to Gemini, cooldown and no fallback on generic authentication failures');
+})().catch(e=>{console.error(e);process.exitCode=1;});

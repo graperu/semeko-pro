@@ -271,7 +271,7 @@ function createMainWindow() {
         mainWindow.setAppDetails({
             appId: 'com.quangquy.cppide',
             appIconPath: path.join(appRoot, 'src', 'assets', 'icon.ico'),
-            relaunchDisplayName: 'Semeko Pro',
+            relaunchDisplayName: 'Semeko',
             relaunchCommand: app.isPackaged ? `"${process.execPath}"` : `"${process.execPath}" "${appRoot}"`
         });
     }

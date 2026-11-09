@@ -1,0 +1,26 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path'),Module=require('module');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-official-')),events=[],load=Module._load,timeout=setTimeout,interval=setInterval;let uid=7,posts=0,checks=0,fail=false,lastBody,partitions=[],loginTick,cfCount=0,identity='CFUser';
+fs.writeFileSync(path.join(root,'official-submissions.json'),JSON.stringify({connections:{'7':{leetcode:{handle:'LCUser'},codeforces:{handle:'CFUser'}}},history:[]}));
+const fakeSession={cookies:{get:async()=>[{value:'private-csrf-token'}]},clearStorageData:async()=>{},fetch:async(url,options)=>{
+ let body;
+ if(url.endsWith('/graphql/')){body=JSON.parse(options.body);return{ok:true,json:async()=>body.query.includes('userStatus')?{data:{userStatus:{isSignedIn:true,username:'LCUser'}}}:{data:{question:{questionId:'1'}}}};}
+ if(url.includes('/submit/')){posts++;lastBody=JSON.parse(options.body);assert.strictEqual(options.headers['x-csrftoken'],'private-csrf-token');if(fail)throw Error('Connection lost after POST');return{ok:true,json:async()=>({submission_id:123})};}
+ if(url.includes('/check/'))return{ok:true,json:async()=>++checks%2?{state:'PENDING'}:{state:'SUCCESS',status_code:10,status_msg:'Accepted',total_correct:57,total_testcases:57}};
+ if(url.includes('/api/user.status'))return{ok:true,json:async()=>({status:'OK',result:[{id:++cfCount===1?100:124,verdict:'WRONG_ANSWER',passedTestCount:5,timeConsumedMillis:20,memoryConsumedBytes:1000}]})};
+ throw Error('Unexpected endpoint');
+}};
+class Window{constructor(options){this.options=options;this.handlers={};this.url='';this.dead=false;this.webContents={getURL:()=>this.url,send:(ch,data)=>events.push({...data}),setWindowOpenHandler:()=>{},on:()=>{},executeJavaScript:async script=>script.includes('const link=document')?identity:{posted:true,ids:['124']}};assert(options.webPreferences.sandbox&&options.webPreferences.contextIsolation&&!options.webPreferences.nodeIntegration);}on(n,f){this.handlers[n]=f;}isDestroyed(){return this.dead;}focus(){}async loadURL(u){this.url=u;}close(){this.dead=true;this.handlers.closed?.();}static getAllWindows(){return[{isDestroyed:()=>false,webContents:{getURL:()=>'/index.html',send:(channel,data)=>events.push({...data})}}];}}
+Module._load=function(name,...args){if(name==='electron')return{app:{getPath:()=>root},BrowserWindow:Window,session:{fromPartition:p=>{partitions.push(p);return fakeSession;}}};if(name==='./accounts')return{info:()=>({github:uid?{id:uid}:null}),submissionURL:url=>url.includes('codeforces.com')?{provider:'codeforces',url:'https://codeforces.com/problemset/submit/977/C'}:{provider:'leetcode',url:'https://leetcode.com/problems/two-sum/description/'}};return load.call(this,name,...args);};
+global.setTimeout=(fn,ms,...args)=>timeout(fn,ms===4000?1:ms,...args);global.setInterval=fn=>{loginTick=fn;return 991;};
+const service=require('../../app/services/official-submissions');
+const wait=async ticket=>{for(let i=0;i<500;i++){const job=service.info(7).history.find(j=>j.ticket===ticket);if(job&&['finished','error','unknown'].includes(job.phase))return job;await new Promise(r=>timeout(r,5));}throw Error('Timed out');};
+(async()=>{
+ uid=null;await assert.rejects(service.submit({}),/GitHub/);uid=7;
+ await service.login('codeforces');await loginTick();assert.strictEqual(service.info(7).connections.codeforces.handle,'CFUser');
+ const first=await service.submit({url:'https://leetcode.com/problems/two-sum/',code:'class Solution {}',extension:'cpp'}),result=await wait(first.ticket);assert.strictEqual(result.accepted,true);assert.strictEqual(result.total,57);assert.strictEqual(result.submissionId,'123');assert.strictEqual(posts,1);assert.strictEqual(lastBody.typed_code,'class Solution {}');assert(!JSON.stringify(service.info(7)).includes('private-csrf-token'));assert(!JSON.stringify(service.info(7)).includes('class Solution {}'));assert(events.some(j=>j.phase==='judging'));
+ const cf=await service.submit({url:'https://codeforces.com/problemset/problem/977/C',code:'int main(){}',extension:'cpp'}),cr=await wait(cf.ticket);assert.strictEqual(cr.verdict,'WRONG_ANSWER');assert.strictEqual(cr.failedTest,6);assert.strictEqual(cr.accepted,false);assert.strictEqual(cr.submissionId,'124');
+ fail=true;const unknown=await service.submit({url:'https://leetcode.com/problems/two-sum/',code:'uncertain code',extension:'cpp'});assert.strictEqual((await wait(unknown.ticket)).phase,'unknown');const attempts=posts;await assert.rejects(service.submit({url:'https://leetcode.com/problems/two-sum/',code:'uncertain code',extension:'cpp'}),/gửi chưa rõ/);assert.strictEqual(posts,attempts);
+ assert(partitions.every(p=>p.startsWith('persist:semeko-7-')));assert.deepStrictEqual(service.info(8).history,[]);await service.logout('leetcode');assert(!service.info(7).connections.leetcode);
+ console.log('PASS verified session isolation, frozen source/language, exact server submission IDs, pending->AC, WA test index, token/source exclusion and no duplicate POST after uncertain response (mock providers only)');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>{Module._load=load;global.setTimeout=timeout;global.setInterval=interval;});

@@ -957,6 +957,7 @@ function openSettings() {
 }
 
 function closeSettings() {
+    const translationKey=document.getElementById('translation-key');if(translationKey)translationKey.value='';
     document.getElementById('settings-overlay').classList.remove('show');
 }
 
@@ -976,15 +977,17 @@ function syncCompilerSettingsLanguage(selected) {
         panel.prepend(row);
         panel.append(section);
         const nav = document.querySelector('.settings-tab[data-tab="compiler"]');
-        document.querySelector('.settings-tab[data-tab="languages"]').onclick = () => nav.click();
         nav.lastChild.textContent = ' Compiler / Runtime';
         if (document.getElementById('panel-languages').classList.contains('active')) nav.click();
     }
+    const defaults = document.getElementById('language-file-defaults');
+    if (defaults) document.getElementById('panel-languages').append(defaults);
     const tab = App.tabs.find(item => item.id === getPreferredTabId());
     const ext = (tab?.name || '').split('.').pop().toLowerCase();
     const language = selected || ({ cc: 'cpp', cxx: 'cpp' })[ext] || (['cpp', 'c', 'py', 'java', 'cs'].includes(ext) ? ext : defaultSourceExtension());
     document.getElementById('settings-build-language').value = language;
     const native = language === 'cpp' || language === 'c';
+    section.hidden = native;
     for (const row of section.querySelectorAll('[data-build-language]')) row.hidden = row.dataset.buildLanguage !== language;
     section.querySelector('[data-build-reset]').hidden = native;
     controls.hidden = !native;
@@ -992,7 +995,7 @@ function syncCompilerSettingsLanguage(selected) {
     document.getElementById('set-cppStandard').closest('.setting-row').hidden = language !== 'cpp';
     document.getElementById('set-cStandard').closest('.setting-row').hidden = language !== 'c';
     section.querySelector('p').textContent = ({
-        py: 'Choose an installed Python interpreter. Python versions are selected by interpreter, not by a C++ standard flag. Optimization and warning settings apply when running your program.',
+        py: 'Choose an installed Python interpreter. Its version determines the Python version used to run your program. Optimization and warning settings apply when running your program.',
         java: 'Choose the Java target release supported by the selected javac compiler. The detected JDK determines which releases are available.',
         cs: 'Choose a C# language version supported by the selected .NET SDK. Build configuration, optimization and nullable analysis are applied to the real build.',
         cpp: 'C++ settings use the bundled compiler or the configured toolchain.',
@@ -1000,6 +1003,15 @@ function syncCompilerSettingsLanguage(selected) {
     })[language];
     section.querySelector('h3').textContent = ({ cpp: 'C++', c: 'C', py: 'Python', java: 'Java', cs: 'C#' })[language] + ' Language Settings';
     const allowed = { py: ['python'], java: ['java', 'javac'], cs: ['dotnet'] }[language] || [];
+    for (const item of section.querySelectorAll('[data-runtime-version]')) item.hidden = !allowed.includes(item.dataset.runtimeVersion);
+    document.getElementById('language-versions-status').hidden = native;
+    section.querySelector('[data-runtime-check]').hidden = native;
+    const runtimeResult = section.querySelector('[data-runtime-check-result]'); runtimeResult.textContent = ''; runtimeResult.hidden = native;
+    section.querySelector('[data-language-tool-help]').textContent = ({
+        py: 'Configure Python language tools with an executable and a JSON argument array. The default debugger uses python -m debugpy.adapter. Changes apply after saving.',
+        java: 'Configure Java language tools with an executable and a JSON argument array. The default debugger uses the JDT LS Java Debug plugin. Changes apply after saving.',
+        cs: 'Configure C# language tools with an executable and a JSON argument array. The default debugger uses netcoredbg --interpreter=vscode. Changes apply after saving.'
+    })[language] || '';
     for (const key of ['python', 'java', 'javac', 'dotnet']) document.getElementById('set-language-' + key).closest('.setting-row').hidden = !allowed.includes(key);
     section.querySelector('details').hidden = native;
     for (const id of ['python', 'java', 'csharp']) for (const type of ['Lsp', 'Debug']) {

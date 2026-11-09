@@ -93,7 +93,7 @@ app.whenReady().then(async () => {
         startDeferredWork();
     }, 10000);
 
-    console.log('[App] Semeko Pro is ready!');
+    console.log('[App] Semeko is ready!');
 });
 
 app.on('will-quit', (event) => {

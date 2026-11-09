@@ -327,6 +327,8 @@ function initFileDrop() {
 
 function renderTabs() {
     const c = document.getElementById('tabs-container');
+    if(!c._tabResizeObserver){c._tabResizeObserver=new ResizeObserver(()=>{c.style.setProperty('--tab-strip-width',c.clientWidth+'px');const active=c.querySelector('.tab.focused')||c.querySelector('.tab.active');if(active){const left=active.offsetLeft,right=left+active.offsetWidth;if(left<c.scrollLeft)c.scrollLeft=left;else if(right>c.scrollLeft+c.clientWidth)c.scrollLeft=right-c.clientWidth;}});c._tabResizeObserver.observe(c);}
+    c.style.setProperty('--tab-strip-width',c.clientWidth+'px');
     c.innerHTML = '';
     App.tabs.forEach(t => {
         // Every rename and Save As ends here; a new extension may mean a new language.
@@ -354,6 +356,7 @@ function renderTabs() {
             ? `<span class="tab-diagnostics ${tabHasErrors ? 'error' : 'warning'}" title="${diagnostics.errors || 0} errors, ${diagnostics.warnings || 0} warnings">${tabHasErrors ? diagnostics.errors : diagnostics.warnings}${tabHasErrors ? 'E' : 'W'}</span>`
             : '';
         el.innerHTML = `<span class="tab-name">${escHtml(t.name)}</span>${diagnosticsBadge}<span class="tab-dot"></span><span class="tab-x">×</span>`;
+        el.title=t.path||t.name;el.querySelector('.tab-name').title=t.name;
         el.onclick = e => {
             if (!e.target.classList.contains('tab-x')) {
                 if (App.isSplit && isSplitTab) {
@@ -379,8 +382,9 @@ function renderTabs() {
         // overflow:hidden ones included, which shifted the whole window sideways
         // once the tabs no longer fit.
         if (focusedTab) {
-            const left = focusedTab.offsetLeft - (c.clientWidth - focusedTab.offsetWidth) / 2;
-            c.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+            const left=focusedTab.offsetLeft,right=left+focusedTab.offsetWidth;
+            if(left<c.scrollLeft)c.scrollLeft=left;
+            else if(right>c.scrollLeft+c.clientWidth)c.scrollLeft=Math.max(0,right-c.clientWidth);
         }
     }, 10);
 }

@@ -1,0 +1,14 @@
+const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),Module=require('module');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-contest-workspace-')),load=Module._load;
+Module._load=function(name,...args){return name==='electron'?{app:{getPath:()=>root}}:load.call(this,name,...args);};
+const prepare=require('../../app/services/competitive/contest-workspace');Module._load=load;
+const make=(contestId,index,extension='cpp',starter='// starter')=>prepare({contestId,index,extension,starter});
+const a=make(2284,'A1');fs.writeFileSync(a.entry,'// my solution');
+const metaFile=path.join(a.folder,'.sameko'),meta=JSON.parse(fs.readFileSync(metaFile));meta.problems[0].status='solved';meta.problems[0].timeSpentMs=1234;fs.writeFileSync(metaFile,JSON.stringify(meta));
+const b=make(2284,'B');assert.strictEqual(a.folder,b.folder);assert.strictEqual(path.basename(b.entry),'B.cpp');
+const reopen=make(2284,'A1');assert.strictEqual(reopen.created,false);assert.strictEqual(fs.readFileSync(reopen.entry,'utf8'),'// my solution');
+const final=JSON.parse(fs.readFileSync(metaFile));assert.strictEqual(final.problems.length,2);assert.strictEqual(final.problems[0].status,'solved');assert.strictEqual(final.problems[0].timeSpentMs,1234);
+assert.notStrictEqual(make(2283,'A1').folder,a.folder);assert(fs.readFileSync(make(2284,'C','java','public class Main {}').entry,'utf8').includes('public class C'));
+assert.strictEqual(make(2284,'B','py','print(42)').folder,a.folder);assert(fs.existsSync(b.entry));assert.throws(()=>make(2284,'../escape'),/Invalid/);
+fs.writeFileSync(metaFile,'broken JSON');assert.throws(()=>make(2284,'D'),/left unchanged/);assert(!fs.existsSync(path.join(a.folder,'D.cpp')));
+console.log('PASS per-contest folders, existing solution/status preservation, shared A/B files, separate rounds, Java classes and invalid-metadata safety');

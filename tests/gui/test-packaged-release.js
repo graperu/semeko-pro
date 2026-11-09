@@ -1,6 +1,6 @@
 'use strict';
 const {_electron}=require('playwright-core'),fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert');
-const binary=process.argv[2]||path.join(process.env.LOCALAPPDATA,'SemekoBuild/release/win-unpacked/Semeko Pro.exe');
+const binary=process.argv[2]||path.join(process.env.LOCALAPPDATA,'SemekoBuild/release/win-unpacked/Semeko.exe');
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-packaged-'));
 (async()=>{const env={...process.env,PATH:path.join(process.env.SystemRoot,'System32')};for(const key of ['ELECTRON_RUN_AS_NODE','JAVA_HOME','DOTNET_ROOT','PYTHONHOME','PYTHONPATH'])delete env[key];
 assert(fs.existsSync(path.join(path.dirname(binary),'resources','SEMEKO-LICENSE.txt')), 'Application license included');

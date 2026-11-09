@@ -3514,9 +3514,9 @@ body.split-active .editor-pane {
     color: var(--terminal-placeholder, rgba(255, 255, 255, 0.3));
 }
 
-/* Hide send button for cleaner look */
+/* stdin controls remain reachable when the terminal is docked. */
 .problems-panel .terminal-input .send-btn {
-    display: none;
+    display: flex;
 }
 
 /* ===== DOCKED TERMINAL LINE TYPES ===== */

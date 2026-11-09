@@ -204,6 +204,12 @@ async function main() {
         await page.locator('.settings-tab[data-tab="compiler"]').click();
         assert.strictEqual(await page.locator('#settings-build-language').inputValue(), ext);
         assert.strictEqual(await page.locator('#compiler-native-controls').isVisible(), !key);
+        assert.strictEqual(await page.locator('#language-settings').isVisible(), !!key, 'Native compiler must not have a duplicate language section');
+        assert.strictEqual(await page.locator('#set-language-default').isVisible(), false, 'Global default must not appear inside a language compiler panel');
+        await page.waitForFunction(()=>!!document.querySelector('#language-versions-status [data-runtime-version]'));
+        const visibleVersions = await page.locator('#language-versions-status [data-runtime-version]').evaluateAll(ns=>ns.filter(n=>n.getClientRects().length).map(n=>n.dataset.runtimeVersion));
+        assert.deepStrictEqual(visibleVersions, ext === 'java' ? ['java','javac'] : key ? [key] : []);
+        if (ext === 'py') assert(!(await page.locator('#language-settings > p').first().textContent()).includes('C++'));
         for (const runtime of ['python', 'java', 'javac', 'dotnet']) {
             const expected = ext === 'java' ? ['java', 'javac'].includes(runtime) : runtime === key;
             assert.strictEqual(await page.locator('#set-language-' + runtime).isVisible(), expected);
@@ -236,6 +242,10 @@ async function main() {
     console.log('PASS detected language version dropdowns and independent saved C/Java/C# standards');
     assert.deepStrictEqual(errors, []);
     console.log('PASS settings automatically follow all five file languages and allow manual switching');
+    await page.locator('.settings-tab[data-tab="languages"]').click();
+    assert(await page.locator('#set-language-default').isVisible(), 'Languages opens its own usable defaults panel');
+    assert.strictEqual(await page.locator('#panel-compiler').isVisible(), false);
+    console.log('PASS compiler panels isolate each language; Languages opens independent defaults');
     console.log('PASS language settings, templates, Dark Molokai registry, no renderer exceptions');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (app) await app.close(); });

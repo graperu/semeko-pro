@@ -187,8 +187,11 @@ window.LanguageSupport = (() => {
         const section = document.createElement('section'); section.id = 'language-settings';
         section.innerHTML = '<h3>Languages — Python, Java, C#</h3><p>Leave runtime paths empty to use PATH. Java also checks JAVA_HOME. C# requires the .NET SDK.</p>';
         const defaultRow = document.createElement('div'); defaultRow.className = 'setting-row';
-        defaultRow.innerHTML = '<label for="set-language-default">New files and problems</label><select id="set-language-default"><option value="cpp">C++</option><option value="c">C</option><option value="py">Python</option><option value="java">Java</option><option value="cs">C#</option></select>';
-        section.append(defaultRow);
+        defaultRow.innerHTML = '<label for="set-language-default">Default programming language</label><select id="set-language-default"><option value="cpp">C++</option><option value="c">C</option><option value="py">Python</option><option value="java">Java</option><option value="cs">C#</option></select>';
+        defaultRow.style.gap = '12px';
+        const defaults = document.createElement('section'); defaults.id = 'language-file-defaults';
+        const defaultsTitle = document.createElement('h3'); defaultsTitle.textContent = 'New files and problems';
+        defaults.append(defaultsTitle, defaultRow); document.getElementById('panel-editor').append(defaults);
         const pythonRow = document.createElement('div'); pythonRow.className = 'setting-row'; pythonRow.dataset.buildLanguage = 'py';
         pythonRow.innerHTML = '<label for="set-python-installation">Installed Python version</label><select id="set-python-installation"><option value="">Automatic (bundled / PATH)</option></select>';
         pythonRow.querySelector('select').onchange = event => {
@@ -238,7 +241,7 @@ window.LanguageSupport = (() => {
         const advanced = document.createElement('details');
         const summary = document.createElement('summary'); summary.textContent = 'Advanced: language servers and debug adapters';
         advanced.append(summary); section.append(advanced);
-        const help = document.createElement('p'); help.textContent = 'Optional IntelliSense and debugger tools: specify an executable and JSON argument array. Changes apply after saving. Python debug defaults to python -m debugpy.adapter; C# to netcoredbg --interpreter=vscode. Java debug uses the JDT LS Java Debug plugin unless an adapter is specified.'; advanced.append(help);
+        const help = document.createElement('p'); help.dataset.languageToolHelp = 'true'; advanced.append(help);
         for (const id of ids) for (const type of ['Lsp', 'Debug']) {
             const row = document.createElement('div'); row.className = 'setting-row';
             const label = document.createElement('label'); label.htmlFor = `set-language-${id}${type}`; label.textContent = `${{ python: 'Python', java: 'Java', csharp: 'C#' }[id]} ${type === 'Lsp' ? 'language server' : 'debug adapter'} (JSON)`;
@@ -246,11 +249,12 @@ window.LanguageSupport = (() => {
             input.placeholder = JSON.stringify({ command: { python: type === 'Lsp' ? 'pylsp' : 'python', java: 'java', csharp: type === 'Lsp' ? 'csharp-ls' : 'netcoredbg' }[id], args: [] });
             row.append(label, input); advanced.append(row);
         }
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'action-btn'; button.textContent = 'Check installed runtimes';
-        const status = document.createElement('pre'); status.style.cssText = 'white-space:pre-wrap;font-size:12px'; status.setAttribute('aria-live', 'polite');
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'action-btn'; button.textContent = 'Check installed runtimes'; button.dataset.runtimeCheck = 'true';
+        const status = document.createElement('pre'); status.dataset.runtimeCheckResult = 'true'; status.style.cssText = 'white-space:pre-wrap;font-size:12px'; status.setAttribute('aria-live', 'polite');
         button.onclick = async () => {
             button.disabled = true; status.textContent = 'Checking saved runtime settings…';
-            try { const tools = await detectChoices(true); status.textContent = Object.entries(tools).map(([key, tool]) => `${key}: ${tool.available ? tool.version : tool.error}`).join('\n'); }
+            const selected = document.getElementById('settings-build-language')?.value;
+            try { const tools = await detectChoices(true); if (selected === document.getElementById('settings-build-language')?.value) status.textContent = runtimeKeysFor(selected).map(key => `${key}: ${tools[key].available ? tools[key].version : tools[key].error}`).join('\n'); }
             catch (error) { status.textContent = error.message; }
             finally { button.disabled = false; }
         };
@@ -276,6 +280,7 @@ window.LanguageSupport = (() => {
     }
     let choiceRequest = 0;
     const choiceCache = new Map();
+    function runtimeKeysFor(language) { return ({ py: ['python'], java: ['java', 'javac'], cs: ['dotnet'] })[language] || []; }
     async function detectChoices(force = false) {
         const request = ++choiceRequest;
         const paths = Object.fromEntries(runtimeKeys.map(key => [key, document.getElementById(`set-language-${key}`).value.trim()]));
@@ -290,7 +295,12 @@ window.LanguageSupport = (() => {
         try { tools = await choiceCache.get(cacheKey); }
         catch (error) { if (request === choiceRequest) status.textContent = 'Could not detect versions. Check runtime paths.'; throw error; }
         if (request !== choiceRequest) return tools;
-        status.textContent = ['python', 'javac', 'dotnet'].map(key => `${key}: ${tools[key].available ? tools[key].version : '—'}`).join(' · ');
+        const allowed = runtimeKeysFor(document.getElementById('settings-build-language')?.value);
+        status.replaceChildren(...runtimeKeys.map(key => {
+            const item = document.createElement('span'); item.dataset.runtimeVersion = key;
+            item.textContent = `${key}: ${tools[key].available ? tools[key].version : '—'} `;
+            item.hidden = !allowed.includes(key); return item;
+        }));
         for (const [key, values] of [['javaRelease', tools.javac.releases || []], ['csharpLangVersion', tools.dotnet.languageVersions || []]]) {
             const input = document.getElementById(`set-language-${key}`), current = input.value;
             input.replaceChildren();
@@ -366,6 +376,7 @@ window.WorkspaceSupport = (() => {
         try { return JSON.parse(localStorage.getItem(key())) || {}; } catch (_) { return {}; }
     }
     function save(value) { localStorage.setItem(key(), JSON.stringify(value)); refresh(); }
+    function setFolderLanguage(extension){if(!root()||!['cpp','c','py','java','cs'].includes(extension))throw Error('Invalid folder language');save({...config(),extension});}
     function refresh() {
         const value = config() || {};
         const names = { cpp: 'C++', c: 'C', py: 'Python', java: 'Java', cs: 'C#' };
@@ -438,5 +449,5 @@ window.WorkspaceSupport = (() => {
         showToast('Main file: ' + tab.name, 'success');
     }
     function init() { refresh(); }
-    return { config, refresh, init, runFolder, buildRoot, openLanguage, setMain };
+    return { config, refresh, init, runFolder, buildRoot, openLanguage, setMain, setFolderLanguage };
 })();

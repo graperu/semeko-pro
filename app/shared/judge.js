@@ -45,4 +45,22 @@ function compareOutputs(actual, expected) {
 module.exports = {
     normalizeOutput,
     compareOutputs,
+    compareFunctionOutputs,
 };
+
+function compareFunctionOutputs(actual, expected) {
+    const result = compareOutputs(actual, expected);
+    try {
+        const parse = text => JSON.parse(text, (key, value, context) =>
+            typeof value === 'number' && /^-?\d+$/.test(context?.source || '') ? BigInt(context.source) : value);
+        const equal = (a, b) => {
+            if (Array.isArray(a) || Array.isArray(b)) return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v,i) => equal(v,b[i]));
+            if (typeof a === 'number' && typeof b === 'number') return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a-b) <= 8 * Number.EPSILON * Math.max(1,Math.abs(a),Math.abs(b));
+            if (typeof a === 'bigint' && typeof b === 'number') return Number.isInteger(b) && a === BigInt(b);
+            if (typeof b === 'bigint' && typeof a === 'number') return Number.isInteger(a) && b === BigInt(a);
+            return a === b;
+        };
+        result.matched = equal(parse(actual), parse(expected));
+    } catch { result.matched = false; }
+    return result;
+}

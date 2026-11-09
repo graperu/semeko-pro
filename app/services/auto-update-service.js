@@ -4,29 +4,29 @@
  * @module app/services/auto-update-service
  */
 
-'use strict';
+"use strict";
 
-const { app, dialog, BrowserWindow } = require('electron');
-const path = require('path');
+const { app, dialog, BrowserWindow } = require("electron");
+const path = require("path");
 
 // electron-updater and electron-log take ~140 ms to load, and nothing needs
 // them until the first update check (10 s after launch in a packaged build).
 // Both are loaded on first use so they stay off the startup path.
 let electronLog = null;
 function getLog() {
-    if (!electronLog) {
-        electronLog = require('electron-log');
-        electronLog.transports.file.level = 'info';
-    }
-    return electronLog;
+  if (!electronLog) {
+    electronLog = require("electron-log");
+    electronLog.transports.file.level = "info";
+  }
+  return electronLog;
 }
 const log = {
-    info: (...args) => getLog().info(...args),
-    warn: (...args) => getLog().warn(...args),
-    error: (...args) => getLog().error(...args),
+  info: (...args) => getLog().info(...args),
+  warn: (...args) => getLog().warn(...args),
+  error: (...args) => getLog().error(...args),
 };
-const { IS_WIN, IS_LINUX } = require('../shared/platform');
-const { readSettings } = require('../shared/settings-store');
+const { IS_WIN, IS_LINUX } = require("../shared/platform");
+const { readSettings } = require("../shared/settings-store");
 
 /**
  * electron-updater's HttpError packs the whole response — every header plus a
@@ -36,14 +36,15 @@ const { readSettings } = require('../shared/settings-store');
  * @returns {string}
  */
 function shortUpdateError(err) {
-    const raw = (err && err.message) || String(err || 'unknown error');
-    return raw.split('\n')[0].trim();
+  const raw = (err && err.message) || String(err || "unknown error");
+  return raw.split("\n")[0].trim();
 }
 
 function firstLine(value) {
-    if (value instanceof Error) return shortUpdateError(value);
-    if (typeof value === 'string' && value.includes('\n')) return value.split('\n')[0].trim();
-    return value;
+  if (value instanceof Error) return shortUpdateError(value);
+  if (typeof value === "string" && value.includes("\n"))
+    return value.split("\n")[0].trim();
+  return value;
 }
 
 // Configure electron-log for autoUpdater.
@@ -53,540 +54,622 @@ function firstLine(value) {
 // what our own handlers do. Collapse multi-line arguments to their first line.
 // Inherit from electron-log so electron-updater still finds `logger.transports`.
 function createUpdateLogger() {
-    const base = getLog();
-    const updateLog = Object.create(base);
-    for (const level of ['error', 'warn', 'info', 'debug']) {
-        updateLog[level] = (...args) => base[level](...args.map(firstLine));
-    }
-    return updateLog;
+  const base = getLog();
+  const updateLog = Object.create(base);
+  for (const level of ["error", "warn", "info", "debug"]) {
+    updateLog[level] = (...args) => base[level](...args.map(firstLine));
+  }
+  return updateLog;
 }
 
 class AutoUpdateService {
-    constructor() {
-        this.mainWindow = null;
-        this.updateDownloaded = false;
-        this.updateInfo = null;
-        this._updater = null;
+  constructor() {
+    this.mainWindow = null;
+    this.updateDownloaded = false;
+    this.updateInfo = null;
+    this._updater = null;
+  }
+
+  /** electron-updater's `autoUpdater`, loaded and configured on first use. */
+  get updater() {
+    if (this._updater) return this._updater;
+    const { autoUpdater } = require("electron-updater");
+    this._updater = autoUpdater;
+    autoUpdater.logger = createUpdateLogger();
+
+    // Pre-releases are opt-in (Settings > About); set again before every check.
+    autoUpdater.allowPrerelease = this.wantsPrerelease();
+
+    // Auto-download updates in background
+    autoUpdater.autoDownload = true;
+
+    // Configure update check
+    // Do NOT install silently on quit - require explicit restart
+    autoUpdater.autoInstallOnAppQuit = false;
+
+    // Disable ALL signature verification for unsigned builds
+    autoUpdater.verifyUpdateCodeSignature = false;
+
+    // Force disable differential downloads (they require signing)
+    autoUpdater.disableDifferentialDownload = true;
+
+    // Disable web installer differential downloads
+    autoUpdater.disableWebInstaller = false;
+
+    // Force allow unsigned updates
+    autoUpdater.forceDevUpdateConfig = false;
+
+    // Override the default signature validator to always return true
+    // This allows unsigned builds to update
+    if (autoUpdater.httpExecutor) {
+      const originalDownloadToBuffer =
+        autoUpdater.httpExecutor.downloadToBuffer;
+      autoUpdater.httpExecutor.downloadToBuffer = function (...args) {
+        return originalDownloadToBuffer.apply(this, args);
+      };
     }
 
-    /** electron-updater's `autoUpdater`, loaded and configured on first use. */
-    get updater() {
-        if (this._updater) return this._updater;
-        const { autoUpdater } = require('electron-updater');
-        this._updater = autoUpdater;
-        autoUpdater.logger = createUpdateLogger();
+    this.setupEventHandlers();
+    return autoUpdater;
+  }
 
-        // Pre-releases are opt-in (Settings > About); set again before every check.
-        autoUpdater.allowPrerelease = this.wantsPrerelease();
+  /**
+   * electron-updater can only self-update an AppImage on Linux; a .deb install is
+   * managed by apt and must not be touched. The AppImage runtime exports $APPIMAGE.
+   * @returns {boolean}
+   */
+  isUpdateSupportedOnThisPlatform() {
+    if (!IS_LINUX) return true;
+    return !!process.env.APPIMAGE;
+  }
 
-        // Auto-download updates in background
-        autoUpdater.autoDownload = true;
+  initialize(mainWindow) {
+    this.mainWindow = mainWindow;
+    log.info("[AutoUpdate] Service initialized");
 
-        // Configure update check
-        // Do NOT install silently on quit - require explicit restart
-        autoUpdater.autoInstallOnAppQuit = false;
+    // Check if we should test updates in dev mode
+    const testUpdatesInDev =
+      process.env.TEST_UPDATES === "true" ||
+      process.argv.includes("--test-updates");
+    const fakeUpdate =
+      process.env.FAKE_UPDATE === "true" ||
+      process.argv.includes("--fake-update");
 
-        // Disable ALL signature verification for unsigned builds
-        autoUpdater.verifyUpdateCodeSignature = false;
-        
-        // Force disable differential downloads (they require signing)
-        autoUpdater.disableDifferentialDownload = true;
-        
-        // Disable web installer differential downloads
-        autoUpdater.disableWebInstaller = false;
-        
-        // Force allow unsigned updates
-        autoUpdater.forceDevUpdateConfig = false;
-        
-        // Override the default signature validator to always return true
-        // This allows unsigned builds to update
-        if (autoUpdater.httpExecutor) {
-            const originalDownloadToBuffer = autoUpdater.httpExecutor.downloadToBuffer;
-            autoUpdater.httpExecutor.downloadToBuffer = function(...args) {
-                return originalDownloadToBuffer.apply(this, args);
-            };
-        }
-
-        this.setupEventHandlers();
-        return autoUpdater;
+    // Fake update for testing UI
+    if (fakeUpdate) {
+      log.info("[AutoUpdate] Running FAKE update for UI testing");
+      setTimeout(() => this.triggerFakeUpdate(), 3000);
+      return;
     }
 
-    /**
-     * electron-updater can only self-update an AppImage on Linux; a .deb install is
-     * managed by apt and must not be touched. The AppImage runtime exports $APPIMAGE.
-     * @returns {boolean}
-     */
-    isUpdateSupportedOnThisPlatform() {
-        if (!IS_LINUX) return true;
-        return !!process.env.APPIMAGE;
+    const updatesSupported = this.isUpdateSupportedOnThisPlatform();
+    if (!updatesSupported) {
+      log.info(
+        "[AutoUpdate] Linux non-AppImage install (.deb/apt) — auto-update disabled.",
+      );
     }
 
-    initialize(mainWindow) {
-        this.mainWindow = mainWindow;
-        log.info('[AutoUpdate] Service initialized');
-
-        // Check if we should test updates in dev mode
-        const testUpdatesInDev = process.env.TEST_UPDATES === 'true' || process.argv.includes('--test-updates');
-        const fakeUpdate = process.env.FAKE_UPDATE === 'true' || process.argv.includes('--fake-update');
-
-        // Fake update for testing UI
-        if (fakeUpdate) {
-            log.info('[AutoUpdate] Running FAKE update for UI testing');
-            setTimeout(() => this.triggerFakeUpdate(), 3000);
-            return;
-        }
-
-        const updatesSupported = this.isUpdateSupportedOnThisPlatform();
-        if (!updatesSupported) {
-            log.info('[AutoUpdate] Linux non-AppImage install (.deb/apt) — auto-update disabled.');
-        }
-
-        // Check for pending update from previous version (1.0.2 fix)
-        if (app.isPackaged && updatesSupported) {
-            setTimeout(() => {
-                this.checkPendingUpdate();
-            }, 3000);
-        }
-
-        // Only check for updates in packaged app (skip in development/first run)
-        if ((app.isPackaged && updatesSupported) || testUpdatesInDev) {
-            if (testUpdatesInDev) {
-                log.info('[AutoUpdate] Testing updates in development mode');
-                this.updater.forceDevUpdateConfig = true;
-            }
-            
-            // Check for updates on startup (after 10 seconds delay, non-blocking)
-            setTimeout(() => {
-                this.checkForUpdates(false).catch(err => {
-                    log.warn('[AutoUpdate] Startup check failed (non-critical):', err.message);
-                });
-            }, 10000);
-        } else if (app.isPackaged) {
-            // Packaged, but the platform opted out (e.g. a .deb owned by apt).
-            // The reason was already logged above; don't claim "development mode".
-        } else {
-            log.info('[AutoUpdate] Skipping update check in development mode');
-            log.info('[AutoUpdate] To test updates in dev, run: npm start -- --test-updates');
-            log.info('[AutoUpdate] To test update UI, run: npm start -- --fake-update');
-        }
+    // Check for pending update from previous version (1.0.2 fix)
+    if (app.isPackaged && updatesSupported) {
+      setTimeout(() => {
+        this.checkPendingUpdate();
+      }, 3000);
     }
 
-    /**
-     * Setup event handlers for auto-updater
-     */
-    setupEventHandlers() {
-        // Checking for updates
-        this.updater.on('checking-for-update', () => {
-            log.info('[AutoUpdate] Checking for updates...');
-            this.updateDownloaded = false; // Reset state
-            this.sendStatusToRenderer('checking-for-update');
+    // Only check for updates in packaged app (skip in development/first run)
+    if ((app.isPackaged && updatesSupported) || testUpdatesInDev) {
+      if (testUpdatesInDev) {
+        log.info("[AutoUpdate] Testing updates in development mode");
+        this.updater.forceDevUpdateConfig = true;
+      }
+
+      // Check for updates on startup (after 10 seconds delay, non-blocking)
+      setTimeout(() => {
+        this.checkForUpdates(false).catch((err) => {
+          log.warn(
+            "[AutoUpdate] Startup check failed (non-critical):",
+            err.message,
+          );
+        });
+      }, 10000);
+      // Long-running sessions also discover releases published after launch.
+      if (!this.checkTimer) {
+        this.checkTimer = setInterval(
+          () => {
+            if (!this.updateDownloaded)
+              this.checkForUpdates(false).catch((err) =>
+                log.warn("[AutoUpdate] Periodic check failed:", err.message),
+              );
+          },
+          4 * 60 * 60 * 1000,
+        );
+        this.checkTimer.unref?.();
+        app.once("before-quit", () => {
+          clearInterval(this.checkTimer);
+          this.checkTimer = null;
+        });
+      }
+    } else if (app.isPackaged) {
+      // Packaged, but the platform opted out (e.g. a .deb owned by apt).
+      // The reason was already logged above; don't claim "development mode".
+    } else {
+      log.info("[AutoUpdate] Skipping update check in development mode");
+      log.info(
+        "[AutoUpdate] To test updates in dev, run: npm start -- --test-updates",
+      );
+      log.info(
+        "[AutoUpdate] To test update UI, run: npm start -- --fake-update",
+      );
+    }
+  }
+
+  /**
+   * Setup event handlers for auto-updater
+   */
+  setupEventHandlers() {
+    // Checking for updates
+    this.updater.on("checking-for-update", () => {
+      log.info("[AutoUpdate] Checking for updates...");
+      this.updateDownloaded = false; // Reset state
+      this.sendStatusToRenderer("checking-for-update");
+    });
+
+    // Update available
+    this.updater.on("update-available", (info) => {
+      log.info("[AutoUpdate] Update available:", info.version);
+      this.updateDownloaded = false; // Reset state
+      this.updateInfo = info;
+      this.sendStatusToRenderer("update-available", {
+        version: info.version,
+        releaseNotes: info.releaseNotes,
+        releaseDate: info.releaseDate,
+        isPrerelease:
+          info.version.includes("beta") || info.version.includes("alpha"),
+      });
+      this.sendStatusToRenderer("download-started");
+    });
+
+    // No update available
+    this.updater.on("update-not-available", (info) => {
+      log.info("[AutoUpdate] No updates available");
+      this.sendStatusToRenderer("update-not-available", {
+        version: info.version,
+      });
+    });
+
+    // Error occurred
+    this.updater.on("error", (err) => {
+      log.error("[AutoUpdate] Error:", shortUpdateError(err));
+
+      // Check if error is related to signature verification
+      const errorMsg = err.message || err.toString();
+      if (
+        errorMsg.includes("not signed by the application owner") ||
+        errorMsg.includes("not digitally signed") ||
+        errorMsg.includes("publisherNames")
+      ) {
+        log.warn(
+          "[AutoUpdate] Signature verification error - treating as successful download for unsigned build",
+        );
+
+        // For unsigned builds, treat signature error as successful download
+        // The file is already downloaded, just not verified
+        this.updateDownloaded = true;
+
+        this.sendStatusToRenderer("update-downloaded", {
+          version: this.updateInfo?.version || "Unknown",
+          releaseNotes: this.updateInfo?.releaseNotes || "",
+          releaseDate: this.updateInfo?.releaseDate || "",
+          unsigned: true,
+        });
+      } else {
+        // For other errors, send error status
+        this.sendStatusToRenderer("update-error", {
+          message: err.message,
+        });
+      }
+    });
+
+    // Download progress
+    this.updater.on("download-progress", (progressObj) => {
+      const logMessage = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`;
+      log.info("[AutoUpdate]", logMessage);
+
+      this.sendStatusToRenderer("download-progress", {
+        percent: Math.round(progressObj.percent),
+        transferred: progressObj.transferred,
+        total: progressObj.total,
+        bytesPerSecond: progressObj.bytesPerSecond,
+      });
+    });
+
+    // Update downloaded - ready to install
+    this.updater.on("update-downloaded", (info) => {
+      log.info("[AutoUpdate] Update downloaded:", info.version);
+      this.updateDownloaded = true;
+      this.updateInfo = info;
+
+      this.sendStatusToRenderer("update-downloaded", {
+        version: info.version,
+        releaseNotes: info.releaseNotes,
+        releaseDate: info.releaseDate,
+      });
+    });
+  }
+
+  /**
+   * Send update status to renderer process
+   * @param {string} status - Update status
+   * @param {object} data - Additional data
+   */
+  sendStatusToRenderer(status, data = {}) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send("update-status", {
+        status,
+        data,
+        currentVersion: app.getVersion(),
+      });
+    }
+  }
+
+  /**
+   * Beta builds are offered only to users who turned on "Get beta updates",
+   * or who already run a pre-release version (so they keep receiving fixes).
+   * @returns {boolean}
+   */
+  wantsPrerelease() {
+    if (app.getVersion().includes("-")) return true;
+    try {
+      return readSettings()?.updates?.prerelease === true;
+    } catch {
+      return false;
+    }
+  }
+
+  async checkForUpdates(showNoUpdateDialog = true) {
+    if (this.checkInFlight) return this.checkInFlight;
+    // A .deb install is owned by apt — electron-updater must not touch it.
+    // initialize() already skips the startup check, but the renderer can
+    // reach this through IPC, so the guard has to live here too.
+    if (!this.isUpdateSupportedOnThisPlatform()) {
+      log.info(
+        "[AutoUpdate] Skipped: this install is managed by the system package manager.",
+      );
+      if (showNoUpdateDialog) {
+        this.sendStatusToRenderer("update-not-available", {
+          version: app.getVersion(),
+          showMessage: true,
+        });
+      }
+      return null;
+    }
+
+    try {
+      log.info("[AutoUpdate] Checking for updates manually...");
+
+      if (showNoUpdateDialog) {
+        this.sendStatusToRenderer("checking-for-update");
+      }
+
+      this.updater.allowPrerelease = this.wantsPrerelease();
+      // Add timeout to prevent hanging (15 seconds)
+      let timeout;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error("Update check timed out")),
+          15000,
+        );
+      });
+
+      this.checkInFlight = Promise.race([
+        Promise.resolve().then(() => this.updater.checkForUpdates()),
+        timeoutPromise,
+      ]).finally(() => {
+        clearTimeout(timeout);
+        this.checkInFlight = null;
+      });
+      const result = await this.checkInFlight;
+
+      // Handle null/undefined result safely
+      if (showNoUpdateDialog && (!result || !result.updateInfo)) {
+        this.sendStatusToRenderer("update-not-available", {
+          version: app.getVersion(),
+          showMessage: true,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      log.error("[AutoUpdate] Check failed:", shortUpdateError(error));
+
+      if (showNoUpdateDialog) {
+        this.sendStatusToRenderer("update-error", {
+          message: error.message || "Update check failed",
+          showMessage: true,
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Download the available update
+   */
+  async downloadUpdate() {
+    try {
+      log.info("[AutoUpdate] Starting update download...");
+      this.updateDownloaded = false; // Reset state
+      this.sendStatusToRenderer("download-started");
+      await this.updater.downloadUpdate();
+    } catch (error) {
+      log.error("[AutoUpdate] Download failed:", error);
+      this.sendStatusToRenderer("update-error", {
+        message: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Install the downloaded update and restart the app
+   */
+  quitAndInstall() {
+    if (this.updateDownloaded) {
+      log.info("[AutoUpdate] Quitting and installing update...");
+
+      // setImmediate ensures the app quits after this function returns
+      setImmediate(() => {
+        // Disable all windows close event handlers
+        app.removeAllListeners("window-all-closed");
+
+        // Close all windows
+        BrowserWindow.getAllWindows().forEach((window) => {
+          window.removeAllListeners("close");
+          window.close();
         });
 
-        // Update available
-        this.updater.on('update-available', (info) => {
-            log.info('[AutoUpdate] Update available:', info.version);
-            this.updateDownloaded = false; // Reset state
-            this.updateInfo = info;
-            this.sendStatusToRenderer('update-available', {
-                version: info.version,
-                releaseNotes: info.releaseNotes,
-                releaseDate: info.releaseDate,
-                isPrerelease: info.version.includes('beta') || info.version.includes('alpha')
-            });
-            this.sendStatusToRenderer('download-started');
-        });
-
-        // No update available
-        this.updater.on('update-not-available', (info) => {
-            log.info('[AutoUpdate] No updates available');
-            this.sendStatusToRenderer('update-not-available', {
-                version: info.version
-            });
-        });
-
-        // Error occurred
-        this.updater.on('error', (err) => {
-            log.error('[AutoUpdate] Error:', shortUpdateError(err));
-
-            // Check if error is related to signature verification
-            const errorMsg = err.message || err.toString();
-            if (errorMsg.includes('not signed by the application owner') || 
-                errorMsg.includes('not digitally signed') ||
-                errorMsg.includes('publisherNames')) {
-                log.warn('[AutoUpdate] Signature verification error - treating as successful download for unsigned build');
-                
-                // For unsigned builds, treat signature error as successful download
-                // The file is already downloaded, just not verified
-                this.updateDownloaded = true;
-                
-                this.sendStatusToRenderer('update-downloaded', {
-                    version: this.updateInfo?.version || 'Unknown',
-                    releaseNotes: this.updateInfo?.releaseNotes || '',
-                    releaseDate: this.updateInfo?.releaseDate || '',
-                    unsigned: true
-                });
-            } else {
-                // For other errors, send error status
-                this.sendStatusToRenderer('update-error', {
-                    message: err.message
-                });
-            }
-        });
-
-        // Download progress
-        this.updater.on('download-progress', (progressObj) => {
-            const logMessage = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`;
-            log.info('[AutoUpdate]', logMessage);
-
-            this.sendStatusToRenderer('download-progress', {
-                percent: Math.round(progressObj.percent),
-                transferred: progressObj.transferred,
-                total: progressObj.total,
-                bytesPerSecond: progressObj.bytesPerSecond
-            });
-        });
-
-        // Update downloaded - ready to install
-        this.updater.on('update-downloaded', (info) => {
-            log.info('[AutoUpdate] Update downloaded:', info.version);
-            this.updateDownloaded = true;
-            this.updateInfo = info;
-
-            this.sendStatusToRenderer('update-downloaded', {
-                version: info.version,
-                releaseNotes: info.releaseNotes,
-                releaseDate: info.releaseDate
-            });
-        });
+        // Silent install (no wizard; NSIS reuses the folder the app is installed in),
+        // then start the updated app. A Program Files install still asks for UAC.
+        this.updater.quitAndInstall(true, true);
+      });
+    } else {
+      log.warn("[AutoUpdate] No update downloaded yet");
     }
+  }
 
-    /**
-     * Send update status to renderer process
-     * @param {string} status - Update status
-     * @param {object} data - Additional data
-     */
-    sendStatusToRenderer(status, data = {}) {
-        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-            this.mainWindow.webContents.send('update-status', {
-                status,
-                data,
-                currentVersion: app.getVersion()
-            });
-        }
-    }
+  getStatus() {
+    return {
+      updateDownloaded: this.updateDownloaded,
+      updateInfo: this.updateInfo,
+      currentVersion: app.getVersion(),
+    };
+  }
 
-    /**
-     * Beta builds are offered only to users who turned on "Get beta updates",
-     * or who already run a pre-release version (so they keep receiving fixes).
-     * @returns {boolean}
-     */
-    wantsPrerelease() {
-        if (app.getVersion().includes('-')) return true;
-        try {
-            return readSettings()?.updates?.prerelease === true;
-        } catch {
-            return false;
-        }
-    }
+  /**
+   * Trigger fake update for testing UI
+   */
+  triggerFakeUpdate() {
+    log.info("[AutoUpdate] Starting fake update simulation");
 
-    async checkForUpdates(showNoUpdateDialog = true) {
-        // A .deb install is owned by apt — electron-updater must not touch it.
-        // initialize() already skips the startup check, but the renderer can
-        // reach this through IPC, so the guard has to live here too.
-        if (!this.isUpdateSupportedOnThisPlatform()) {
-            log.info('[AutoUpdate] Skipped: this install is managed by the system package manager.');
-            if (showNoUpdateDialog) {
-                this.sendStatusToRenderer('update-not-available', {
-                    version: app.getVersion(),
-                    showMessage: true
-                });
-            }
-            return null;
-        }
+    // Step 1: Update available
+    this.sendStatusToRenderer("update-available", {
+      version: "999.0.0",
+      releaseNotes: "Fake update for testing UI",
+      releaseDate: new Date().toISOString(),
+      isPrerelease: false,
+    });
 
-        try {
-            log.info('[AutoUpdate] Checking for updates manually...');
+    // Step 2: Download started
+    setTimeout(() => {
+      log.info("[AutoUpdate] Fake: Download started");
+      this.sendStatusToRenderer("download-started");
+    }, 500);
 
-            if (showNoUpdateDialog) {
-                this.sendStatusToRenderer('checking-for-update');
-            }
+    // Step 3: Simulate download progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(progressInterval);
 
-            // Add timeout to prevent hanging (15 seconds)
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Update check timed out')), 15000);
-            });
-
-            this.updater.allowPrerelease = this.wantsPrerelease();
-            const result = await Promise.race([
-                this.updater.checkForUpdates(),
-                timeoutPromise
-            ]);
-
-            // Handle null/undefined result safely
-            if (showNoUpdateDialog && (!result || !result.updateInfo)) {
-                this.sendStatusToRenderer('update-not-available', {
-                    version: app.getVersion(),
-                    showMessage: true
-                });
-            }
-
-            return result;
-        } catch (error) {
-            log.error('[AutoUpdate] Check failed:', shortUpdateError(error));
-
-            if (showNoUpdateDialog) {
-                this.sendStatusToRenderer('update-error', {
-                    message: error.message || 'Update check failed',
-                    showMessage: true
-                });
-            }
-
-            throw error;
-        }
-    }
-
-    /**
-     * Download the available update
-     */
-    async downloadUpdate() {
-        try {
-            log.info('[AutoUpdate] Starting update download...');
-            this.updateDownloaded = false; // Reset state
-            this.sendStatusToRenderer('download-started');
-            await this.updater.downloadUpdate();
-        } catch (error) {
-            log.error('[AutoUpdate] Download failed:', error);
-            this.sendStatusToRenderer('update-error', {
-                message: error.message
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Install the downloaded update and restart the app
-     */
-    quitAndInstall() {
-        if (this.updateDownloaded) {
-            log.info('[AutoUpdate] Quitting and installing update...');
-
-            // setImmediate ensures the app quits after this function returns
-            setImmediate(() => {
-                // Disable all windows close event handlers
-                app.removeAllListeners('window-all-closed');
-
-                // Close all windows
-                BrowserWindow.getAllWindows().forEach(window => {
-                    window.removeAllListeners('close');
-                    window.close();
-                });
-
-                // Silent install (no wizard; NSIS reuses the folder the app is installed in),
-                // then start the updated app. A Program Files install still asks for UAC.
-                this.updater.quitAndInstall(true, true);
-            });
-        } else {
-            log.warn('[AutoUpdate] No update downloaded yet');
-        }
-    }
-
-    getStatus() {
-        return {
-            updateDownloaded: this.updateDownloaded,
-            updateInfo: this.updateInfo,
-            currentVersion: app.getVersion()
-        };
-    }
-
-    /**
-     * Trigger fake update for testing UI
-     */
-    triggerFakeUpdate() {
-        log.info('[AutoUpdate] Starting fake update simulation');
-        
-        // Step 1: Update available
-        this.sendStatusToRenderer('update-available', {
-            version: '999.0.0',
-            releaseNotes: 'Fake update for testing UI',
-            releaseDate: new Date().toISOString(),
-            isPrerelease: false
-        });
-
-        // Step 2: Download started
+        // Step 4: Download complete
         setTimeout(() => {
-            log.info('[AutoUpdate] Fake: Download started');
-            this.sendStatusToRenderer('download-started');
+          log.info("[AutoUpdate] Fake: Download completed");
+          this.updateDownloaded = true;
+          this.sendStatusToRenderer("update-downloaded", {
+            version: "999.0.0",
+            releaseNotes: "Fake update for testing UI",
+            releaseDate: new Date().toISOString(),
+          });
         }, 500);
+      } else {
+        this.sendStatusToRenderer("download-progress", {
+          percent: Math.round(progress),
+          transferred: Math.round(progress * 1024 * 1024),
+          total: 100 * 1024 * 1024,
+          bytesPerSecond: 5 * 1024 * 1024,
+        });
+      }
+    }, 300);
+  }
 
-        // Step 3: Simulate download progress
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress >= 100) {
-                progress = 100;
-                clearInterval(progressInterval);
-                
-                // Step 4: Download complete
-                setTimeout(() => {
-                    log.info('[AutoUpdate] Fake: Download completed');
-                    this.updateDownloaded = true;
-                    this.sendStatusToRenderer('update-downloaded', {
-                        version: '999.0.0',
-                        releaseNotes: 'Fake update for testing UI',
-                        releaseDate: new Date().toISOString()
-                    });
-                }, 500);
-            } else {
-                this.sendStatusToRenderer('download-progress', {
-                    percent: Math.round(progress),
-                    transferred: Math.round(progress * 1024 * 1024),
-                    total: 100 * 1024 * 1024,
-                    bytesPerSecond: 5 * 1024 * 1024
-                });
-            }
-        }, 300);
-    }
+  /**
+   * Check for pending update from previous version (hotfix for 1.0.2)
+   *
+   * Windows-only: it looks for an NSIS installer staged under
+   * %LOCALAPPDATA%, a directory that has no meaning elsewhere. Off Windows
+   * `app.getPath('localAppData')` throws outright, which is what the
+   * AppImage was logging ("Failed to get 'localAppData' path") on every
+   * launch.
+   */
+  checkPendingUpdate() {
+    if (!IS_WIN) return;
 
-    /**
-     * Check for pending update from previous version (hotfix for 1.0.2)
-     *
-     * Windows-only: it looks for an NSIS installer staged under
-     * %LOCALAPPDATA%, a directory that has no meaning elsewhere. Off Windows
-     * `app.getPath('localAppData')` throws outright, which is what the
-     * AppImage was logging ("Failed to get 'localAppData' path") on every
-     * launch.
-     */
-    checkPendingUpdate() {
-        if (!IS_WIN) return;
+    const fs = require("fs");
+    const path = require("path");
+    const os = require("os");
 
-        const fs = require('fs');
-        const path = require('path');
-        const os = require('os');
+    try {
+      // Electron has no 'localAppData' path name on any platform: app.getPath
+      // threw here and the cached installer was never found. electron-updater
+      // caches under %LOCALAPPDATA%.
+      const localAppData =
+        process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+      const pendingDirs = [
+        ...new Set([
+          path.join(localAppData, "sameko-dev-cpp-updater", "pending"),
+          path.join(
+            os.homedir(),
+            "AppData",
+            "Local",
+            "sameko-dev-cpp-updater",
+            "pending",
+          ),
+        ]),
+      ];
 
-        try {
-            // Electron has no 'localAppData' path name on any platform: app.getPath
-            // threw here and the cached installer was never found. electron-updater
-            // caches under %LOCALAPPDATA%.
-            const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
-            const pendingDirs = [...new Set([
-                path.join(localAppData, 'sameko-dev-cpp-updater', 'pending'),
-                path.join(os.homedir(), 'AppData', 'Local', 'sameko-dev-cpp-updater', 'pending')
-            ])];
+      const installerFiles = [];
 
-            const installerFiles = [];
-
-            pendingDirs.forEach(pendingDir => {
-                if (fs.existsSync(pendingDir)) {
-                    // Check if update-info.json exists to confirm the download was completed successfully
-                    const updateInfoPath = path.join(pendingDir, 'update-info.json');
-                    if (fs.existsSync(updateInfoPath)) {
-                        try {
-                            const updateInfo = JSON.parse(fs.readFileSync(updateInfoPath, 'utf8'));
-                            if (updateInfo && updateInfo.fileName) {
-                                const exePath = path.join(pendingDir, updateInfo.fileName);
-                                if (fs.existsSync(exePath)) {
-                                    installerFiles.push({
-                                        dir: pendingDir,
-                                        file: updateInfo.fileName
-                                    });
-                                }
-                            }
-                        } catch (parseErr) {
-                            log.warn('[AutoUpdate] Failed to parse pending update-info.json:', parseErr.message);
-                        }
-                    }
+      pendingDirs.forEach((pendingDir) => {
+        if (fs.existsSync(pendingDir)) {
+          // Check if update-info.json exists to confirm the download was completed successfully
+          const updateInfoPath = path.join(pendingDir, "update-info.json");
+          if (fs.existsSync(updateInfoPath)) {
+            try {
+              const updateInfo = JSON.parse(
+                fs.readFileSync(updateInfoPath, "utf8"),
+              );
+              if (updateInfo && updateInfo.fileName) {
+                const exePath = path.join(pendingDir, updateInfo.fileName);
+                if (fs.existsSync(exePath)) {
+                  installerFiles.push({
+                    dir: pendingDir,
+                    file: updateInfo.fileName,
+                  });
                 }
-            });
-
-            if (installerFiles.length === 0) return;
-
-            const parsed = installerFiles
-                .map(({ dir, file }) => {
-                    const versionMatch = file.match(/(?:semeko-pro|sameko-dev-cpp)-setup-(\d+\.\d+\.\d+)/);
-                    return {
-                        dir,
-                        file,
-                        version: versionMatch ? versionMatch[1] : null
-                    };
-                })
-                .filter(item => item.version);
-
-            if (parsed.length === 0) {
-                log.warn('[AutoUpdate] Could not extract version from pending installers');
-                return;
+              }
+            } catch (parseErr) {
+              log.warn(
+                "[AutoUpdate] Failed to parse pending update-info.json:",
+                parseErr.message,
+              );
             }
+          }
+        }
+      });
 
-            parsed.sort((a, b) => this.compareVersions(b.version, a.version));
-            const newest = parsed[0];
+      if (installerFiles.length === 0) return;
 
-            log.info('[AutoUpdate] Found pending update file:', newest.file);
+      const parsed = installerFiles
+        .map(({ dir, file }) => {
+          const versionMatch = file.match(
+            /(?:semeko-pro|sameko-dev-cpp)-setup-(\d+\.\d+\.\d+)/,
+          );
+          return {
+            dir,
+            file,
+            version: versionMatch ? versionMatch[1] : null,
+          };
+        })
+        .filter((item) => item.version);
 
-            const pendingVersion = newest.version;
-            const currentVersion = app.getVersion();
-            const versionComparison = this.compareVersions(pendingVersion, currentVersion);
+      if (parsed.length === 0) {
+        log.warn(
+          "[AutoUpdate] Could not extract version from pending installers",
+        );
+        return;
+      }
 
-            if (versionComparison > 0) {
-                log.info(`[AutoUpdate] Pending update (v${pendingVersion}) is newer than current (v${currentVersion})`);
-                this.updateDownloaded = true;
-                this.sendStatusToRenderer('update-downloaded', {
-                    version: pendingVersion,
-                    releaseNotes: 'Update downloaded in previous session',
-                    releaseDate: new Date().toISOString(),
-                    fromPending: true
-                });
-            } else {
-                parsed.forEach(item => {
-                    const itemComparison = this.compareVersions(item.version, currentVersion);
-                    if (itemComparison > 0) {
-                        // Keep newer pending installers so user can still restart and update.
-                        log.info(`[AutoUpdate] Keeping newer pending installer (v${item.version})`);
-                        return;
-                    }
+      parsed.sort((a, b) => this.compareVersions(b.version, a.version));
+      const newest = parsed[0];
 
-                    const filePath = path.join(item.dir, item.file);
-                    if (itemComparison === 0) {
-                        log.info(`[AutoUpdate] Pending file (v${item.version}) matches current version (v${currentVersion}), cleaning up...`);
-                    } else {
-                        log.info(`[AutoUpdate] Pending update (v${item.version}) is older than current (v${currentVersion}), cleaning up...`);
-                    }
+      log.info("[AutoUpdate] Found pending update file:", newest.file);
 
-                    try {
-                        fs.unlinkSync(filePath);
-                        log.info('[AutoUpdate] Deleted pending file:', item.file);
-                        
-                        // Also delete the corresponding update-info.json
-                        const infoPath = path.join(item.dir, 'update-info.json');
-                        if (fs.existsSync(infoPath)) {
-                            fs.unlinkSync(infoPath);
-                            log.info('[AutoUpdate] Deleted corresponding update-info.json');
-                        }
-                    } catch (cleanupErr) {
-                        log.warn('[AutoUpdate] Failed to clean up pending file:', cleanupErr.message);
-                    }
-                });
+      const pendingVersion = newest.version;
+      const currentVersion = app.getVersion();
+      const versionComparison = this.compareVersions(
+        pendingVersion,
+        currentVersion,
+      );
+
+      if (versionComparison > 0) {
+        log.info(
+          `[AutoUpdate] Pending update (v${pendingVersion}) is newer than current (v${currentVersion})`,
+        );
+        this.updateDownloaded = true;
+        this.sendStatusToRenderer("update-downloaded", {
+          version: pendingVersion,
+          releaseNotes: "Update downloaded in previous session",
+          releaseDate: new Date().toISOString(),
+          fromPending: true,
+        });
+      } else {
+        parsed.forEach((item) => {
+          const itemComparison = this.compareVersions(
+            item.version,
+            currentVersion,
+          );
+          if (itemComparison > 0) {
+            // Keep newer pending installers so user can still restart and update.
+            log.info(
+              `[AutoUpdate] Keeping newer pending installer (v${item.version})`,
+            );
+            return;
+          }
+
+          const filePath = path.join(item.dir, item.file);
+          if (itemComparison === 0) {
+            log.info(
+              `[AutoUpdate] Pending file (v${item.version}) matches current version (v${currentVersion}), cleaning up...`,
+            );
+          } else {
+            log.info(
+              `[AutoUpdate] Pending update (v${item.version}) is older than current (v${currentVersion}), cleaning up...`,
+            );
+          }
+
+          try {
+            fs.unlinkSync(filePath);
+            log.info("[AutoUpdate] Deleted pending file:", item.file);
+
+            // Also delete the corresponding update-info.json
+            const infoPath = path.join(item.dir, "update-info.json");
+            if (fs.existsSync(infoPath)) {
+              fs.unlinkSync(infoPath);
+              log.info("[AutoUpdate] Deleted corresponding update-info.json");
             }
-        } catch (err) {
-            log.warn('[AutoUpdate] Failed to check pending update:', err.message);
-        }
+          } catch (cleanupErr) {
+            log.warn(
+              "[AutoUpdate] Failed to clean up pending file:",
+              cleanupErr.message,
+            );
+          }
+        });
+      }
+    } catch (err) {
+      log.warn("[AutoUpdate] Failed to check pending update:", err.message);
     }
-    
-    /**
-     * Compare two semver versions
-     * @returns {number} 1 if v1 > v2, -1 if v1 < v2, 0 if equal
-     */
-    compareVersions(v1, v2) {
-        const parts1 = String(v1).split('.').map(Number);
-        const parts2 = String(v2).split('.').map(Number);
+  }
 
-        const maxLen = Math.max(parts1.length, parts2.length, 3);
-        for (let i = 0; i < maxLen; i++) {
-            const a = Number.isFinite(parts1[i]) ? parts1[i] : 0;
-            const b = Number.isFinite(parts2[i]) ? parts2[i] : 0;
-            if (a > b) return 1;
-            if (a < b) return -1;
-        }
-        return 0;
+  /**
+   * Compare two semver versions
+   * @returns {number} 1 if v1 > v2, -1 if v1 < v2, 0 if equal
+   */
+  compareVersions(v1, v2) {
+    const parts1 = String(v1).split(".").map(Number);
+    const parts2 = String(v2).split(".").map(Number);
+
+    const maxLen = Math.max(parts1.length, parts2.length, 3);
+    for (let i = 0; i < maxLen; i++) {
+      const a = Number.isFinite(parts1[i]) ? parts1[i] : 0;
+      const b = Number.isFinite(parts2[i]) ? parts2[i] : 0;
+      if (a > b) return 1;
+      if (a < b) return -1;
     }
+    return 0;
+  }
 }
 
 // Singleton instance

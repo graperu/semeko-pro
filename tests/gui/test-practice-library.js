@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),{_electron}=require('playwright-core');
+const ROOT=path.resolve(__dirname,'../..'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-library-'));let app,page;
+async function launch(){const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:require('electron'),args:[ROOT,'--user-data-dir='+profile],cwd:ROOT,env});for(let i=0;i<300;i++){page=app.windows().find(p=>p.url().includes('index.html'));if(page)break;await new Promise(r=>setTimeout(r,100));}await page.waitForFunction(()=>window.App?.ready);await page.evaluate(()=>ensureMonaco());}
+(async()=>{await launch();await page.evaluate(async()=>{await handleProblemReceived({name:'Archive sum',url:'https://example.test/sum',tests:[{input:'2 3',output:'5'},{input:'-2 3',output:'1'}]},{newTab:true,extension:'py',starter:'a,b=map(int,input().split());print(a+b)'});await runAllTests();});
+assert.strictEqual(await page.evaluate(()=>PracticeLibrary.entries()[0].status),'solved');assert.strictEqual(await page.evaluate(()=>PracticeLibrary.entries()[0].results.length),2);
+await page.locator('#btn-practice-library').click();await page.locator('#practice-library .practice-library-row select').selectOption('review');await page.waitForFunction(()=>PracticeLibrary.entries()[0].status==='review');
+await page.locator('#practice-library input').fill('nothing-matches');assert.strictEqual(await page.locator('.practice-library-row').count(),0);await page.locator('#practice-library input').fill('');
+await app.close();app=null;await launch();await page.locator('#btn-practice-library').click();assert.strictEqual(await page.locator('.practice-library-row select').inputValue(),'review');
+await page.locator('.practice-library-row button').first().click();assert((await page.evaluate(()=>tabSourceText(App.tabs.find(t=>t.id===getPreferredTabId())))).includes('print(a+b)'));await page.evaluate(()=>runAllTests());assert.deepStrictEqual(await page.evaluate(()=>batchTestResults.map(r=>r.status)),['AC','AC']);assert.strictEqual(await page.evaluate(()=>PracticeLibrary.entries().length),1);
+await page.locator('#btn-practice-library').click();await page.locator('#practice-library [data-save]').click();await page.waitForFunction(()=>PracticeLibrary.entries()[0].status==='practiced');
+await app.evaluate(({ipcMain})=>{ipcMain.removeHandler('state-write');ipcMain.handle('state-write',()=>({success:false,error:'test disk full'}));});
+const failure=await page.evaluate(async()=>{try{await PracticeLibrary.save(App.tabs.find(t=>t.id===getPreferredTabId()),ccProblem,'review');return false;}catch{return PracticeLibrary.entries()[0].status==='practiced';}});assert(failure);
+fs.mkdirSync(path.join(ROOT,'plans/artifacts/gui'),{recursive:true});await page.evaluate(()=>{App.settings.appearance.language='vi';UILanguage.apply();});await page.screenshot({path:path.join(ROOT,'plans/artifacts/gui/practice-library.png')});
+console.log('PASS auto archive, immutable saved source/tests, mark/filter, restart persistence, reopen and rerun, deduplication, manual practice mark and failed-write preservation');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(app)await app.close();});

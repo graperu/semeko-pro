@@ -73,5 +73,14 @@ async function main() {
     text = 'public class Main {\n public static void main(String[] args) {\n  int n = 7;\n  System.out.println(n + 1);\n }\n}\n'; fs.writeFileSync(java, text);
     await lsp.request({ file: java, text, feature: 'sync' });
     await debug(await runtime.build({ filePath: java, content: text }), java, 4, 'n', '7');
+    fs.writeFileSync(path.join(root, 'settings.json'), JSON.stringify({ languages: {
+        javaVmArgs: ['-Dsemeko.test=value with spaces'],
+        javaProgramArgs: ['argument with spaces', 'quote"value', 'C:\\tmp\\folder\\']
+    } }));
+    text = 'public class Main {\n public static void main(String[] args) {\n  int n = args.length == 3 && args[0].equals("argument with spaces") && args[1].equals("quote\\"value") && args[2].equals("C:\\\\tmp\\\\folder\\\\") && System.getProperty("semeko.test").equals("value with spaces") ? 7 : 0;\n  System.out.println(n + 1);\n }\n}\n';
+    fs.writeFileSync(java, text);
+    await lsp.request({ file: java, text, feature: 'sync' });
+    await debug(await runtime.build({ filePath: java, content: text }), java, 4, 'n', '7');
+    console.log('PASS Java debugger preserves JVM/program arguments with spaces, quotes and trailing backslashes');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => lsp.stopAll());

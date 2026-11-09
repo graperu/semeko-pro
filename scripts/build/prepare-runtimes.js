@@ -45,7 +45,7 @@ async function main() {
         const version = execFileSync(path.join(root, file), args, { encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
         console.log(`${name}: ${version}`);
     }
-    fs.writeFileSync(path.join(root, 'BUNDLED-RUNTIMES.txt'), 'Semeko Pro Windows x64\nPython 3.13.9 embedded (PSF license in python/)\nEclipse Temurin JDK (GPLv2 with Classpath Exception; legal/ included)\n.NET SDK (MIT and third-party notices included)\nOptional language servers, debug adapters and third-party Python packages are not bundled.\n');
+    fs.writeFileSync(path.join(root, 'BUNDLED-RUNTIMES.txt'), 'Semeko Windows x64\nPython 3.13.9 embedded (PSF license in python/)\nEclipse Temurin JDK (GPLv2 with Classpath Exception; legal/ included)\n.NET SDK (MIT and third-party notices included)\nOptional language servers, debug adapters and third-party Python packages are not bundled.\n');
     console.log('Runtimes ready:', root);
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

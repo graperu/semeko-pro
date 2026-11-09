@@ -1,0 +1,14 @@
+.practice-library{width:min(1000px,94vw);max-height:85vh;margin:auto;padding:20px;border:1px solid var(--border);border-radius:16px;background:var(--bg-base,var(--editor-bg));color:var(--text-primary);font-family:var(--font-ui)}
+.practice-library::backdrop{background:#0009}
+.practice-library header,.practice-library-tools{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.practice-library header h2{flex:1;font-size:20px}.practice-library p{font-size:12px;color:var(--text-secondary);margin:8px 0}
+.practice-library input,.practice-library select{padding:7px;border:1px solid var(--border);border-radius:6px;background:var(--editor-bg);color:var(--text-primary);min-width:0}
+.practice-library input{flex:1}.practice-library-list{overflow:auto;max-height:58vh}
+.practice-library-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.practice-library-info{flex:1;min-width:180px;overflow:hidden}.practice-library-info strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}.practice-library-info small{color:var(--text-secondary);font-size:11px}
+.practice-library-row .action-btn{padding:6px 9px;border-radius:6px;font-size:12px}
+.practice-library-info .practice-folder-path{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-platform{margin:14px 0;padding:12px;border:1px solid var(--border);border-radius:8px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.account-platform h3{flex-basis:100%;font-size:14px}.account-platform p,.account-platform small{flex-basis:100%}.account-platform input{flex:1}.account-platform .action-btn{font-size:12px;padding:6px 8px}
+.official-result{padding:10px;margin:8px 0;border:1px solid var(--border);border-radius:6px;overflow-wrap:anywhere}
+.official-result p{margin:0 0 5px}.official-result pre{white-space:pre-wrap;max-height:240px;overflow:auto}
+.official-success{border-color:var(--success,#78c850)}.official-failure{border-color:var(--error,#ef5350)}

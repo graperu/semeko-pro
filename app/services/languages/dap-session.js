@@ -9,6 +9,11 @@ const { FramedConnection } = require('./framed-connection');
 const runtime = require('./runtime');
 const { killProcessTree, IS_WIN } = require('../../shared/platform');
 
+// The Java adapter expects command-line strings, unlike Python/coreclr arrays.
+function javaArguments(args = []) {
+    return args.map(value => '"' + value.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/g, '$1$1') + '"').join(' ');
+}
+
 // Adapts DAP to the existing debugger UI's session contract, including expandable variables.
 class DapSession extends EventEmitter {
     constructor({ build, cwd }) {
@@ -101,7 +106,7 @@ class DapSession extends EventEmitter {
         const launch = b.language === 'python'
             ? { type: 'python', python: runtime.tool('python'), program: b.source, pythonArgs: b.runtimeArgs || [], args: b.programArgs || [], console: 'integratedTerminal', justMyCode: false }
             : b.language === 'java'
-                ? { type: 'java', mainClass: b.mainClass, classPaths: b.classPaths || [b.args[1]], vmArgs: b.runtimeArgs || [], args: b.programArgs || [], sourcePaths: [path.dirname(b.source)], console: 'integratedTerminal' }
+                ? { type: 'java', javaExec: runtime.tool('java'), mainClass: b.mainClass, classPaths: b.classPaths || [b.args[1]], vmArgs: javaArguments(b.runtimeArgs), args: javaArguments(b.programArgs), sourcePaths: [path.dirname(b.source)], console: 'integratedTerminal' }
                 : { type: 'coreclr', program: b.program, args: b.programArgs || [], console: 'integratedTerminal' };
         const started = this.send('launch', { name: 'Sameko', request: 'launch', cwd: this.cwd, stopOnEntry: !!this.stopOnEntry, ...launch, ...custom });
         // Some adapters delay the launch response until configurationDone.

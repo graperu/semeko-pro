@@ -10,7 +10,18 @@ await page.waitForTimeout(120);
 const text=await page.evaluate(()=>{const node=[...document.querySelectorAll('.explorer-sidebar .cat-section-title')].find(n=>n.textContent.includes(UILanguage.translate('COLLECTIONS')));if(!node)throw Error('Vietnamese Explorer heading missing');node.dataset.fontProbe='true';return node.textContent;});
 const session=await page.context().newCDPSession(page);await session.send('DOM.enable');await session.send('CSS.enable');const {root}=await session.send('DOM.getDocument');const {nodeId}=await session.send('DOM.querySelector',{nodeId:root.nodeId,selector:'[data-font-probe]'});const {fonts}=await session.send('CSS.getPlatformFontsForNode',{nodeId});assert(fonts.some(f=>f.glyphCount>0));assert(fonts.filter(f=>f.glyphCount>0).every(f=>f.familyName.startsWith('Nunito')),JSON.stringify(fonts));console.log('PASS Vietnamese Explorer glyphs use bundled Nunito without fallback:',JSON.stringify(fonts.map(f=>({family:f.familyName,glyphs:f.glyphCount}))));await session.detach();
 const code=await page.locator('.monaco-editor .view-lines').first().evaluate(n=>getComputedStyle(n).fontFamily);assert(!code.includes('Nunito UI'),'Code font must remain separate');
+const controlFonts=await page.evaluate(()=>[...document.querySelectorAll('button,input,select,textarea')].filter(n=>!n.closest('.monaco-editor,.xterm')).map(n=>({id:n.id,cls:n.className,font:getComputedStyle(n).fontFamily})).filter(n=>!n.font.includes('Nunito UI')&&!/mono|Consolas/i.test(n.font)));
+assert.deepStrictEqual(controlFonts,[], 'UI controls must use the bundled UI face or an explicit code font');
+await page.evaluate(()=>openSettings());await page.evaluate(()=>document.fonts.ready);
+const cdp=await page.context().newCDPSession(page);await cdp.send('DOM.enable');await cdp.send('CSS.enable');
+for(const selector of ['#btn-buildrun','#btn-problem-browser','.menu-btn','.settings-tab[data-tab="editor"]','#btn-save-settings','#settings-search','#set-uiLanguage']){
+ const {root}=await cdp.send('DOM.getDocument');const {nodeId}=await cdp.send('DOM.querySelector',{nodeId:root.nodeId,selector});assert(nodeId,'Missing font probe '+selector);
+ const {fonts}=await cdp.send('CSS.getPlatformFontsForNode',{nodeId});const used=fonts.filter(f=>f.glyphCount>0);assert(used.length,selector+' has no rendered text');assert(used.every(f=>f.familyName.startsWith('Nunito')),selector+': '+JSON.stringify(used));
+}
+await cdp.detach();console.log('PASS Run, Practice, menus and Settings controls use bundled Nunito glyphs');
 fs.mkdirSync(path.join(ROOT,'plans/artifacts/gui'),{recursive:true});
+await page.screenshot({path:path.join(ROOT,'plans/artifacts/gui/settings-controls-font.png')});
+await page.evaluate(()=>closeSettings());
 for(const factor of [1,1.25]){await app.evaluate(({BrowserWindow},factor)=>BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html')).webContents.setZoomFactor(factor),factor);await page.waitForTimeout(150);const clipped=await page.locator('.explorer-sidebar .cat-section-title').evaluateAll(ns=>ns.filter(n=>n.getClientRects().length&&n.scrollHeight>n.clientHeight+1).map(n=>n.textContent));assert.deepStrictEqual(clipped,[]);await page.screenshot({path:path.join(ROOT,'plans/artifacts/gui/explorer-font-'+factor+'.png')});}
 console.log('PASS Explorer headings at both UI scales; editor font preserved');
 }finally{if(app)await app.close();}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -293,6 +293,8 @@ function isRunning() {
     return isProcessRunning;
 }
 
+function hasSelection() { return !!terminal?.hasSelection(); }
+
 /**
  * The terminal's lines (scrollback included) as [{ text }], read from xterm's
  * buffer when called, so nothing is copied while programs print. For probes
@@ -316,7 +318,7 @@ function getLines() {
 
 const api = {
     initTerminal, write, writeLine, writeProgram, writeMessage,
-    clear, fit, applyTheme, setFontSize, dispose, setProcessRunning, isRunning, getLines
+    clear, fit, applyTheme, setFontSize, dispose, setProcessRunning, isRunning, getLines, hasSelection
 };
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -24,9 +24,16 @@
 #oj-results { flex: 1; overflow-y: auto; padding: 0 8px 8px 16px; }
 .oj-browser .oj-result { display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 10px; background: transparent; }
 .oj-result strong { display: block; font-size: 13px; line-height: 1.5; }
+.oj-problem-row{display:flex;align-items:stretch;min-width:0}.oj-problem-row .oj-result{flex:1;min-width:0}.oj-problem-rank{flex:0 0 32px;padding:4px!important;border:0!important;border-radius:3px!important;background:transparent;cursor:pointer}.oj-problem-rank:hover{background:var(--bg-hover,#343434)}
+.oj-contest{margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden}.oj-contest summary{padding:10px;cursor:pointer;font-size:13px;font-weight:700;background:var(--editor-bg)}.oj-contest .oj-result{border-radius:4px;margin:3px 0;padding:7px}
 .oj-result small { color: var(--text-secondary); font-size: 11px; }
 .oj-result[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .oj-pagination { display: flex; align-items: center; justify-content: space-between; gap: 5px; padding: 10px 12px; font-size: 12px; }
+#oj-page{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+#oj-page-input{width:5ch;min-width:0;padding:4px 2px;text-align:center;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:4px;appearance:textfield;-moz-appearance:textfield}
+#oj-page-input::-webkit-inner-spin-button,#oj-page-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+#oj-page-input:hover:not(:disabled){border-color:var(--border)}
+#oj-page-input:focus{outline:1px solid var(--accent);background:var(--bg-input)}
 .oj-detail { display: flex; flex-direction: column; min-height: 0; padding: 4px 20px; }
 .oj-detail h3 { margin: 0 0 8px; font-size: 18px; }
 #oj-problem-note { color: var(--text-secondary); font-size: 12px; line-height: 1.6; margin: 0 0 10px; }
@@ -35,8 +42,60 @@
 .oj-statement p { margin: 0 0 12px; }
 .oj-statement img, .oj-statement svg { max-width: 100%; }
 .oj-statement ul, .oj-statement ol { padding-left: 24px; }
+.oj-statement .katex { font-size: 1.08em; overflow-wrap: normal; }
+.oj-statement .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.oj-statement .katex-error { color: var(--warning); white-space: pre-wrap; }
+.statement-translation-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 8px}.statement-translation-bar .action-btn{min-height:28px;padding:4px 7px;font-size:11px;border-radius:5px}.statement-translation-bar span{flex-basis:100%;font-size:11px;color:var(--text-secondary)}
+#statement-translation-settings{margin-top:18px}#statement-translation-settings input{flex:1;min-width:0;max-width:100%;padding:9px 12px;background:var(--editor-bg);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;font:inherit}#statement-translation-settings .setting-row>label{flex:0 1 140px;min-width:90px}.translation-settings-actions{display:flex;flex-wrap:wrap;gap:6px}.translation-settings-actions button{font-size:12px;padding:7px;border-radius:6px}
+/* Dense catalogue, with more room reserved for the statement. */
+.oj-browser .oj-header { padding: 10px 14px; gap: 8px; }
+.oj-browser .oj-header h2 { font-size: 17px; margin-bottom: 2px; }
+.oj-browser .oj-header p { font-size: 11px; }
+.oj-browser .oj-filters { padding: 8px 14px 0; gap: 7px; }
+.oj-browser label { gap: 3px; font-size: 11px; }
+.oj-browser :is(input,select,button) { font-size: 12px; }
+.oj-browser .oj-filters :is(input,select,button),.oj-browser .oj-footer :is(select,button) { padding: 6px 9px; min-height: 30px; border-radius: 6px; }
+.oj-browser .oj-status { margin: 6px 14px; min-height: 14px; font-size: 11px; }
+.oj-browser #oj-results { padding: 0 5px 5px 9px; }
+.oj-browser .oj-contest { margin-bottom: 5px; border-radius: 5px; }
+.oj-browser .oj-contest summary { padding: 6px 7px; font-size: 12px; line-height: 18px; }
+.oj-browser .oj-result,.oj-browser .oj-contest .oj-result { margin: 0; padding: 5px 7px; border-radius: 3px; border-width: 0 0 1px; }
+.oj-browser .oj-result strong { font-size: 12px; line-height: 18px; font-weight: 600; }
+.oj-browser .oj-result small { display: block; font-size: 10px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oj-browser .oj-pagination { padding: 6px 8px; font-size: 11px; }
+.oj-browser .oj-pagination button { padding: 5px 8px; min-height: 28px; }
+.oj-browser .oj-detail { padding: 3px 12px; }
+.oj-browser .oj-detail h3 { font-size: 16px; margin-bottom: 6px; }
+.oj-browser #oj-problem-note { font-size: 11px; line-height: 1.5; margin-bottom: 7px; }
+.oj-browser .oj-footer { padding: 8px 14px; gap: 8px; }
 .oj-footer { border-top: 1px solid var(--border); justify-content: flex-end; }
 .oj-footer label { margin-right: auto; }
 #oj-start { background: var(--btn-primary-bg, var(--accent)); color: var(--btn-primary-text); }
 @media (max-width: 850px) { .oj-browser { width: calc(100vw - 20px); height: calc(100vh - 20px); }  .oj-detail { padding: 4px 12px; } .oj-footer { padding: 10px 14px; } }
 
+.native-exercise-body{white-space:pre-wrap;font-family:var(--font-ui);line-height:1.7;overflow-wrap:anywhere}
+.oj-result strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.oj-result small{max-width:100%}#oj-problem-title{overflow-wrap:anywhere;line-height:1.4}
+#oj-statement[data-provider]{background:var(--editor-bg,var(--bg-panel));color:var(--text-primary);border:1px solid var(--border);border-radius:3px;padding:18px 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;box-sizing:border-box;overflow-wrap:break-word}
+#oj-statement[data-provider] .header{text-align:center;margin:0 0 22px;font-size:13px;line-height:1.65;color:var(--text-primary)}
+#oj-statement[data-provider] .header .title{font-size:21px;font-weight:400;margin-bottom:12px}
+#oj-statement[data-provider] .property-title{display:inline;font-weight:700;margin-right:5px}
+#oj-statement[data-provider] .section-title{font-size:17px;font-weight:700;margin:20px 0 9px;color:var(--text-primary)}
+#oj-statement[data-provider] p{margin:0 0 14px}
+#oj-statement[data-provider] .sample-test{font-family:Consolas,'Courier New',monospace;font-size:13px;border:1px solid var(--border);margin:8px 0 18px;background:var(--editor-bg,var(--bg-panel));color:var(--text-primary)}
+#oj-statement[data-provider] .sample-test .title{font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;background:var(--bg-panel);color:var(--text-primary);border-bottom:1px solid var(--border);padding:3px 8px;text-align:left}
+#oj-statement[data-provider] .sample-test .output{border-top:1px solid var(--border)}
+#oj-statement[data-provider] .sample-test pre{margin:0;padding:5px 9px;border-radius:0;background:var(--editor-bg,var(--bg-panel));color:var(--text-primary);line-height:1.45;white-space:pre-wrap}
+#oj-statement[data-provider] .test-example-line-even{background:var(--bg-panel)}
+#oj-statement[data-provider] img{display:block;max-width:100%;height:auto;margin:12px auto}
+#oj-statement[data-provider] .katex{color:var(--text-primary);font-size:1.08em}
+#oj-statement[data-provider] .statement-image-warning{border:1px solid var(--warning);background:color-mix(in srgb,var(--warning) 12%,var(--editor-bg));color:var(--text-primary);padding:8px;font-size:12px}
+@media(max-width:850px){#oj-statement[data-provider]{padding:12px;font-size:13px}#oj-statement[data-provider] .header .title{font-size:18px}}
+#oj-statement[data-provider] :is(h1,h2,h3,h4){color:var(--text-primary);line-height:1.4;margin:18px 0 10px}
+#oj-statement[data-provider] :is(pre,code,kbd,samp){font-family:Consolas,'Courier New',monospace;color:var(--text-primary)}
+#oj-statement[data-provider] pre{background:var(--bg-input,var(--editor-bg));border:1px solid var(--border);border-radius:3px;padding:10px 12px;overflow:auto;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+#oj-statement[data-provider] table{border-collapse:collapse;max-width:100%;margin:12px 0}
+#oj-statement[data-provider] :is(th,td){border:1px solid var(--border);padding:6px 9px}
+#oj-statement[data-provider] :is(ul,ol){padding-left:25px;margin:10px 0 16px}
+#oj-statement[data-provider] li{margin:4px 0}
+#oj-statement[data-provider] .native-exercise-body{font-family:Arial,Helvetica,sans-serif}
+#oj-statement[data-provider] :is(.challenge_sample_input_body,.challenge_sample_output_body){margin:8px 0 16px}

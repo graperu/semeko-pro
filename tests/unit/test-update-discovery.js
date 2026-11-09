@@ -1,0 +1,9 @@
+'use strict';
+const assert=require('assert'),Module=require('module'),{EventEmitter}=require('events');
+const app=new EventEmitter();app.isPackaged=true;app.getVersion=()=> '1.4.0';app.getPath=()=>require('os').tmpdir();
+const updater=new EventEmitter();let checks=0;updater.checkForUpdates=async()=>{checks++;updater.emit('update-available',{version:'1.4.1',releaseNotes:'Test only'});updater.emit('download-progress',{percent:50,transferred:10,total:20,bytesPerSecond:10});updater.emit('update-downloaded',{version:'1.4.1'});return{updateInfo:{version:'1.4.1'}};};
+const logger={transports:{file:{}},info(){},warn(){},error(){},debug(){}};
+const load=Module._load;Module._load=function(name,...args){if(name==='electron')return{app,dialog:{},BrowserWindow:{}};if(name==='electron-updater')return{autoUpdater:updater};if(name==='electron-log')return logger;return load.call(this,name,...args);};
+const service=require('../../app/services/auto-update-service');void service.updater;Module._load=load;
+const statuses=[];service.mainWindow={isDestroyed:()=>false,webContents:{send:(channel,data)=>statuses.push(data.status)}};
+(async()=>{await service.checkForUpdates(false);assert.strictEqual(checks,1);for(const state of ['update-available','download-progress','update-downloaded'])assert(statuses.includes(state),state);assert.strictEqual(service.updateDownloaded,true);assert.strictEqual(updater.autoInstallOnAppQuit,false);assert.strictEqual(service.checkInFlight,null);assert.strictEqual(service.wantsPrerelease(),false);console.log('PASS newer release -> notification -> download progress -> restart-ready; no silent installation');})().catch(e=>{console.error(e);process.exitCode=1;});

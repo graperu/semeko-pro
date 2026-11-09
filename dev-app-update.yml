@@ -1,4 +1,4 @@
 provider: github
 owner: graperu
-repo: semeko-pro
+repo: semeko-pro-downloads
 updaterCacheDirName: sameko-dev-cpp-updater

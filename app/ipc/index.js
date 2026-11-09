@@ -33,6 +33,8 @@ function registerAllHandlers(mainWindow) {
 
     fileHandlers.registerHandlers();
     languageHandlers.registerHandlers();
+    require('./translation-handlers')();
+    require('./account-handlers')();
     compilerHandlers.registerHandlers();
     dialogHandlers.registerHandlers();
     windowHandlers.registerHandlers();

@@ -285,7 +285,7 @@
             '*{box-sizing:border-box;}',
             '.tcf-stage{position:absolute;left:0;top:0;width:' + PREVIEW_WIDTH + 'px;height:' + PREVIEW_MIN_HEIGHT + 'px;transform-origin:0 0;}',
             '.ico{width:20px;height:20px;fill:currentColor;flex-shrink:0;overflow:visible;}.ico .ico-alt{display:none;}.active>.ico>use:not(.ico-alt){display:none;}.active>.ico>.ico-alt{display:inline;}',
-            '.app-container{--tcf-island-bg:linear-gradient(var(--bg-panel),var(--bg-panel)),var(--editor-bg);--tcf-line:1.5px solid var(--border);position:relative;display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;background:var(--tcf-app-base,#1a2530);color:var(--text-primary);font:14px Nunito,"Segoe UI",sans-serif;cursor:default;user-select:none;}',
+            '.app-container{--tcf-island-bg:linear-gradient(var(--bg-panel),var(--bg-panel)),var(--editor-bg);--tcf-line:1.5px solid var(--border);position:relative;display:flex;flex-direction:column;width:100%;height:100%;overflow:hidden;background:var(--tcf-app-base,#1a2530);color:var(--text-primary);font:14px var(--font-ui,"Nunito UI"),"Segoe UI",sans-serif;cursor:default;user-select:none;}',
             '.tcf-app-background{position:absolute;inset:calc(-1 * var(--app-bg-blur,0px));z-index:0;background-image:var(--app-bg-image,none);background-position:var(--app-bg-position,center center);background-size:cover;background-repeat:no-repeat;opacity:var(--app-bg-opacity,.5);filter:blur(var(--app-bg-blur,0px)) brightness(var(--app-bg-brightness,1));pointer-events:none;}',
             '.tcf-app-background.has-video{opacity:1;}',
             '.tcf-app-background>.tcf-preview-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--app-bg-position,center center);pointer-events:none;}',
@@ -294,7 +294,7 @@
             /* Header: three islands */
             '.header-bar{display:flex;align-items:center;flex:0 0 60px;height:60px;padding:0 8px 0 12px;gap:10px;}',
             '.header-island{display:flex;align-items:center;gap:4px;height:46px;padding:0 6px;border-radius:20px;background:var(--tcf-island-bg);flex-shrink:0;}',
-            '.logo{margin-right:2px;padding:4px 14px;border-radius:999px;background:var(--btn-primary-bg,var(--accent));color:var(--btn-primary-text,var(--button-text-on-accent,#fff));font:700 18px/22px Fredoka,sans-serif;}',
+            '.logo{margin-right:2px;padding:4px 14px;border-radius:999px;background:var(--btn-primary-bg,var(--accent));color:var(--btn-primary-text,var(--button-text-on-accent,#fff));font:700 18px/22px var(--font-heading,"Nunito UI"),sans-serif;}',
             '.toggle-btn{display:flex;align-items:center;justify-content:center;width:36px;height:34px;border-radius:12px;color:var(--text-secondary);}',
             '.toggle-btn.active{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);}',
             '.menu-btn{padding:6px 14px;border-radius:999px;color:var(--text-secondary);font-weight:800;}',

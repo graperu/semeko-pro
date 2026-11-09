@@ -1,0 +1,13 @@
+'use strict';const assert=require('assert'),{samples}=require('../../app/services/competitive/pdf-exercise');
+const valid='Input Format\nn\nSample Input 0\n2\n1 2\nSample Output 0\n3\nExplanation\nSum.';
+assert.deepStrictEqual(samples(valid),[{input:'2\n1 2\n',output:'3\n'}]);
+assert.deepStrictEqual(samples(valid+'\nInput Format\nOther problem'),[]);
+assert.deepStrictEqual(samples('Sample Input 0\n2\nSample Output 0\n3'),[]);
+assert.deepStrictEqual(samples(valid.replace('Sample Output 0','Sample Output 1')),[]);
+assert.deepStrictEqual(samples('Input Format\nSample Input 0\nSample Output 0\n3'),[]);
+console.log('PASS explicit sample pairs, no invented tests, multi-problem/ambiguous/empty rejection');
+const detail=require('../../app/services/competitive/pdf-exercise').build({id:'x',name:'Test.pdf',root:'Backend',path:'test.pdf'},['Câu 01: Hoisting\n\uE12C Đề bài: Dự đoán kết quả\n\uE12C var x = 5;\n\uE12C Đáp án:\nsecret\nCâu 02: Test\n\uE451 Nội dung'],{repository:'test/repo',commit:'main'});
+assert.strictEqual(detail.children.length,2);assert(!JSON.stringify(detail).match(/[\uE000-\uF8FF]/));assert(detail.children[0].html.includes('• var x = 5;'));assert(!detail.children[0].html.includes('secret'));
+assert(detail.children[0].referenceAnswer.includes('secret'));assert.strictEqual(detail.children[1].referenceAnswer,null);
+console.log('PASS PDF private-use bullets normalized and answer boundary preserved');
+assert.throws(()=>require('../../app/services/competitive/pdf-exercise').build({id:'scan'},['','  '],{}),/OCR/);

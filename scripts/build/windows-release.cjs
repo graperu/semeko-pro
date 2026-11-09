@@ -16,7 +16,7 @@ module.exports = {
         artifactName: 'semeko-pro-setup-${version}-x64.${ext}',
         oneClick: true, perMachine: false, allowElevation: false,
         createDesktopShortcut: 'always', createStartMenuShortcut: true,
-        shortcutName: 'Semeko Pro', runAfterFinish: true,
+        shortcutName: 'Semeko', runAfterFinish: true,
         deleteAppDataOnUninstall: false
     }
 };

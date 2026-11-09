@@ -1,0 +1,6 @@
+'use strict';
+const assert=require('assert');
+const stream='BT /F1 14 Tf 50 700 Td (Official statement fixture) Tj ET';
+const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream'];
+let source='%PDF-1.4\n',offsets=[0];objects.forEach((object,i)=>{offsets.push(Buffer.byteLength(source));source+=(i+1)+' 0 obj\n'+object+'\nendobj\n';});const start=Buffer.byteLength(source);source+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(n=>String(n).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+start+'\n%%EOF';
+require('../../app/services/competitive/codeforces-pdf')(Buffer.from(source)).then(html=>{assert(html.includes('data:image/png;base64,'));assert(html.includes('Official statement fixture'));assert(html.includes('class="problem-statement"'));assert(!html.includes('class="sample-test"'));console.log('PASS PDF original page image and extracted text preserved; no fabricated samples');}).catch(e=>{console.error(e);process.exitCode=1;});

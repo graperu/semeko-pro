@@ -397,7 +397,16 @@ async function handleProblemReceived(problem, options = {}) {
     const importMerge = App.settings.oj?.importMerge || 'replace';
     const useCurrentTab = importTarget === 'current-tab' && !hasFixedProblemTests() && !hasFixedProblemTests(problem) && App.activeTabId && App.tabs.length > 0;
 
-    if (useCurrentTab) {
+    if(options.filePath){
+        await openFileFromPath(options.filePath);
+        const tab=App.tabs.find(t=>t.path&&pathKey(t.path)===pathKey(options.filePath));
+        if(!tab)throw Error('Could not open the contest solution file');
+        if(getPreferredTabId()!==tab.id)setActive(tab.id);
+        const previous=tab.testState?.problem;
+        const sameProblem=previous&&previous.sourcePlatform===problem.sourcePlatform&&previous.problemId&&previous.problemId===problem.problemId;
+        if(!sameProblem)tab.testState={problem,index:0,results:[]};
+        loadTestStateFromTab(tab);renderTabs();updateUI();
+    }else if (useCurrentTab) {
         // Import tests into the current active tab \u2014 don't create a new tab
         if (importMerge === 'append' && ccProblem && ccProblem.tests) {
             // Append new tests to existing ones

@@ -1,9 +1,9 @@
-# Semeko Pro
+# Semeko
 
 The upgraded Semeko C++ edition: an Electron + Monaco IDE for C/C++, Python,
 Java and C#, based on [Sameko Dev C++](https://github.com/QuangquyNguyenvo/Sameko-Dev-CPP).
 
-Download the Windows installer from [Semeko Pro Downloads](https://github.com/graperu/semeko-pro-downloads/releases/latest).
+Download the Windows installer from [Semeko Downloads](https://github.com/graperu/semeko-pro-downloads/releases/latest).
 Run setup once to install for your Windows account and create Desktop and Start Menu shortcuts.
 The full x64 installer includes GCC, Python, a JDK and .NET SDK for local build/run.
 Optional Python packages and language servers/debug adapters are configured separately.
@@ -16,6 +16,11 @@ Development changes after 1.4.0 (not released yet): Vietnamese/English interface
 accent-insensitive Settings search, detected Python interpreter choices, compiler-supported
 Java/C# version dropdowns, and a separate C language standard selector. The public installer
 remains 1.4.0 until the next release is explicitly approved.
+
+The 1.4.1 candidate also adds verified platform login, a dedicated official-submit
+action and server-result tracking. This integration has passed simulated provider/UI
+checks; real authentication/submission still needs user verification. Local sample
+AC is separate from official Accepted. See [internal validation](docs/development/RELEASE-1.4.1-VALIDATION.md).
 
 - Switch language workspaces from the top-left language selector; each starts
   with Hello World and keeps its files when switching away.
@@ -65,6 +70,9 @@ not included in Git. See [language setup](docs/development/LANGUAGES.md).
 npm run test:unit
 npm run test:debugger
 npm run test:languages
+npm run setup:runtimes
+npm run test:code
+npm run test:code:advanced
 npm run test:gui
 npm run test:problems
 npm run test:problems:gui

@@ -4,7 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [Unreleased — 1.4.1 candidate]
+
+### Added
+
+- Semeko naming, Vietnamese interface, compact file explorer and toolbar.
+- Python, Java and C# runtime settings, folder workspaces, automatic Codeforces contest folders, and folder archive/reopen.
+- Practice browser for Codeforces, LeetCode, HackerRank and the local exercise library, contest standings, GitHub sign-in configuration and public platform result synchronization.
+- Saved English/Vietnamese statement translation, background translation queue, source recovery, math and image rendering, persistent catalog cache and direct page-number navigation.
+
+### Fixed
+
+- Reopening saved Codeforces statements no longer drops their content or waits for a catalog network request.
+- Cached mathematical expressions regenerate from TeX after HTML sanitization, preserving subscripts, exponents, fractions and brackets. Original and translated statements share the math formatter.
+- Interactive terminal input, per-test feedback, language switching, Vietnamese typography and clipped controls.
+- Update discovery and progress use the public download repository. The Windows installer creates a desktop shortcut and includes C/C++, Python, Java and C# runtimes.
+
+### Known limits
+
+- Some upstream statements can still be unavailable because of source HTTP 403/connection errors. PDF source pages retain layout and figures; samples inside PDF tables are not automatically converted into runnable tests.
+- Platform profile linking does not claim ownership verification or automatic official Accepted. Official submission requires the platform's own authentication and judging.
+- Translation requires the user's configured compatible API service. Local translation keys, authentication tokens and personal code are not included in the installer.
+
+## Earlier development changes
 
 Vim Mode and a cursor trail, fixes for data loss in contests, the Explorer, Save As and session restore, a lighter editor while typing, and updated libraries.
 

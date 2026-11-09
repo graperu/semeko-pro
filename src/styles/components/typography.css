@@ -6,6 +6,17 @@
 /* Use one face for letters and accents instead of mixing Fredoka with fallback glyphs. */
 html[lang="vi"] { --font-heading: 'Nunito UI', 'Segoe UI', sans-serif; }
 
+/* Native form controls do not inherit the body font in Chromium. Keep this
+   low-specificity so editor/code inputs can retain their monospace rules. */
+:where(button, input, select, textarea) {
+    font-family: var(--font-ui);
+    font-synthesis: none;
+}
+
+html[lang="vi"] .header-bar :is(.menu-btn, .action-btn) {
+    font-weight: 700;
+}
+
 .explorer-sidebar {
     font-family: var(--font-ui);
     font-synthesis: none;
@@ -28,3 +39,60 @@ html[lang="vi"] { --font-heading: 'Nunito UI', 'Segoe UI', sans-serif; }
     letter-spacing: .25px;
     line-height: 1.5;
 }
+
+/* Compact desktop file tree: small rectangular rows, like an IDE explorer. */
+.explorer-sidebar > .explorer-header { padding: 5px 6px 3px 10px; }
+.explorer-sidebar .explorer-title { font-size: 12px; }
+.explorer-sidebar .explorer-action-btn { width: 22px; height: 22px; border-radius: 4px; }
+.explorer-sidebar .explorer-action-btn svg { width: 14px; height: 14px; }
+.explorer-sidebar .explorer-filter { height: 25px; margin: 0 7px 3px; padding-left: 8px; border-radius: 5px; }
+.explorer-sidebar .explorer-filter input { font-size: 12px; font-weight: 400; }
+.explorer-sidebar .cat-section-header { margin: 3px 0 1px; padding: 3px 8px; }
+.explorer-sidebar :is(.cat-section-title,.ex-section-header,.cp-sub-contest-title) { font-size: 11px; line-height: 18px; }
+.explorer-sidebar .explorer-item {
+    min-height: 22px;
+    height: 22px;
+    gap: 4px;
+    margin: 0 3px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 4px;
+    border-radius: 3px;
+    font-weight: 400;
+}
+.explorer-sidebar .explorer-item-name { font-size: 12px; font-weight: 400; line-height: 20px; }
+.explorer-sidebar :is(.explorer-icon,.material-file-icon) { width: 14px; height: 14px; flex: 0 0 14px; }
+.explorer-sidebar .explorer-item-arrow { width: 10px; height: 12px; }
+.explorer-sidebar .explorer-children::before { left: calc(var(--guide, 14px) + 1px); width: 1px; }
+.explorer-sidebar .cat-list-item:not(.cp-problem-square) { min-height: 24px; padding: 2px 6px; margin: 1px 4px; border-radius: 4px; }
+.explorer-sidebar :is(.cat-list-item-name,.cat-name) { font-size: 12px; font-weight: 500; }
+.explorer-sidebar .cat-list-item-badge { font-size: 9px; padding: 1px 4px; }
+.header-bar .tabs-container .tab{box-sizing:border-box;max-width:min(210px,var(--tab-strip-width,210px));min-width:0;flex:0 0 auto;overflow:hidden}
+.header-bar .tabs-container .tab-name{flex:1 1 auto;min-width:0;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;direction:ltr}
+.header-bar .tabs-container :is(.tab-x,.tab-dot,.tab-diagnostics){flex-shrink:0}
+.header-bar .tabs-wrap>.tab-add{flex:0 0 30px}
+
+/* Reserve the header's width for source tabs; auxiliary pages use icon buttons. */
+.app-container>.header-bar{height:46px;padding:0 4px 0 6px;gap:4px}
+.header-bar .header-island{height:36px;padding:0 4px;gap:2px;border-radius:14px}
+#island-nav .logo{font-size:14px;padding:3px 10px;margin-right:0}
+#island-nav .menu-btn{font-size:12px;padding:4px 7px}
+.header-bar .header-actions.header-island{gap:3px}
+.header-bar .header-island .toggle-btn:not(.tool-group *),
+.header-bar .tool-group .toggle-btn{width:28px;height:28px;padding:4px;min-width:28px}
+.header-bar .header-island .tool-group{gap:2px}
+.header-bar .header-island .tool-group::after{margin-left:2px}
+.header-bar .run-split{height:30px}
+.header-bar .run-split .action-btn{font-size:13px;padding:0 10px}
+.header-bar .run-split .run-split-caret{padding:0 6px}
+.header-bar #btn-buildrun{width:32px;min-width:32px;padding:0;justify-content:center}
+.header-bar #btn-buildrun>span{display:none}
+.header-bar .win-btn{width:34px;height:36px}
+.header-bar .tabs-wrap.header-island{padding:0 3px;gap:2px}
+.header-bar .tabs-container .tab{height:28px;padding:0 7px 0 10px;font-size:12px;gap:4px;max-width:min(180px,var(--tab-strip-width,180px))}
+.header-bar .oj-open-btn{width:30px;min-width:30px;height:30px;padding:6px;font-size:0;gap:0;border-radius:9px}
+.header-bar .oj-open-btn::before{content:'';display:block;width:18px;height:18px;background:currentColor;mask:var(--header-action-icon) center/contain no-repeat}
+#btn-problem-browser{--header-action-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16'/%3E%3C/svg%3E")}
+#btn-learning{--header-action-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M12 5C8 2 4 3 2 4v15c3-2 7-2 10 0 3-2 7-2 10 0V4c-2-1-6-2-10 1Zm0 0v14'/%3E%3C/svg%3E")}
+#btn-practice-library{--header-action-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M3 3h18v5H3zM5 8v13h14V8M9 12h6'/%3E%3C/svg%3E")}
+#btn-account{--header-action-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ccircle cx='12' cy='9' r='3'/%3E%3Cpath d='M5 19c1-6 13-6 14 0'/%3E%3C/svg%3E")}

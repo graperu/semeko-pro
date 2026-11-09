@@ -1,5 +1,5 @@
 /**
- * Semeko Pro IDE - renderer: Panel visibility, header buttons, docking of Terminal and I/O, resizers, Discord presence.
+ * Semeko IDE - renderer: Panel visibility, header buttons, docking of Terminal and I/O, resizers, Discord presence.
  *
  * One of the files that used to be the single renderer/app.js. They are plain
  * <script> files sharing one global scope and are loaded by index.html in a
@@ -1110,9 +1110,9 @@ function updateDiscordPreview() {
             : null;
         stateEl.textContent = folder
             ? `In ${folder} - Ln ${_discordLastPos.line}, Col ${_discordLastPos.col}`
-            : `Semeko Pro - Ln ${_discordLastPos.line}, Col ${_discordLastPos.col}`;
+            : `Semeko - Ln ${_discordLastPos.line}, Col ${_discordLastPos.col}`;
     } else {
         detailsEl.textContent = 'Idle';
-        stateEl.textContent = 'Semeko Pro';
+        stateEl.textContent = 'Semeko';
     }
 }

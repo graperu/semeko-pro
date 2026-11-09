@@ -1,0 +1,4 @@
+const assert=require('assert'),check=require('../../app/shared/problem-checkers');const url='https://codeforces.com/problemset/problem/977/C',input='7 4\n3 7 5 1 10 3 20\n';
+for(const x of ['5','6'])assert.strictEqual(check(url,input,x),true);
+for(const x of ['4','7','-1','1000000001','5 6','5.0'])assert.strictEqual(check(url,input,x),false);
+assert.strictEqual(check(url,input.replace('7 4','7 2'),'-1'),true);assert.strictEqual(check(url,'2 0\n1 2','-1'),true);assert.strictEqual(check(url,'2 0\n2 3','1'),true);assert.strictEqual(check(url,'2 2\n2 3','-1'),false);assert.strictEqual(check(url,'2 2\n2 3','3'),true);assert.strictEqual(check(url,'bad input','3'),null);assert.strictEqual(check('https://evil.example/problemset/problem/977/C',input,'5'),null);console.log('PASS multiple valid answers, false/extra/out-of-range answers, no-solution boundaries, malformed input and exact problem identity');

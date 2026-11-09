@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),Module=require('module');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-native-i18n-'));
+const original=Module._load;
+Module._load=function(name,...args){if(name==='electron')return{app:{getPath:()=>root}};return original.call(this,name,...args);};
+const {translate,dialogOptions}=require('../../app/shared/ui-language');
+Module._load=original;
+fs.writeFileSync(path.join(root,'settings.json'),JSON.stringify({appearance:{language:'vi'}}));
+const input={title:'Open File',buttonLabel:'Open',defaultPath:'C:/study/Run.cpp',filters:[{name:'Source Files',extensions:['cpp','py']}]};
+const output=dialogOptions(input);
+assert.strictEqual(output.title,'Mở tệp');assert.strictEqual(output.buttonLabel,'Mở');assert.strictEqual(output.filters[0].name,'Tệp mã nguồn');
+assert.strictEqual(output.defaultPath,input.defaultPath);assert.deepStrictEqual(output.filters[0].extensions,input.filters[0].extensions);assert.strictEqual(input.title,'Open File');assert.strictEqual(input.filters[0].name,'Source Files');
+assert.strictEqual(translate('Python'),'Python');
+fs.writeFileSync(path.join(root,'settings.json'),JSON.stringify({appearance:{language:'en'}}));
+assert.deepStrictEqual(dialogOptions(input),input);
+console.log('PASS native dialog labels/filters, file path preservation, immutable options and English round trip');

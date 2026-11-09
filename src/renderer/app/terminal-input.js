@@ -92,6 +92,20 @@ function initTerminalUX() {
     initXtermTerminal();
 
     if (termInput) {
+        // The output surface is display-only. A plain click redirects typing
+        // into the real stdin editor; dragging still selects/copies output.
+        const output = document.getElementById('terminal');
+        let pointerStart = null;
+        output?.addEventListener('pointerdown', event => {
+            pointerStart = event.button === 0 ? { x: event.clientX, y: event.clientY } : null;
+        });
+        output?.addEventListener('pointerup', event => {
+            const start = pointerStart; pointerStart = null;
+            if (!start || event.button !== 0 || termInput.disabled ||
+                Math.hypot(event.clientX-start.x,event.clientY-start.y)>5 ||
+                window.TerminalManager?.hasSelection()) return;
+            setTimeout(() => { if (!termInput.disabled) termInput.focus(); }, 0);
+        });
 
         // Auto-grow with the content so a pasted multi-line test case is fully
         // visible instead of being clipped to one row. The ceiling is dynamic:

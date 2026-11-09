@@ -248,8 +248,8 @@ const ThemeMarketplace = {
                     ${isActive ? '<div class="mp-active-badge">Active</div>' : ''}
                 </div>
                 <div class="mp-card-info">
-                    <div class="mp-card-name">${escHtml(theme.name)}</div>
-                    ${desc ? `<div class="mp-card-desc">${escHtml(desc)}</div>` : ''}
+                    <div class="mp-card-name" data-i18n-preserve>${escHtml(theme.name)}</div>
+                    ${desc ? `<div class="mp-card-desc" ${isBuiltin ? '' : 'data-i18n-preserve'}>${escHtml(desc)}</div>` : ''}
                     <div class="mp-card-meta">
                         <span>${escHtml(theme.type)}</span>
                         <span>by ${escHtml(theme.author || 'Unknown')}</span>
