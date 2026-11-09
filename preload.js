@@ -147,6 +147,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     officialLogout: provider => ipcRenderer.invoke('official-logout',{provider}),
     officialStop: ticket => ipcRenderer.invoke('official-stop',{ticket}),
     officialRefresh: ticket => ipcRenderer.invoke('official-refresh',{ticket}),
+    officialOpenResult: ticket => ipcRenderer.invoke('official-open-result',{ticket}),
     onOfficialSubmission: callback => {const listener=(_,value)=>callback(value);ipcRenderer.on('official-submission-event',listener);return()=>ipcRenderer.removeListener('official-submission-event',listener);},
     translationSave: options => ipcRenderer.invoke('translation-save', options),
     translationRemove: () => ipcRenderer.invoke('translation-remove'),

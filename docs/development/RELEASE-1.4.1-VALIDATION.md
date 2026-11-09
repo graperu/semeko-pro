@@ -20,5 +20,6 @@
 - Terminal tương tác C/C++/Python/Java/C#, khoảng trắng và EOF.
 - Công thức đã lưu bị mất style được dựng lại; kiểm tra số mũ/chỉ số, phân số, tổng, ngoặc, macro và dữ liệu code/test không bị sửa.
 - Nộp bài chính thức: đã qua mô phỏng service và GUI; **chưa xác nhận live**, cần đăng nhập thật và nộp một bài được người dùng chọn.
+- Nút Run và Nộp bài riêng; bảng chấm riêng đã kiểm tra hiển thị 57/57 test, trường hợp CF chưa cung cấp tổng số và WA ở test 6 bằng sự kiện mô phỏng. Không dựng danh sách test ẩn mà máy chủ không trả về.
 
 Các tệp bằng chứng, profile thử nghiệm và kết quả riêng nằm trong `plans/`, không đưa vào Git hay bộ cài. Token, API key và mã nguồn cá nhân trong AppData không được đóng gói.
