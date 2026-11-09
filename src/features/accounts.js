@@ -41,7 +41,7 @@ window.SemekoAccounts=(()=>{
         if(!connection){await open();note.textContent='Bấm Đăng nhập '+provider+' và hoàn tất xác minh trước khi nộp.';return;}
         for(const id of ['semeko-accounts','practice-library','oj-browser']){const popup=document.getElementById(id);if(popup?.open)popup.close();}
         if(!await showConfirmDialog({title:'Nộp và chấm trên nền tảng',message:'Gửi lời giải hiện tại lên '+provider+' bằng tài khoản '+connection.handle+'. Máy chủ nền tảng sẽ chấm bài.\n\n'+tab.name+' ('+extension+')\n'+problem.url,confirmText:'Nộp lời giải',cancelText:'Cancel'}))return;
-        await call(electronAPI.officialSubmit({url:problem.url,code,extension}));await open();note.textContent='Đang gửi và chờ kết quả chấm chính thức. Không bấm nộp lại khi chưa rõ kết quả.';
+        await call(electronAPI.officialSubmit({url:problem.url,code,extension,expectedOwner:data.github.id,expectedHandle:connection.handle}));await open();note.textContent='Đang gửi và chờ kết quả chấm chính thức. Không bấm nộp lại khi chưa rõ kết quả.';
     }
     async function submit(external){
         const tab=App.tabs.find(t=>t.id===getPreferredTabId()),problem=tab?.testState?.problem;

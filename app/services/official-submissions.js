@@ -37,6 +37,7 @@ async function login(p){
 function target(url){const value=require('./accounts').submissionURL(url);if(value.provider==='codeforces'){const m=/\/submit\/(\d+)\/([A-Za-z]\d*)$/.exec(value.url);return{...value,contestId:Number(m[1]),index:m[2].toUpperCase()};}return{...value,slug:new URL(value.url).pathname.split('/')[2]};}
 async function submit(value){
  const id=owner(),p=target(value.url),connection=read().connections[id]?.[p.provider];if(!connection)throw Error('Đăng nhập '+p.provider+' trong mục Tài khoản trước.');
+ if(value.expectedOwner!==undefined&&String(value.expectedOwner)!==id||value.expectedHandle!==undefined&&value.expectedHandle!==connection.handle)throw Error('Tài khoản đã thay đổi sau khi xác nhận. Kiểm tra lại trước khi nộp.');
  if(typeof value.code!=='string'||!value.code.trim()||Buffer.byteLength(value.code)>1000000)throw Error('Lời giải trống hoặc quá lớn');
  if(!['cpp','c','py','java','cs'].includes(value.extension))throw Error('Chọn ngôn ngữ lời giải hợp lệ');
  const hash=crypto.createHash('sha256').update(value.code).digest('hex');
@@ -50,6 +51,7 @@ async function submit(value){
    const handle=await leetcodeIdentity(id);if(handle!==connection.handle)throw Error('Phiên LeetCode đã hết hạn hoặc đổi tài khoản. Hãy đăng nhập lại.');
    const q=await request(id,'leetcode','https://leetcode.com/graphql/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'query SemekoSubmitQuestion($slug:String!){question(titleSlug:$slug){questionId}}',variables:{slug:p.slug}})});
    if(!/^\d+$/.test(String(q.data?.question?.questionId)))throw Error('Không lấy được mã bài LeetCode');
+   if(owner()!==id||job.phase==='stopped')throw Error('Lần nộp đã dừng trước khi gửi');
    posted=true;job.phase='submitting';checkpoint(job);
    const r=await request(id,'leetcode','https://leetcode.com/problems/'+p.slug+'/submit/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:{cpp:'cpp',c:'c',py:'python3',java:'java',cs:'csharp'}[value.extension],question_id:q.data.question.questionId,typed_code:value.code})});
    if(!/^\d+$/.test(String(r.submission_id)))throw Error(r.error||'Máy chủ chưa trả mã bài nộp');job.submissionId=String(r.submission_id);
@@ -73,11 +75,12 @@ async function submit(value){
     const doc=new DOMParser().parseFromString(html,'text/html');const rows=[...doc.querySelectorAll('tr[data-submission-id]')].filter(r=>Number(r.dataset.submissionId)>payload.baseline&&[...r.querySelectorAll('a')].some(a=>new RegExp('/(?:problemset/problem/'+payload.contestId+'/|contest/'+payload.contestId+'/problem/)'+payload.index+'/?$','i').test(new URL(a.getAttribute('href'),location.href).pathname)));
     return{posted:true,ids:rows.map(r=>r.dataset.submissionId)};
    }.toString()+')('+JSON.stringify({code:value.code,extension:value.extension,baseline,contestId:p.contestId,index:p.index})+')';
+   if(owner()!==id||job.phase==='stopped')throw Error('Lần nộp đã dừng trước khi gửi');
    posted=true;job.phase='submitting';checkpoint(job);const result=await win.webContents.executeJavaScript(script);
    if(result.error){if(!result.posted)posted=false;throw Error(result.error);}if(result.ids?.length!==1)throw Error('Chưa xác định được chính xác mã bài nộp. Kiểm tra My Submissions trên Codeforces; app không tự nộp lại.');job.submissionId=String(result.ids[0]);
   }
   job.phase='judging';checkpoint(job);await watch(job,p);
- }catch(e){job.phase=posted&&!job.submissionId?'unknown':'error';job.error=e.message;checkpoint(job);}})();
+ }catch(e){if(job.phase==='stopped')return;job.phase=posted&&!job.submissionId?'unknown':'error';job.error=e.message;checkpoint(job);}})();
  return{ticket:job.ticket};
 }
 async function watch(job,p){
