@@ -4,9 +4,10 @@ const {compareOutputs}=require('./judge');
 const {StringDecoder}=require('string_decoder');
 function checkSource(code){
     if(typeof code!=='string'||code.length>80000||!/(?:int|auto)\s+main\s*\(/.test(code))throw Error('Lời giải tham chiếu không hợp lệ');
-    const operations=code.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,' ');
+    const operations=code.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,' ').replace(/(?:\.|->)\s*remove\s*(?=\()/g,'.container_remove');
     if(/\b(?:system|popen|fork|exec\w*|CreateProcess\w*|ShellExecute\w*|socket|freopen|fopen|remove|rename|filesystem|fstream|ifstream|ofstream|asm|__asm|dlopen|LoadLibrary\w*)\b|#\s*(?:pragma|import|include_next)/i.test(operations))throw Error('Lời giải chỉ được đọc stdin và ghi stdout');
     const allowed=new Set(['bits/stdc++.h','iostream','vector','string','algorithm','numeric','cmath','iomanip','limits','map','set','unordered_map','unordered_set','queue','stack','deque','array','tuple','utility','functional','cctype','cstring','cstdio','cstdlib','climits','cassert','sstream','bitset','complex','cstdint','iterator','initializer_list','type_traits','memory','optional','list','regex','cinttypes','stdexcept','exception','new','typeinfo','typeindex','variant','any','string_view','cstddef','cfloat','valarray','locale','stdio.h','stdlib.h','string.h','math.h','ctype.h','limits.h','float.h','stdint.h','stdbool.h','stddef.h']);
+    for(const header of ['forward_list','thread','chrono','atomic','mutex','condition_variable','future'])allowed.add(header);
     for(const m of code.matchAll(/#\s*include\s*[<"]([^>"\n]+)[>"]/g))if(!allowed.has(m[1]))throw Error('Thư viện không được phép: '+m[1]);
 }
 function execute(command,args,{cwd,input='',timeout=5000,env=process.env}={}){

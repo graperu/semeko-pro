@@ -10,15 +10,36 @@ function list(){const all=tasks();return books.map(book=>({id:book.id,title:book
 function lesson(id,{includeLinks=true}={}){const match=/^(.*)-lesson-(\d+)$/.exec(id);if(!match)throw Error('Invalid lesson');const task=tasks().find(t=>t.id===match[1]),record=task&&read(task.id);if(!record||record.status!=='ready'||record.sourceHash!==task.sourceHash)throw Error('Lesson is not ready');const item=record.lessons[Number(match[2])];if(!item)throw Error('Unknown lesson');const available=includeLinks?require('./local-practice').list():[],links=(record.exerciseIds||[]).map(id=>available.find(i=>i.id===id)).filter(Boolean).map(i=>({id:i.id,title:{vi:i.title,en:require('./book-study').saved(i.id)?.en?.title||'Exercise '+(i.title.match(/[0-9.]+/)?.[0]||i.id.slice(-6))}}));return{...item,id,sourceExercises:Number(match[2])===record.lessons.length-1?(record.sourceExercises||[]):[],exerciseLinks:links,pendingExercises:(record.exerciseIds||[]).length-links.length,source:{book:task.bookIndex,page:task.firstPage,lastPage:task.lastPage},exerciseIds:record.exerciseIds||[]};}
 function normalizeCoverage(task,coverage){if(!Array.isArray(coverage))throw Error('Every source page needs explicit coverage');const main=new Set(task.pages.map((_,i)=>task.firstPage+i)),context=new Set([...(task.contextBefore||[]),...(task.contextAfter||[])].map(p=>p.page));if(coverage.some(c=>!Number.isInteger(c.page)||!main.has(c.page)&&!context.has(c.page)))throw Error('Coverage contains an unknown PDF page');const primary=coverage.filter(c=>main.has(c.page));if(primary.length!==main.size||new Set(primary.map(c=>c.page)).size!==main.size)throw Error('Every source page needs explicit coverage');return{coverage:primary,contextCoverage:coverage.filter(c=>context.has(c.page))};}
 function validate(record){const pair=(p,min=1)=>p&&['vi','en'].every(k=>typeof p[k]==='string'&&p[k].trim().length>=min&&p[k].length<20000);if(!Array.isArray(record.lessons)||!record.lessons.length||record.lessons.length>6)throw Error('Expected 1–6 authored lessons');for(const l of record.lessons){if(!pair(l.title)||!pair(l.goal,20)||!Array.isArray(l.sections)||l.sections.length<2||!l.sections.every(s=>pair(s.title)&&pair(s.body,80)))throw Error('Incomplete bilingual theory');if(!l.example||typeof l.example.code!=='string'||typeof l.example.input!=='string'||typeof l.example.output!=='string')throw Error('Missing executable example');if(!pair(l.quiz?.question)||!Array.isArray(l.quiz.options)||l.quiz.options.length<2||!l.quiz.options.every(p=>pair(p))||!Number.isInteger(l.quiz.answer)||!l.quiz.options[l.quiz.answer]||!pair(l.quiz.explain,20))throw Error('Incomplete bilingual quiz');}if(!Array.isArray(record.coverage)||!record.coverage.length||!record.coverage.every(c=>Number.isInteger(c.page)&&pair(c.topics)))throw Error('Missing page coverage');return record;}
-function publish(task,value){fs.mkdirSync(directory,{recursive:true});require('../../shared/atomic-json-publish')(path.join(directory,task.id+'.json'),{...value,sourceHash:task.sourceHash,firstPage:task.firstPage,lastPage:task.lastPage,updatedAt:Date.now()});}
+function publish(task,value){
+ const current=read(task.id);
+ if(current?.sourceHash===task.sourceHash&&['ready','reference-only'].includes(current.status)){
+  if(value.status==='failed'||current.validation?.author==='direct-source-review'&&value.validation?.author!=='direct-source-review')return false;
+ }
+ fs.mkdirSync(directory,{recursive:true});require('../../shared/atomic-json-publish')(path.join(directory,task.id+'.json'),{...value,sourceHash:task.sourceHash,firstPage:task.firstPage,lastPage:task.lastPage,updatedAt:Date.now()});return true;
+}
 
 function figureStatus(){try{const file=process.env.SEMEKO_COURSE_FIGURE_STATUS_FILE||path.join(process.env.LOCALAPPDATA||require('os').tmpdir(),'SemekoPracticeAI/course-figures-status.json'),v=JSON.parse(fs.readFileSync(file,'utf8'));let alive=false;try{if(Number.isInteger(v.pid)&&v.pid>0){process.kill(v.pid,0);alive=true;}}catch{}const n=x=>Number.isFinite(x)?Math.max(0,Math.floor(x)):0;return{phase:v.phase==='running'&&!alive?'stopped':(['running','complete','needs-review','waiting-service','partial','restarting'].includes(v.phase)?v.phase:'unknown'),done:n(v.done),total:n(v.total),failed:n(v.failed),active:alive?n(v.active):0};}catch{return null;}}
+let progressCache;
+function currentProgress(){
+ if(progressCache&&Date.now()-progressCache.at<2000)return progressCache.books;
+ const all=tasks(),result=books.map(b=>{
+  let readyPages=0,referencePages=0,failedParts=0;
+  for(const t of all.filter(t=>t.bookId===b.id)){
+   const r=read(t.id);if(r?.sourceHash!==t.sourceHash){failedParts++;continue;}
+   if(r.status==='ready')readyPages+=t.lastPage-t.firstPage+1;
+   else if(r.status==='reference-only')referencePages+=t.lastPage-t.firstPage+1;
+   else failedParts++;
+  }
+  return{id:b.id,title:b.title,totalPages:b.pageCount,readyPages,referencePages,failedParts};
+ });progressCache={at:Date.now(),books:result};return result;
+}
 function jobStatus(){
  const file=process.env.SEMEKO_COURSE_STATUS_FILE||path.join(process.env.LOCALAPPDATA||require('os').tmpdir(),'SemekoPracticeAI/authored-course-status.json');let value;try{value=JSON.parse(fs.readFileSync(file,'utf8'));}catch(e){if(e.code!=='ENOENT')return{phase:'unavailable',active:0,workers:0,books:[],updatedAt:null,tasks:[]};return{phase:'not-running',active:0,workers:0,books:[],updatedAt:null,tasks:[]};}
  let alive=false;try{if(Number.isInteger(value.pid)&&value.pid>0){process.kill(value.pid,0);alive=true;}}catch{}
  const phases=['running','complete','needs-review','waiting-service','restarting'];let phase=phases.includes(value.phase)?value.phase:'unknown';if(!alive&&['running','restarting'].includes(phase))phase='stopped';if(alive&&phase==='running'&&Date.now()-value.updatedAt>600000)phase='stale';
  const backoff=require('../../shared/study-model-request').cooldown();const retryAt=Number.isFinite(backoff.until)&&backoff.until>Date.now()?backoff.until:null;if(alive&&phase==='running'&&retryAt)phase=backoff.status===429?'rate-limited':'waiting-service';
- const count=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0;
- return{phase,retryAt,figures:figureStatus(),active:alive?count(value.active):0,workers:count(value.workers),updatedAt:Number.isFinite(value.updatedAt)?value.updatedAt:null,failed:count(value.failed),books:books.map(b=>{const data=value.books?.[b.id];return{id:b.id,title:b.title,totalPages:b.pageCount,readyPages:data?Math.min(b.pageCount,count(data.readyPages)):null,referencePages:data?Math.min(b.pageCount,count(data.referencePages)):null,failedParts:data?count(data.failedParts):null};}),tasks:alive&&Array.isArray(value.activeTasks)?value.activeTasks.filter(t=>books.some(b=>b.id===t.bookId)).map(t=>({bookId:t.bookId,firstPage:count(t.firstPage),lastPage:count(t.lastPage),stage:['source','authoring','reviewing','compiling','saving'].includes(t.stage)?t.stage:'authoring'})):[]};
+ const count=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0,progress=currentProgress(),failed=progress.reduce((n,b)=>n+b.failedParts,0);
+ if(!failed)phase='complete';else if(phase==='complete')phase='needs-review';
+ return{phase,retryAt,figures:figureStatus(),active:alive?count(value.active):0,workers:count(value.workers),updatedAt:Number.isFinite(value.updatedAt)?value.updatedAt:null,failed,books:progress,tasks:alive&&Array.isArray(value.activeTasks)?value.activeTasks.filter(t=>books.some(b=>b.id===t.bookId)).map(t=>({bookId:t.bookId,firstPage:count(t.firstPage),lastPage:count(t.lastPage),stage:['source','authoring','reviewing','compiling','saving'].includes(t.stage)?t.stage:'authoring'})):[]};
 }
 module.exports={tasks,list,lesson,validate,normalizeCoverage,publish,read,directory,jobStatus};
