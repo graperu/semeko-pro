@@ -3861,7 +3861,7 @@ body.split-active .editor-pane {
 
     /* Run only and Debug stay reachable from the ☰ Run menu; the pending-update
        button has no other entry point, so it stays. */
-    .action-btn:not(.primary):not(.danger):not(.update-ready) {
+    .header-actions > .action-btn:not(.primary):not(.danger):not(.update-ready):not(#btn-submit-header) {
         display: none;
     }
 

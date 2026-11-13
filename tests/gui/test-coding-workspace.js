@@ -1,0 +1,60 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),{_electron}=require('playwright-core');
+const ROOT=path.resolve(__dirname,'../..'),profile=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-workspace-five-')),out=path.join(ROOT,'plans/artifacts/gui');let app,page;const errors=[];
+async function launch(){const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:require('electron'),args:[ROOT,'--user-data-dir='+profile],env,cwd:ROOT});for(let i=0;i<300;i++){page=app.windows().find(p=>p.url().includes('index.html'));if(page)break;await new Promise(r=>setTimeout(r,100));}page.on('pageerror',e=>errors.push(e.message));await page.waitForFunction(()=>window.App?.ready&&window.CodingWorkspace);await page.evaluate(()=>ensureMonaco());}
+async function size(w,h,z=1){await app.evaluate(({BrowserWindow},{w,h,z})=>{const win=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'));win.setMinimumSize(700,500);win.setContentSize(w,h);win.webContents.setZoomFactor(z);},{w,h,z});await page.waitForFunction(({w,h,z})=>Math.abs(innerWidth-w/z)<2&&Math.abs(innerHeight-h/z)<2,{w,h,z});}
+(async()=>{
+ await launch();fs.mkdirSync(out,{recursive:true});await size(1440,900);
+ await app.evaluate(()=>{
+  const browser=process.mainModule.require('./app/services/competitive/problem-browser');globalThis.detailCalls=0;
+  browser.detail=async(provider,id)=>{globalThis.detailCalls++;if(id==='slow-beta')await new Promise(r=>setTimeout(r,350));return{provider,id,title:id,html:'<p>'+id+' original statement. Find twice the input.</p><script>window.evilStatement=true;</script>',savedVietnamese:id==='slow-beta'?'':'<p>Đề tiếng Việt alpha. Tính gấp đôi đầu vào.</p>',tests:[]};};
+  globalThis.workspaceAccount={configured:true,github:{id:7,login:'test-user'},links:{},official:{connections:{leetcode:{handle:'TestLC',transport:'bridge',connected:true}},history:[]}};
+  process.mainModule.require('./app/services/accounts').info=()=>globalThis.workspaceAccount;
+  const official=process.mainModule.require('./app/services/official-submissions');official.submit=async value=>{
+   globalThis.sent=value;const job={owner:'7',ticket:'inline-demo',provider:'leetcode',handle:'TestLC',problemURL:value.url,submissionId:'456',phase:'judging',createdAt:Date.now()};globalThis.workspaceAccount.official.history=[job];
+   setTimeout(()=>{job.phase='finished';job.verdict='Accepted';job.accepted=true;job.passed=23;job.total=23;for(const w of process.mainModule.require('electron').BrowserWindow.getAllWindows())if(w.webContents.getURL().includes('index.html'))w.webContents.send('official-submission-event',job);},350);return{ticket:job.ticket};
+  };
+ });
+ await page.evaluate(async()=>{
+  await handleProblemReceived({name:'Workspace alpha',sourcePlatform:'leetcode',problemId:'alpha',url:'https://leetcode.com/problems/alpha/',tags:['math'],tests:[{input:'2\n',output:'4\n'},{input:'3\n',output:'6\n'}]},{newTab:true,extension:'py',starter:'print(int(input()) * 2)\n'});globalThis.alphaTab=getPreferredTabId();CodingWorkspace.open('statement');
+ });
+ await page.waitForFunction(()=>document.querySelector('#coding-dock article')?.textContent.includes('tiếng Việt alpha'));
+ assert.strictEqual(await page.evaluate(()=>window.evilStatement),undefined);assert.strictEqual(await page.locator('#coding-dock script').count(),0);
+ await page.locator('#coding-dock > select').selectOption('en');await page.waitForFunction(()=>document.querySelector('#coding-dock article')?.textContent.includes('alpha original'));
+ await page.locator('#coding-dock > select').selectOption('vi');await page.waitForFunction(()=>document.querySelector('#coding-dock article')?.textContent.includes('tiếng Việt alpha'));
+ assert.strictEqual(await app.evaluate(()=>globalThis.detailCalls),1,'Language switch uses cached content');
+ const before=await page.locator('#coding-dock').evaluate(el=>el.getBoundingClientRect().width);await page.locator('.coding-divider').focus();await page.keyboard.press('ArrowLeft');assert((await page.locator('#coding-dock').evaluate(el=>el.getBoundingClientRect().width))>before);
+ await page.evaluate(async()=>{await handleProblemReceived({name:'Slow beta',sourcePlatform:'leetcode',problemId:'slow-beta',url:'https://leetcode.com/problems/slow-beta/',tests:[]},{newTab:true,extension:'py',starter:'print(0)\n'});CodingWorkspace.open('statement');setActive(globalThis.alphaTab);});
+ await page.waitForTimeout(450);assert((await page.locator('#coding-dock').innerText()).includes('tiếng Việt alpha'),'Late statement must not replace another tab');
+ await page.evaluate(async()=>{CodingWorkspace.open('tests');await runAllTests();});
+ assert.deepStrictEqual(await page.evaluate(()=>batchTestResults.map(r=>r.status)),['AC','AC']);assert.strictEqual(await page.locator('.coding-case[data-state="success"]').count(),2);
+ await page.locator('.coding-case').nth(1).locator('summary').click();await page.locator('.coding-case').nth(1).getByRole('button',{name:'Chọn test này',exact:true}).click();assert.strictEqual(await page.evaluate(()=>ccTestIndex),1);
+ assert.strictEqual(await page.locator('#input-area').evaluate(el=>el.readOnly),true);assert(await page.evaluate(()=>Object.isFrozen(ccProblem.tests)));
+ await page.evaluate(async()=>{await SemekoAccounts.open();document.getElementById('semeko-accounts').close();await SemekoAccounts.submitOfficial();});
+ assert.strictEqual(await page.locator('#official-results').evaluate(el=>el.open),false,'Submission stays alongside code');
+ await page.waitForFunction(()=>document.querySelector('#coding-dock .coding-verdict')?.textContent==='Accepted');assert((await page.locator('#coding-dock').innerText()).includes('23 / 23'));assert.strictEqual(await page.locator('#coding-dock').getAttribute('data-submission-state'),'success');assert.strictEqual(await page.locator('#coding-dock progress').getAttribute('value'),'23');
+ assert.strictEqual((await app.evaluate(()=>globalThis.sent)).code,'print(int(input()) * 2)\n');
+ await page.screenshot({path:path.join(out,'coding-inline-submission.png')});
+ await page.evaluate(()=>{const tab=App.tabs.find(t=>t.id===getPreferredTabId());tab.practiceTimeMs=125000;CodingWorkspace.pin(tab);});
+ // A dirty close can be cancelled. A confirmed close can be recovered with tests/code intact.
+ await page.evaluate(()=>{App.editor.getModel().setValue('print(int(input()) * 2)\n# unsaved draft\n');globalThis.closeTask=closeTab(getPreferredTabId());});
+ await page.locator('#confirm-dialog-cancel').click();assert(await page.evaluate(()=>App.tabs.some(t=>t.id===globalThis.alphaTab)));
+ await page.evaluate(()=>{globalThis.closeTask=closeTab(getPreferredTabId());});await page.locator('#confirm-dialog-confirm').click();await page.evaluate(()=>globalThis.closeTask);
+ await page.keyboard.press('Control+Shift+T');await page.waitForFunction(()=>App.tabs.some(t=>tabSourceText(t).includes('# unsaved draft')));assert(await page.evaluate(()=>App.tabs.find(t=>t.id===getPreferredTabId()).pinned));assert.strictEqual(await page.evaluate(()=>ccProblem.tests.length),2);
+ await page.keyboard.press('Control+p');await page.locator('#coding-tab-search input').fill('workspace');await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');assert(await page.locator('#coding-tab-search').evaluate(el=>!el.open));
+ await page.evaluate(async()=>{const tab=App.tabs.find(t=>t.id===getPreferredTabId());await PracticeLibrary.save(tab,ccProblem,'review');});
+ await page.locator('#btn-practice-library').click();const entry=page.locator('.practice-library-row').filter({hasText:'Workspace alpha'});await entry.locator('summary').click();await entry.locator('textarea').fill('Cần ôn vòng lặp, không mất khi cập nhật thời gian.');await entry.locator('.practice-notes input').fill('math, arrays');await entry.locator('textarea').focus();
+ await page.evaluate(async()=>{await PracticeLibrary.trackTime(App.tabs.find(t=>t.id===getPreferredTabId()),140000);});assert((await entry.locator('textarea').inputValue()).includes('không mất'));assert(await entry.locator('textarea').evaluate(el=>el===document.activeElement),'Time update preserves typing focus');
+ await entry.getByRole('button',{name:'Lưu ghi chú',exact:true}).click();await page.waitForFunction(()=>PracticeLibrary.entries().some(e=>e.notes?.includes('Cần ôn')));
+ await page.locator('[aria-label="Lọc nền tảng"]').selectOption('codeforces');assert.strictEqual(await page.locator('.practice-library-row').count(),0);await page.locator('[aria-label="Lọc nền tảng"]').selectOption('leetcode');await page.locator('[aria-label="Lọc chủ đề"]').selectOption('arrays');assert.strictEqual(await page.locator('.practice-library-row').count(),1);assert((await entry.innerText()).includes('2 phút luyện'));await page.locator('#practice-library [data-close]').click();
+ // Compiler output stays original, with a separate Vietnamese hint and keyboard navigation.
+ await page.evaluate(()=>{clearProblems(getPreferredTabId());parseProblems('demo.py:2:1: error: expected ; before return','error');showBottomPanel('problems');});
+ const diagnostic=page.locator('#problems-list .problem-item').first();assert((await diagnostic.innerText()).includes('expected ;'));assert((await diagnostic.locator('.problem-explanation').innerText()).includes('chấm phẩy'));await diagnostic.focus();await page.keyboard.press('Enter');assert.strictEqual(await page.evaluate(()=>getActiveEditor().getPosition().lineNumber),2);
+ for(const [w,h,z]of [[1280,800,1],[760,520,1],[950,650,1.25]]){
+  await size(w,h,z);await page.evaluate(()=>CodingWorkspace.open('tests'));const g=await page.evaluate(()=>{const r=document.getElementById('coding-dock').getBoundingClientRect();return{left:r.left,right:r.right,width:innerWidth,hidden:getComputedStyle(document.getElementById('coding-dock')).display==='none',overflow:document.documentElement.scrollWidth>innerWidth+1};});assert(!g.hidden&&!g.overflow&&g.left>=0&&g.right<=g.width+1,JSON.stringify(g));
+ }
+ await app.evaluate(async({BrowserWindow},output)=>{const win=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'));process.mainModule.require('fs').writeFileSync(output,(await win.webContents.capturePage()).toPNG());},path.join(out,'coding-workspace-small.png'));
+ await page.evaluate(async()=>{for(const tab of [...App.tabs])await closeTab(tab.id,{quiet:true});newFile('py','print("pinned")\n');const tab=App.tabs.find(t=>t.id===getPreferredTabId());tab.name='pin-persistence.py';CodingWorkspace.pin(tab);saveSession(true);});
+ assert((await page.evaluate(()=>electronAPI.stateRead('session'))).tabs.some(t=>t.pinned));await app.close();app=null;await launch();await page.waitForFunction(()=>App.tabs.some(t=>t.pinned&&t.name==='pin-persistence.py'));await size(1440,900);await page.evaluate(()=>CodingWorkspace.open('tests'));await page.waitForFunction(expected=>Math.abs(document.getElementById('coding-dock').getBoundingClientRect().width-expected)<2,before+20);await page.locator('#btn-practice-library').click();assert(await page.evaluate(()=>PracticeLibrary.entries().some(e=>e.notes?.includes('Cần ôn')&&e.tags.includes('arrays')&&e.practiceTimeMs>=140000)));
+ assert.deepStrictEqual(errors,[]);console.log('PASS all five upgrades: tab-owned bilingual safe statement + stale fetch, resizing, real Python 2 AC samples, inline mock judging, dirty close/reopen, pin restart/search, archive tags/notes/time persistence, keyboard diagnostic navigation, 3 layouts; no renderer errors');
+})().catch(async e=>{console.error(e);if(page&&!page.isClosed())console.error(await page.evaluate(()=>({katex:typeof katex,purify:typeof DOMPurify,math:typeof renderMathInElement,scripts:[...document.scripts].map(s=>s.src).slice(-10),language:document.getElementById('coding-dock').querySelector('select').value,errors:window.evilStatement,ready:App.ready})).catch(()=>({})));if(page&&!page.isClosed())await page.screenshot({path:path.join(out,'coding-workspace-failure.png')}).catch(()=>{});process.exitCode=1;}).finally(async()=>{if(app)await app.close();});

@@ -366,6 +366,7 @@ function applySettings() {
         }
     }
     setLiveCheckUIState(App.settings.editor.liveCheck ? (App.problems.length > 0 ? 'issues' : 'idle') : 'disabled');
+    window.Productivity?.configureLive();
 }
 
 /**

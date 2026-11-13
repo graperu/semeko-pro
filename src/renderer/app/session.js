@@ -11,7 +11,7 @@
 // SESSION PERSISTENCE (Checkpoint for unsaved files)
 // ============================================================================
 const SESSION_STORAGE_KEY = 'ide-session-checkpoint';
-const SESSION_SAVE_DEBOUNCE = 5000; // 5 seconds debounce
+const SESSION_SAVE_DEBOUNCE = 1200; // 5 seconds debounce
 const SESSION_PERIODIC_INTERVAL = 30000; // 30 seconds periodic save
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 const STARTUP_BEHAVIORS = Object.freeze({
@@ -93,6 +93,7 @@ function buildSessionRestoreSummary(session) {
 }
 
 function restoredTestState(tabData) {
+    if(tabData?.testState?.problem&&Array.isArray(tabData.testState.problem.tests))return tabData.testState;
     const p = tabData && tabData.tests;
     return (p && Array.isArray(p.tests) && (p.tests.length || p.sourcePlatform)) ? { problem: p, index: 0, results: [] } : null;
 }
@@ -116,6 +117,7 @@ function recoverIntoCopy(existing, tabData, includeUnsaved) {
         original: '',
         modified: true,
         testState: restoredTestState(tabData),
+                    pinned: !!tabData.pinned, practiceTimeMs: Math.max(0, Number(tabData.practiceTimeMs)||0),
     });
 }
 
@@ -156,6 +158,7 @@ async function reopenSessionTabs(session, { includeUnsaved }) {
                     original: diskContent,
                     modified: isModified,
                     testState: restoredTestState(tabData),
+                    pinned: !!tabData.pinned, practiceTimeMs: Math.max(0, Number(tabData.practiceTimeMs)||0),
                 };
                 if (!restoredTab.testState) await restoreProblemForTab(restoredTab);
 
@@ -173,6 +176,8 @@ async function reopenSessionTabs(session, { includeUnsaved }) {
                     content: tabData.content,
                     original: '',
                     modified: true,
+                    pinned: !!tabData.pinned,
+                    practiceTimeMs: Math.max(0, Number(tabData.practiceTimeMs)||0),
                 };
 
                 App.tabs.push(fallbackTab);
@@ -181,7 +186,7 @@ async function reopenSessionTabs(session, { includeUnsaved }) {
             continue;
         }
 
-        const hasRecoverableUntitledContent = tabData.modified || ((tabData.content || '') !== (tabData.original || ''));
+        const hasRecoverableUntitledContent = tabData.modified || tabData.pinned || ((tabData.content || '') !== (tabData.original || ''));
         if (!includeUnsaved || !hasRecoverableUntitledContent) continue;
 
         const restoredTab = {
@@ -193,6 +198,7 @@ async function reopenSessionTabs(session, { includeUnsaved }) {
             original: tabData.original || '',
             modified: tabData.modified ?? true,
             testState: restoredTestState(tabData),
+                    pinned: !!tabData.pinned, practiceTimeMs: Math.max(0, Number(tabData.practiceTimeMs)||0),
         };
 
         App.tabs.push(restoredTab);
@@ -248,7 +254,7 @@ function saveSession(sync = false) {
         // Test cases are edited in place; make sure the active tab carries them.
         saveTestStateToTab(App.tabs.find(t => t.id === getPreferredTabId()));
 
-        const tabsForSession = App.tabs.filter(t => t.path || t.modified || ((t.content || '') !== (t.original || '')));
+        const tabsForSession = App.tabs.filter(t => t.path || t.modified || t.pinned || ((t.content || '') !== (t.original || '')));
         if (tabsForSession.length === 0) {
             if (!sessionRestorePending) clearSession();
             return;
@@ -266,6 +272,10 @@ function saveSession(sync = false) {
                 // not stored (it doubled the checkpoint for every open file).
                 original: t.path ? '' : (t.original || ''),
                 modified: t.modified || false,
+                pinned: !!t.pinned,
+                practiceTimeMs: window.CodingWorkspace?.practiceMs(t) || t.practiceTimeMs || 0,
+                testState:t.testState||null,
+                io:App.ioByTab[t.id]||null,
                 tests: (t.testState && t.testState.problem && Array.isArray(t.testState.problem.tests) && (t.testState.problem.tests.length || t.testState.problem.sourcePlatform))
                     ? t.testState.problem
                     : null,
@@ -298,6 +308,7 @@ function saveSession(sync = false) {
  * Schedule a debounced session save (called on every content change)
  */
 function scheduleSessionSave() {
+    window.Productivity?.schedule();
     if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
     sessionSaveTimer = setTimeout(() => {
         saveSession();

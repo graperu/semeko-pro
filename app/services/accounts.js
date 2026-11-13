@@ -14,6 +14,7 @@ const official=require('./official-submissions');
 const file = () => path.join(app.getPath("userData"), "platform-accounts.json");
 const pending = new Map(),
   windows = new Set();
+let refreshFlight=null;
 const clientId = () =>
   process.env.SEMEKO_GITHUB_CLIENT_ID ||
   require("../config/github-oauth.json").clientId;
@@ -49,6 +50,8 @@ function info() {
     github: github || null,
     links: github ? data.profiles?.[String(github.id)] || {} : {},
     official: official.info(github?.id),
+    rememberedLogin:data.github?.login||null,
+    sessionExpired:!!data.github&&!github,
   };
 }
 async function request(url, options = {}) {
@@ -74,6 +77,27 @@ async function request(url, options = {}) {
   } catch {
     throw Error("Account provider returned invalid data");
   }
+}
+function focusMain(){for(const win of BrowserWindow.getAllWindows?.()||[])if(!win.isDestroyed()&&win.webContents.getURL().includes('index.html')){if(win.isMinimized?.())win.restore();win.show?.();win.focus?.();}}
+function storeTokens(data,value){
+ data.token=safeStorage.encryptString(value.access_token).toString('base64');
+ data.expiresAt=value.expires_in?Date.now()+Number(value.expires_in)*1000:null;
+ if(value.refresh_token){data.refreshToken=safeStorage.encryptString(value.refresh_token).toString('base64');data.refreshExpiresAt=value.refresh_token_expires_in?Date.now()+Number(value.refresh_token_expires_in)*1000:null;}
+ else{delete data.refreshToken;delete data.refreshExpiresAt;}
+}
+async function ensureSession(){
+ const initial=read();if(!initial.github||!initial.token||!initial.expiresAt||initial.expiresAt>Date.now()+60000)return info();
+ if(!initial.refreshToken||initial.refreshExpiresAt&&initial.refreshExpiresAt<=Date.now())return info();
+ if(refreshFlight)return refreshFlight;
+ refreshFlight=(async()=>{try{
+  const refresh=safeStorage.decryptString(Buffer.from(initial.refreshToken,'base64'));
+  const value=await request('https://github.com/login/oauth/access_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:clientId(),grant_type:'refresh_token',refresh_token:refresh})});
+  if(!value.access_token||value.error)throw Error('GitHub refresh unavailable');
+  const user=await request('https://api.github.com/user',{headers:{Authorization:'Bearer '+value.access_token}});
+  if(user.id!==initial.github.id)throw Error('GitHub identity changed');
+  const latest=read();if(latest.token!==initial.token||latest.github?.id!==initial.github.id)return info();
+  storeTokens(latest,value);write(latest);return info();
+ }catch(_){return info();}finally{refreshFlight=null;}})();return refreshFlight;
 }
 async function start() {
   const id = clientId();
@@ -163,14 +187,11 @@ async function poll(ticket) {
     login: user.login,
     name: typeof user.name === "string" ? user.name : user.login,
   };
-  data.token = safeStorage.encryptString(value.access_token).toString("base64");
-  // Expiring tokens require signing in again; tokens are never returned to renderer.
-  data.expiresAt = value.expires_in
-    ? Date.now() + Number(value.expires_in) * 1000
-    : null;
+  storeTokens(data,value);
   data.profiles = data.profiles || {};
   write(data);
   pending.delete(ticket);
+  focusMain();
   return { pending: false, account: info() };
 }
 function cancel(ticket) {
@@ -185,6 +206,8 @@ function logout() {
   delete data.token;
   delete data.github;
   delete data.expiresAt;
+  delete data.refreshToken;
+  delete data.refreshExpiresAt;
   write(data);
   return info();
 }
@@ -407,6 +430,7 @@ async function openSubmission(value) {
 }
 module.exports = {
   info,
+  ensureSession,
   start,
   poll,
   cancel,

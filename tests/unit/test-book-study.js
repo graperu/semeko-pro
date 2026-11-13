@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('fs'),os=require('os'),path=require('path'),Module=require('module');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-study-unit-'));process.env.SEMEKO_STUDY_DATA=path.join(dir,'study');
+process.env.SEMEKO_STUDY_GLOBAL=path.join(dir,'global.json');
+const oldLoad=Module._load,oldFetch=global.fetch;
+Module._load=function(name,parent,isMain){if(name==='electron')return {app:{getPath:()=>dir},safeStorage:{decryptString:()=> 'mock-key'}};return oldLoad.call(this,name,parent,isMain);};
+fs.writeFileSync(path.join(dir,'translation-provider.json'),JSON.stringify({baseUrl:'http://127.0.0.1:20130/v1',model:'mock',encryptedKey:'AA=='}));
+const study=require('../../app/services/competitive/book-study'),books=require('../../app/config/book-courses/catalog.json').courses;
+const [exercise,source]=Object.entries(require('../../app/config/local-practice/adapted.json').items).find(([,v])=>v.status==='ready'&&v.title==='Mã ASCII của ký tự');
+(async()=>{
+ const b=books[0],page=b.chapters[1].firstPage;
+ study.update({kind:'bookmark',bookId:b.id,page,value:true});study.update({kind:'note',bookId:b.id,page,value:'ghi chú <script>literal</script>'});study.update({kind:'read',bookId:b.id,page,chapterId:b.chapters[1].id,value:true});study.update({kind:'review',id:exercise,value:true});
+ assert.equal(study.state().notes[b.id+':'+page],'ghi chú <script>literal</script>');assert.ok(study.state().chapters[b.id+':'+b.chapters[1].id].read);assert.ok(study.state().exercises[exercise].review);
+ assert.throws(()=>study.update({kind:'note',bookId:b.id,page:999999,value:'bad'}));assert.throws(()=>study.saved('../outside'));
+ const reports=study.audit();assert.equal(reports.length,4);for(const report of reports)for(const c of report.chapters)assert.equal(c.candidates,c.ready+c.excluded+c.pending+c.failed.length);
+ let calls=0;const fields=['title','statement','input','output','constraints'];
+ global.fetch=async()=>{calls++;const values=Object.fromEntries(fields.map(name=>[name,source[name]]));const value={vi:values,en:values,hints:{vi:['Quan sát','Kỹ thuật','Thuật toán'],en:['Observation','Technique','Algorithm']},difficulty:'basic',complexity:{vi:'O(1)',en:'O(1)'}};return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(value)}}]})};};
+ const packs=await Promise.all([study.ensureProblem({id:exercise}),study.ensureProblem({id:exercise})]);assert.equal(calls,1);assert.equal(packs[0].hints.en.length,3);await study.ensureProblem({id:exercise});assert.equal(calls,1,'Persisted cache avoids repeat API calls');
+ study.saveContent(exercise,{suite:{sourceHash:study.sourceHash(source),tests:source.tests}});assert.ok(study.saved(exercise).en);assert.ok(study.saved(exercise).suite);
+ const [second,other]=Object.entries(require('../../app/config/local-practice/adapted.json').items).find(([key,value])=>key!==exercise&&value.status==='ready');
+ global.fetch=async()=>{const values=Object.fromEntries(fields.map(name=>[name,other[name]]));return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({vi:values,en:{...values,constraints:values.constraints+' 999999999'},hints:{vi:['a','b','c'],en:['a','b','c']},complexity:{vi:'O(1)',en:'O(1)'}})}}]})};};
+ await assert.rejects(study.ensureProblem({id:second}),/changed numeric/);assert.equal(study.saved(second),null);
+ const results=study.search({bookId:b.id,query:'C++'});assert.ok(results.length);assert.ok(results.every(r=>r.page>0&&r.page<=b.pageCount));
+ study.saveContent(exercise,{qualityIssue:{referenceHash:study.suiteHash(source),error:'counterexample',at:Date.now()}});
+ const local=require('../../app/services/competitive/local-practice');assert.ok(!local.list().some(i=>i.id===exercise));assert.throws(()=>local.detail(exercise),/đang được sửa/);assert.ok(study.audit().some(b=>b.chapters.some(c=>c.failed.some(i=>i.id===exercise))));study.saveContent(exercise,{qualityIssue:null});assert.ok(local.detail(exercise));
+ console.log('PASS: persistent bookmarks/notes/read/review, source page validation, audit accounting, single-flight bilingual cache and suite merge');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>{Module._load=oldLoad;global.fetch=oldFetch;});

@@ -88,6 +88,14 @@
         "test:languages:gui": "node scripts/build/build-monaco.js --if-stale && node tests/gui/test-language-gui.js",
         "test:debugger": "node tests/integration/test-debugger.js",
         "test:unit": "node tests/unit/test-theme-manager.js && node tests/unit/test-theme-tokens.js && node tests/unit/test-theme-customizer-state.js",
+        "test:practice:import": "node tests/unit/test-book-courses.js && node tests/unit/test-local-practice.js && node tests/unit/test-practice-reference-validator.js && node tests/gui/test-local-practice.js && node tests/gui/test-book-courses.js && node tests/gui/test-adapted-practice.js",
+        "test:cpp:course": "node tests/unit/test-course-tools.js && node tests/unit/test-study-model-request.js && node tests/unit/test-course-figures.js && node tests/unit/test-course-job-status.js && node tests/unit/test-course-exercise-import.js && node tests/unit/test-authored-course.js && node tests/integration/test-cpp-course-content.js && node tests/gui/test-cpp-course.js && node tests/gui/test-authored-course.js && node tests/gui/test-course-dock.js && node tests/gui/test-course-balance.js && node tests/gui/test-course-progress.js && node tests/gui/test-course-tools.js && node tests/gui/test-course-chapters.js",
+        "test:books:study": "node tests/unit/test-atomic-json-publish.js && node tests/unit/test-book-study.js && node tests/gui/test-book-study.js",
+        "test:content:updates": "node tests/integration/test-content-updates.js && node tests/gui/test-content-updates.js",
+        "content:build": "node scripts/build/build-content-release.cjs",
+        "content:verify": "node scripts/build/verify-content-release.cjs",
+        "build:free": "node scripts/build/prepare-runtimes.js && node scripts/build/build-practice-index.cjs && node scripts/build/build-monaco.js --if-stale && electron-builder --config scripts/build/windows-free-release.cjs --win nsis --publish never",
+        "test:release:safety": "node tests/unit/test-release-safety.js && node scripts/build/release-security-check.cjs && node scripts/build/verify-offline-runtimes.cjs && npm run test:content:updates",
         "pretest:editor": "node scripts/build/build-monaco.js --if-stale",
         "test:editor": "node tests/gui/test-editor-state.js",
         "pretest:folders": "node scripts/build/build-monaco.js --if-stale",
@@ -121,7 +129,11 @@
         "test:online:new": "node tests/gui/test-new-online-problems.js",
         "test:translation": "node tests/unit/test-statement-translation.js && node tests/gui/test-statement-translation.js",
         "test:accounts": "node tests/unit/test-accounts.js && node tests/gui/test-accounts.js",
-        "test:updates": "node tests/unit/test-update-discovery.js"
+        "test:usability": "node tests/gui/test-usability.js && node tests/gui/test-account-usability.js",
+        "test:coding:workspace": "node tests/gui/test-coding-workspace.js && node tests/gui/test-coding-workspace-edges.js",
+        "test:productivity": "node tests/unit/test-productivity-backup.js && node tests/unit/test-state-recovery.js && node tests/unit/test-runtime-installer.js && node tests/gui/test-productivity.js && node tests/gui/test-productivity-live.js",
+        "test:updates": "node tests/unit/test-update-discovery.js",
+        "test:official-submissions": "node tests/unit/test-platform-session-bridge.js && node tests/unit/test-session-extension.js && node tests/unit/test-session-extension-restore.js && node tests/unit/test-session-page-actions.js && node tests/unit/test-official-chrome-login.js && node tests/unit/test-official-browser-submit.js && node tests/unit/test-official-submissions.js && node tests/gui/test-official-submissions.js"
     },
     "dependencies": {
         "@xterm/addon-fit": "^0.11.0",
@@ -134,6 +146,7 @@
         "katex": "^0.19.1",
         "marked": "18.1.1",
         "pdfjs-dist": "^6.5.438",
+        "playwright-core": "^1.64.1",
         "tesseract.js": "^7.0.0"
     },
     "devDependencies": {
@@ -144,7 +157,6 @@
         "material-icon-theme": "5.40.0",
         "monaco-editor": "^0.57.0",
         "monaco-vim": "0.4.4",
-        "playwright-core": "^1.64.1",
         "sharp": "^0.35.5"
     },
     "build": {
@@ -226,8 +238,8 @@
                 "publisherName": "Sameko Project"
             },
             "artifactName": "semeko-pro-${version}-portable.${ext}",
-            "verifyUpdateCodeSignature": false,
-            "signExts": [],
+            "verifyUpdateCodeSignature": true,
+            "signExts": [".exe", ".dll"],
             "extraResources": [
                 {
                     "from": "Sameko-GCC",

@@ -46,6 +46,8 @@ function registerAllHandlers(mainWindow) {
     discordHandlers.registerHandlers();
     debugHandlers.registerHandlers();
     stateHandlers.registerHandlers();
+    require('./productivity-handlers')();
+    require('./content-update-handlers')();
 }
 
 module.exports = registerAllHandlers;

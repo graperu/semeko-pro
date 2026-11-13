@@ -87,18 +87,19 @@ function sanitizeAppearanceSettings(appearance) {
     const cleanedAppearance = { ...appearance };
     cleanedAppearance.bgUrl = normalizeBgUrl(appearance.bgUrl);
 
-    if (!cleanedAppearance.perTheme) cleanedAppearance.perTheme = {};
-    for (const themeId of Object.keys(cleanedAppearance.perTheme)) {
-        const bgUrl = cleanedAppearance.perTheme[themeId]?.bgUrl;
+    const perTheme = appearance.perTheme;
+    cleanedAppearance.perTheme = {};
+    for (const [themeId, value] of Object.entries(perTheme && typeof perTheme === 'object' && !Array.isArray(perTheme) ? perTheme : {})) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+        const bgUrl = value.bgUrl;
         const normalized = normalizeBgUrl(bgUrl);
+        const theme = { ...value };
         if (normalized) {
-            cleanedAppearance.perTheme[themeId] = {
-                ...cleanedAppearance.perTheme[themeId],
-                bgUrl: normalized
-            };
+            theme.bgUrl = normalized;
         } else {
-            delete cleanedAppearance.perTheme[themeId].bgUrl;
+            delete theme.bgUrl;
         }
+        Object.defineProperty(cleanedAppearance.perTheme, themeId, { value: theme, enumerable: true, configurable: true, writable: true });
     }
 
     return cleanedAppearance;

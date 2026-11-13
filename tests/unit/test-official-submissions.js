@@ -1,4 +1,5 @@
 'use strict';
+process.env.SEMEKO_OFFICIAL_BROWSER='electron';
 const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path'),Module=require('module');
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-official-')),events=[],load=Module._load,timeout=setTimeout,interval=setInterval;let uid=7,posts=0,checks=0,fail=false,lastBody,partitions=[],loginTick,cfCount=0,identity='CFUser';
 fs.writeFileSync(path.join(root,'official-submissions.json'),JSON.stringify({connections:{'7':{leetcode:{handle:'LCUser'},codeforces:{handle:'CFUser'}}},history:[]}));

@@ -1,0 +1,728 @@
+{
+  "local-7409ecfb47c5ebe53252e508-35": {
+    "en": {
+      "title": "ASCII Code of a Character",
+      "statement": "Write a program that reads a single character from the standard input (which is a printable ASCII character). Print the character and its corresponding ASCII decimal value on the same line, separated by a single space.",
+      "input": "A single line containing one printable character (with an ASCII code in the range from 33 to 126).",
+      "output": "Print the input character and its ASCII code as an integer, separated by a single space.",
+      "constraints": "The input character is a printable character (excluding whitespace and newline characters) with an ASCII code in the range $[33, 126]$."
+    },
+    "vi": {
+      "title": "Mã ASCII của ký tự",
+      "statement": "Viết chương trình nhập vào một ký tự bất kỳ từ bàn phím (là ký tự in được trong bảng mã ASCII). Hãy in ra ký tự đó và mã ASCII tương ứng của nó trên cùng một dòng, cách nhau bởi một dấu cách.",
+      "input": "Gồm một dòng duy nhất chứa một ký tự in được (có mã ASCII từ 33 đến 126).",
+      "output": "In ra ký tự đã nhập và giá trị mã ASCII của nó dưới dạng số nguyên, cách nhau bởi một khoảng trắng.",
+      "constraints": "Ký tự nhập vào là ký tự hiển thị được (printable character, không chứa khoảng trắng hay ký tự xuống dòng) có mã ASCII trong đoạn [33, 126]."
+    },
+    "hints": {
+      "en": [
+        "Every character stored in a computer corresponds to an underlying numerical code (such as in the ASCII table).",
+        "Most programming languages allow you to obtain the numerical representation of a character either via type casting (e.g., casting `char` to `int` in C/C++ or using `ord()` in Python).",
+        "Read the character `c`. Then, output `c`, a space character `' '`, and the integer representation of `c` (for instance, `(int)c` in C++ or `ord(c)` in Python)."
+      ],
+      "vi": [
+        "Mỗi ký tự lưu trong máy tính đều tương ứng với một giá trị số nguyên theo bảng mã chuẩn (chẳng hạn như bảng mã ASCII).",
+        "Hầu hết các ngôn ngữ lập trình cho phép chuyển đổi kiểu dữ liệu từ ký tự sang số nguyên (ví dụ ép kiểu `(int)` hoặc `static_cast<int>` trong C/C++, hàm `ord()` trong Python).",
+        "Đọc vào ký tự `c`. Sau đó, in ra `c`, một dấu cách `' '`, và giá trị số nguyên tương ứng của `c` (ví dụ `(int)c` hoặc `ord(c)`)."
+      ]
+    },
+    "difficulty": "basic",
+    "complexity": {
+      "en": "Time complexity: $O(1)$, Space complexity: $O(1)$.",
+      "vi": "Độ phức tạp thời gian: $O(1)$, Độ phức tạp không gian: $O(1)$."
+    },
+    "sourceHash": "6d5f4106fec7a8e8ed250e08182632235040380b8ce43148f4e4980ab85062cc",
+    "suite": {
+      "sourceHash": "6d5f4106fec7a8e8ed250e08182632235040380b8ce43148f4e4980ab85062cc",
+      "referenceHash": "930e603ad08386d1519aaa7d321bd206def71cec2ea2b8ccf7cc3ef4a9715257",
+      "tests": [
+        {
+          "input": "A",
+          "output": "A 65\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "a",
+          "output": "a 97\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "Z",
+          "output": "Z 90\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "z",
+          "output": "z 122\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "0",
+          "output": "0 48\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "9",
+          "output": "9 57\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "!",
+          "output": "! 33\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "~",
+          "output": "~ 126\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "?",
+          "output": "? 63\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "@",
+          "output": "@ 64\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "#",
+          "output": "# 35\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "$",
+          "output": "$ 36\r\n",
+          "origin": "source"
+        },
+        {
+          "input": "\"",
+          "output": "\" 34\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "%",
+          "output": "% 37\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "&",
+          "output": "& 38\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "'",
+          "output": "' 39\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "(",
+          "output": "( 40\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": ")",
+          "output": ") 41\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "*",
+          "output": "* 42\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "+",
+          "output": "+ 43\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": ",",
+          "output": ", 44\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "-",
+          "output": "- 45\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": ".",
+          "output": ". 46\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "/",
+          "output": "/ 47\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "1",
+          "output": "1 49\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "2",
+          "output": "2 50\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "5",
+          "output": "5 53\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "8",
+          "output": "8 56\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": ":",
+          "output": ": 58\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": ";",
+          "output": "; 59\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "<",
+          "output": "< 60\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "=",
+          "output": "= 61\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": ">",
+          "output": "> 62\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "B",
+          "output": "B 66\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "C",
+          "output": "C 67\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "M",
+          "output": "M 77\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "Y",
+          "output": "Y 89\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "[",
+          "output": "[ 91\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "\\",
+          "output": "\\ 92\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "]",
+          "output": "] 93\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "^",
+          "output": "^ 94\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "_",
+          "output": "_ 95\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "`",
+          "output": "` 96\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "b",
+          "output": "b 98\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "m",
+          "output": "m 109\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "y",
+          "output": "y 121\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "{",
+          "output": "{ 123\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "|",
+          "output": "| 124\r\n",
+          "origin": "generated-verified"
+        },
+        {
+          "input": "}",
+          "output": "} 125\r\n",
+          "origin": "generated-verified"
+        }
+      ],
+      "coverage": {
+        "en": "The generated test suite comprehensively covers printable ASCII characters in [33, 126], including quotes (' and \"), escape-sensitive backslash (\\), math and punctuation symbols, brackets/braces/parentheses, interior digits (1, 2, 5, 8), and intermediate uppercase and lowercase English alphabet letters.",
+        "vi": "Bộ test bao gồm toàn diện các ký tự ASCII in được trong đoạn [33, 126], bao gồm các dấu nháy (' và \"), dấu gạch chéo ngược dễ gây lỗi escape (\\), các toán tử và dấu câu, dấu ngoặc các loại, các chữ số trung gian (1, 2, 5, 8), cùng các chữ cái in hoa và in thường."
+      },
+      "inputChecked": true,
+      "verifiedReferences": 2,
+      "distinctInputs": 49,
+      "distinctOutputs": 49,
+      "maxInputBytes": 1,
+      "updatedAt": 1794416388093
+    },
+    "updatedAt": 1794415168494
+  },
+  "meta-local-7409ecfb47c5ebe53252e508": {
+    "sha256": "7409ecfb47c5ebe53252e5089c1ef22649133f6bf58e1d433209afddd710628d",
+    "en": {
+      "0": "Cover",
+      "1": "CHAPTER 1",
+      "2": "CHAPTER 2",
+      "3": "CHAPTER 3",
+      "4": "CHAPTER 4",
+      "5": "CHAPTER 5",
+      "6": "CHAPTER 6",
+      "7": "CHAPTER 7",
+      "8": "CHAPTER 8",
+      "9": "CHAPTER 9",
+      "10": "TABLE OF CONTENTS"
+    },
+    "vi": {
+      "0": "Bìa",
+      "1": "CHƯƠNG 1",
+      "2": "CHƯƠNG 2",
+      "3": "CHƯƠNG 3",
+      "4": "CHƯƠNG 4",
+      "5": "CHƯƠNG 5",
+      "6": "CHƯƠNG 6",
+      "7": "CHƯƠNG 7",
+      "8": "CHƯƠNG 8",
+      "9": "CHƯƠNG 9",
+      "10": "MỤC LỤC"
+    }
+  },
+  "meta-local-d4751bff47960ec6163862fc": {
+    "sha256": "d4751bff47960ec6163862fc19f15ec4a8b181bc531e3e34f844e3441cb3f8d7",
+    "en": {
+      "0": "Cover",
+      "1": "Title Page",
+      "2": "Copyright Page",
+      "3": "Contents",
+      "4": "Preface",
+      "5": "1 Introduction to Computers, the Internet and the Web 1",
+      "6": "2 Introduction to C Programming 39",
+      "7": "3 Structured Program Development in C 69",
+      "8": "4 C Program Control 113",
+      "9": "5 C Functions 157",
+      "10": "6 C Arrays 214",
+      "11": "7 C Pointers 274",
+      "12": "8 C Characters and Strings 333",
+      "13": "9 C Formatted Input/Output 377",
+      "14": "10 C Structures, Unions, Bit Manipulation and Enumerations 404",
+      "15": "11 C File Processing 441",
+      "16": "12 C Data Structures 477",
+      "17": "13 C Preprocessor 518",
+      "18": "14 Other C Topics 531",
+      "19": "15 C++ as a Better C; Introducing Object Technology 549",
+      "20": "16 Introduction to Classes, 16 Objects and Strings 589",
+      "21": "17 Classes: A Deeper Look; Throwing Exceptions 627",
+      "22": "18 Operator Overloading; Class string 683",
+      "23": "19 Object-Oriented Programming: Inheritance 732",
+      "24": "20 Object-Oriented Programming: Polymorphism 767",
+      "25": "21 Stream Input/Output: A Deeper Look 812",
+      "26": "22 Exception Handling: A Deeper Look 849",
+      "27": "23 Introduction to Custom Templates 874",
+      "28": "A. C and C++ Operator Precedence Charts 886",
+      "29": "B. ASCII Character Set 890",
+      "30": "C. Number Systems 891",
+      "31": "D. Sorting: A Deeper Look 904",
+      "32": "E. Multithreading and Other C11 and C99 Topics 924",
+      "33": "Appendices on the Web 951",
+      "34": "Index 952",
+      "35": "C++ Reviewer Comments 975"
+    },
+    "vi": {
+      "0": "Bìa sách",
+      "1": "Trang tiêu đề",
+      "2": "Trang bản quyền",
+      "3": "Mục lục",
+      "4": "Lời nói đầu",
+      "5": "1 Giới thiệu về Máy tính, Internet và Web 1",
+      "6": "2 Giới thiệu về Lập trình C 39",
+      "7": "3 Phát triển Chương trình có Cấu trúc trong C 69",
+      "8": "4 Điều khiển Chương trình trong C 113",
+      "9": "5 Hàm trong C 157",
+      "10": "6 Mảng trong C 214",
+      "11": "7 Con trỏ trong C 274",
+      "12": "8 Ký tự và Chuỗi trong C 333",
+      "13": "9 Nhập/Xuất có Định dạng trong C 377",
+      "14": "10 Cấu trúc, Union, Thao tác Bit và Kiểu liệt kê trong C 404",
+      "15": "11 Xử lý Tệp trong C 441",
+      "16": "12 Cấu trúc Dữ liệu trong C 477",
+      "17": "13 Bộ tiền xử lý C 518",
+      "18": "14 Các chủ đề C khác 531",
+      "19": "15 C++ như một phiên bản C tốt hơn; Giới thiệu Công nghệ Hướng đối tượng 549",
+      "20": "16 Giới thiệu về Lớp, 16 Đối tượng và Chuỗi 589",
+      "21": "17 Lớp: Cái nhìn Sâu hơn; Ném Ngoại lệ 627",
+      "22": "18 Nạp chồng Toán tử; Lớp string 683",
+      "23": "19 Lập trình Hướng đối tượng: Kế thừa 732",
+      "24": "20 Lập trình hướng đối tượng: Tính đa hình 767",
+      "25": "21 Nhập/Xuất luồng dữ liệu (Stream Input/Output): Cái nhìn sâu hơn 812",
+      "26": "22 Xử lý ngoại lệ (Exception Handling): Cái nhìn sâu hơn 849",
+      "27": "23 Giới thiệu về Template tùy biến 874",
+      "28": "A. Bảng độ ưu tiên toán tử trong C và C++ 886",
+      "29": "B. Bảng mã ký tự ASCII 890",
+      "30": "C. Hệ thống số 891",
+      "31": "D. Sắp xếp: Cái nhìn sâu hơn 904",
+      "32": "E. Đa luồng và các chủ đề C11 và C99 khác 924",
+      "33": "Phụ lục trên Web 951",
+      "34": "Chỉ mục 952",
+      "35": "Nhận xét của người phản biện C++ 975"
+    }
+  },
+  "meta-local-f74b777a02e4362c174ab2d6": {
+    "sha256": "f74b777a02e4362c174ab2d6181c23fd4853db14594a4adc8a510e3124995cbc",
+    "en": {
+      "0": "Cover",
+      "1": "CONTENTS",
+      "2": "Chapter 1 Introduction to Computers, Programs, and C++",
+      "3": "Chapter 2 Elementary Programming",
+      "4": "Chapter 3 Selections",
+      "5": "Chapter 4 Mathematical Functions, Characters, and Strings",
+      "6": "Chapter 5 Loops",
+      "7": "Chapter 6 Functions",
+      "8": "Chapter 7 Single-Dimensional Arrays and C-Strings",
+      "9": "Chapter 8 Multidimensional Arrays",
+      "10": "Chapter 9 Objects and Classes",
+      "11": "Chapter 10 Object-Oriented Thinking",
+      "12": "Chapter 11 Pointers and Dynamic Memory Management",
+      "13": "Chapter 12 Templates, Vectors, and Stacks",
+      "14": "Chapter 13 File Input and Output",
+      "15": "Chapter 14 Operator Overloading",
+      "16": "Chapter 15 Inheritance and Polymorphism",
+      "17": "Chapter 16 Exception Handling",
+      "18": "Chapter 17 Recursion",
+      "19": "APPENDIXES",
+      "20": "INDEX",
+      "21": "CREDIT"
+    },
+    "vi": {
+      "0": "Bìa",
+      "1": "MỤC LỤC",
+      "2": "Chương 1 Giới thiệu về Máy tính, Chương trình và C++",
+      "3": "Chương 2 Lập trình cơ bản",
+      "4": "Chương 3 Cấu trúc rẽ nhánh",
+      "5": "Chương 4 Các hàm toán học, Ký tự và Chuỗi ký tự",
+      "6": "Chương 5 Vòng lặp",
+      "7": "Chương 6 Hàm",
+      "8": "Chương 7 Mảng một chiều và Chuỗi kiểu C",
+      "9": "Chương 8 Mảng đa chiều",
+      "10": "Chương 9 Đối tượng và Lớp",
+      "11": "Chương 10 Tư duy Hướng đối tượng",
+      "12": "Chương 11 Con trỏ và Quản lý Bộ nhớ Động",
+      "13": "Chương 12 Khuôn mẫu (Templates), Vector và Ngăn xếp (Stack)",
+      "14": "Chương 13 Nhập và Xuất Tệp",
+      "15": "Chương 14 Nạp chồng Toán tử",
+      "16": "Chương 15 Tính kế thừa và Tính đa hình",
+      "17": "Chương 16 Xử lý Ngoại lệ",
+      "18": "Chương 17 Đệ quy",
+      "19": "PHỤ LỤC",
+      "20": "CHỈ MỤC",
+      "21": "LỜI CẢM ƠN VÀ BẢN QUYỀN"
+    }
+  },
+  "meta-local-b934d277ce0eaf056f010133": {
+    "sha256": "b934d277ce0eaf056f01013382cfc23fd058fef373965e3e34ab2292ce036bc1",
+    "en": {
+      "0": "Cover",
+      "1": "Title Page",
+      "2": "Copyright Page",
+      "3": "Contents",
+      "4": "Preface",
+      "5": "Acknowledgments",
+      "6": "About the Authors",
+      "7": "1 Introduction to Computers and C++",
+      "8": "2 Introduction to C++ Programming; Input/Output and Operators",
+      "9": "3 Introduction to Classes, Objects and Strings",
+      "10": "4 Control Statements: Part 1; Assignment, ++ and -- Operators",
+      "11": "5 Control Statements: Part 2; Logical Operators",
+      "12": "6 Functions and an Introduction to Recursion",
+      "13": "7 Class Templates array and vector; Catching Exceptions",
+      "14": "8 Pointers",
+      "15": "9 Classes: A Deeper Look; Throwing Exceptions",
+      "16": "10 Operator Overloading; Class string",
+      "17": "11 Object-Oriented Programming: Inheritance",
+      "18": "12 Object-Oriented Programming: Polymorphism",
+      "19": "13 Stream Input/Output: A Deeper Look",
+      "20": "14 File Processing",
+      "21": "15 Standard Library Containers and Iterators",
+      "22": "16 Standard Library Algorithms",
+      "23": "17 Exception Handling: A Deeper Look",
+      "24": "18 Introduction to Custom Templates",
+      "25": "19 Custom Templatized Data Structures",
+      "26": "20 Searching and Sorting",
+      "27": "21 Class string and String Stream Processing: A Deeper Look",
+      "28": "22 Bits, Characters, C Strings and structs",
+      "29": "23 Other Topics",
+      "30": "List of Chapters on the Web",
+      "31": "List of Appendices on the Web",
+      "32": "Index"
+    },
+    "vi": {
+      "0": "Bìa sách",
+      "1": "Trang tiêu đề",
+      "2": "Trang bản quyền",
+      "3": "Mục lục",
+      "4": "Lời nói đầu",
+      "5": "Lời cảm ơn",
+      "6": "Về các tác giả",
+      "7": "1 Giới thiệu về Máy tính và C++",
+      "8": "2 Giới thiệu về Lập trình C++; Vào/Ra và Toán tử",
+      "9": "3 Giới thiệu về Lớp, Đối tượng và Chuỗi",
+      "10": "4 Các câu lệnh điều khiển: Phần 1; Toán tử gán, ++ và --",
+      "11": "5 Các câu lệnh điều khiển: Phần 2; Toán tử logic",
+      "12": "6 Hàm và Giới thiệu về Đệ quy",
+      "13": "7 Mẫu lớp (Class Template) array và vector; Bắt ngoại lệ",
+      "14": "8 Con trỏ",
+      "15": "9 Lớp: Tìm hiểu sâu hơn; Ném ngoại lệ",
+      "16": "10 Nạp chồng toán tử; Lớp string",
+      "17": "11 Lập trình hướng đối tượng: Kế thừa",
+      "18": "12 Lập trình hướng đối tượng: Đa hình",
+      "19": "13 Vào/Ra luồng (Stream Input/Output): Tìm hiểu sâu hơn",
+      "20": "14 Xử lý tệp",
+      "21": "15 Các container và iterator của Thư viện chuẩn",
+      "22": "16 Các thuật toán của Thư viện chuẩn",
+      "23": "17 Xử lý ngoại lệ: Tìm hiểu sâu hơn",
+      "24": "18 Giới thiệu về Template tùy chỉnh",
+      "25": "19 Cấu trúc dữ liệu dạng Template tùy chỉnh",
+      "26": "20 Tìm kiếm và Sắp xếp",
+      "27": "21 Lớp string và Xử lý luồng chuỗi: Cái nhìn sâu hơn",
+      "28": "22 Bit, Ký tự, Chuỗi kiểu C và struct",
+      "29": "23 Các chủ đề khác",
+      "30": "Danh sách các chương trên Web",
+      "31": "Danh sách các phụ lục trên Web",
+      "32": "Chỉ mục"
+    }
+  },
+  "local-7409ecfb47c5ebe53252e508-p41-en": {
+    "text": "Chapter 2. Data Types, Expressions, and Statements \n3:   Hanoi Department of Education   Independence - Freedom - Happiness \nNote: The space between the words \"Đào tạo\" and \"Cộng hoà\" (line 1) is 2 tab. Line 2: leave blank. \n4.   Write a program that enters a character. Print out that character and its ASCII code. \n5.   Write a program that enters two real numbers. Print out those two real numbers with 2 decimal places and separated by 5 columns. \n6.   Enter, run, and explain the result obtained from the following code snippet: \n#include <iostream.h> \nvoid main() \n{ \nchar c1 = 200; unsigned char c2 = 200 ; \ncout << \"c1 = \" << c1 << \", c2 = \" << c2 << \"\\n\" ; \ncout << \"c1+100 = \" << c1+100 << \", c2+100 = \" << c2+100 ; \n} \n7.   Enter a, b, c. Print to the screen the equation of the form ax^2 + bx + c = 0,\nin which the values a, b, c are printed with only 2 decimal places (for example, with a = 5.141, b =   − 2, c = 0.8 print \n5.14 x^2   − 2.00 x + 0.80). \n8.   Write a program to compute and print the values of the following expressions with 2 decimal places: \na.   3 3 3   + +   b. \n2\n1\n2\n1\n2\n1 \n+\n+ \n9.   Enter real numbers a, b, c. Print the values of the following expressions with 3 decimal places: \na.   a 2   −   2b + ab/c   c. 3a   −   b 3   −   2   c \nb.   a\nac b \n2\n4 2   −   d.   1 4 2   + −   bc / a b / a \n10.   Print the sum, product, difference, and quotient of 2 numbers entered from the keyboard. \n11.   Print the arithmetic mean and geometric mean of 3 numbers entered from the keyboard. \n12.   Write a program to enter side lengths, radius, and print the area and perimeter of the following shapes:\nsquare, rectangle, circle. \n13.   Enter a, b, c as the lengths of 3 sides of a triangle (note to ensure that the sum of 2 sides must be greater \n39 \nCuuDuongThanCong.com   https://fb.com/tailieudientucntt ",
+    "language": "en",
+    "bookId": "local-7409ecfb47c5ebe53252e508",
+    "page": 41,
+    "updatedAt": 1794417719079
+  },
+  "local-7409ecfb47c5ebe53252e508-p41-vi": {
+    "text": "Ch ươ ng 2. Ki ể u d ữ   li ệ u, bi ể u th ứ c và câu l ệ nh \n3:   S ở   Giáo d ụ c Hà N ộ i   Độ c l ậ p - T ự   do - H ạ nh phúc \nChú ý: kho ả ng tr ố ng gi ữ a ch ữ   Đ ào t ạ o và C ộ ng hoà (dòng 1) là 2 tab. Dòng 2:   để \ntr ố ng. \n4.   Vi ế t ch ươ ng trình nh ậ p vào m ộ t kí t ự . In ra kí t ự   đ ó và mã ascii c ủ a nó. \n5.   Vi ế t ch ươ ng trình nh ậ p vào hai s ố   th ự c. In ra hai s ố   th ự c   đ ó v ớ i 2 s ố   l ẻ   và cách\nnhau 5 c ộ t. \n6.   Nh ậ p, ch ạ y và gi ả i thích k ế t qu ả   đạ t   đượ c c ủ a   đ o ạ n ch ươ ng trình sau: \n#include <iostream.h> \nvoid main() \n{ \nchar c1 = 200; unsigned char c2 = 200 ; \ncout << \"c1 = \" << c1 << \", c2 = \" << c2 << \"\\n\" ; \ncout << \"c1+100 = \" << c1+100 << \", c2+100 = \" << c2+100 ; \n} \n7.   Nh ậ p a, b, c. In ra màn hình dòng ch ữ   ph ươ ng trình có d ạ ng ax^2 + bx + c = 0,\ntrong   đ ó các giá tr ị   a, b, c ch ỉ   in 2 s ố   l ẻ   (ví d ụ   v ớ i a = 5.141, b =   − 2, c = 0.8 in ra\n5.14 x^2   − 2.00 x + 0.80). \n8.   Vi ế t ch ươ ng trình tính và in ra giá tr ị   các bi ể u th ứ c sau v ớ i 2 s ố   l ẻ : \na.   3 3 3   + +   b. \n2\n1\n2\n1\n2\n1 \n+\n+ \n9.   Nh ậ p a, b, c là các s ố   th ự c. In ra giá tr ị   c ủ a các bi ể u th ứ c sau v ớ i 3 s ố   l ẻ : \na.   a 2   −   2b + ab/c   c. 3a   −   b 3   −   2   c \nb.   a\nac b \n2\n4 2   −   d.   1 4 2   + −   bc / a b / a \n10.   In ra t ổ ng, tích, hi ệ u và th ươ ng c ủ a 2 s ố   đượ c nh ậ p vào t ừ   bàn phím. \n11.   In ra trung bình c ộ ng, trung bình nhân c ủ a 3 s ố   đượ c nh ậ p vào t ừ   bàn phím. \n12.   Vi ế t ch ươ ng trình nh ậ p c ạ nh, bán kính và in ra di ệ n tích, chu vi c ủ a các hình:\nvuông, ch ữ   nh ậ t, tròn. \n13.   Nh ậ p a, b, c là   độ   dài 3 c ạ nh c ủ a tam giác (chú ý   đả m b ả o t ổ ng 2 c ạ nh ph ả i l ớ n \n39 \nCuuDuongThanCong.com   https://fb.com/tailieudientucntt ",
+    "language": "vi",
+    "bookId": "local-7409ecfb47c5ebe53252e508",
+    "page": 41,
+    "original": true
+  },
+  "sections-local-7409ecfb47c5ebe53252e508-2": {
+    "sha256": "7409ecfb47c5ebe53252e5089c1ef22649133f6bf58e1d433209afddd710628d",
+    "en": [
+      "I. SIMPLE DATA TYPES",
+      "1. Concept of Data Types",
+      "2. Character Type",
+      "3. Integer Type",
+      "4. Real Type",
+      "II. CONSTANTS - DECLARATION AND USAGE OF CONSTANTS",
+      "1. Integer Constants",
+      "2. Real Constants",
+      "a. Fixed-point format",
+      "b. Floating-point format",
+      "3. Character Constants",
+      "a. How to write constants",
+      "b. Some common constants",
+      "4. String Constants",
+      "5. Constant Declaration",
+      "III. VARIABLES - DECLARATION AND USAGE OF VARIABLES",
+      "1. Variable Declaration",
+      "a. Declaration without initialization",
+      "b. Declaration with initialization",
+      "2. Scope of Variables",
+      "3. Assigning Values to Variables (Assignment Operation)",
+      "4. Some Notes on Assignment",
+      "IV. OPERATORS, EXPRESSIONS, AND STATEMENTS",
+      "1. Operators",
+      "a. Arithmetic operators: +, -, *, /, %",
+      "b. Increment and decrement operators: i++, ++i, i--, --i",
+      "c. Comparison and logical operators",
+      "2. Assignment operators",
+      "3. Expressions",
+      "a. Operator precedence",
+      "b. Type conversion",
+      "4. Statements and code blocks",
+      "V. MATHEMATICAL FUNCTIONS LIBRARY",
+      "1. Arithmetic functions",
+      "2. Trigonometric functions"
+    ],
+    "vi": [
+      "I. KIỂU DỮ LIỆU ĐƠN GIẢN",
+      "1. Khái niệm về kiểu dữ liệu",
+      "2. Kiểu ký tự",
+      "3. Kiểu số nguyên",
+      "4. Kiểu số thực",
+      "II. HẰNG - KHAI BÁO VÀ SỬ DỤNG HẰNG",
+      "1. Hằng nguyên",
+      "2. Hằng thực",
+      "a. Dạng dấu phẩy tĩnh",
+      "b. Dạng dấu phẩy động",
+      "3. Hằng kí tự",
+      "a. Cách viết hằng",
+      "b. Một số hằng thông dụng",
+      "4. Hằng xâu kí tự",
+      "5. Khai báo hằng",
+      "III. BIẾN - KHAI BÁO VÀ SỬ DỤNG BIẾN",
+      "1. Khai báo biến",
+      "a. Khai báo không khởi tạo",
+      "b. Khai báo có khởi tạo",
+      "2. Phạm vi của biến",
+      "3. Gán giá trị cho biến (phép gán)",
+      "4. Một số điểm lưu ý về phép gán",
+      "IV. PHÉP TOÁN, BIỂU THỨC VÀ CÂU LỆNH",
+      "1. Phép toán",
+      "a. Các phép toán số học: +, -, *, /, %",
+      "b. Các phép toán tự tăng, giảm: i++, ++i, i--, --i",
+      "c. Các phép toán so sánh và lôgic",
+      "2. Các phép gán",
+      "3. Biểu thức",
+      "a. Thứ tự ưu tiên của các phép toán",
+      "b. Phép chuyển đổi kiểu",
+      "4. Câu lệnh và khối lệnh",
+      "V. THƯ VIỆN CÁC HÀM TOÁN HỌC",
+      "1. Các hàm số học",
+      "2. Các hàm lượng giác"
+    ]
+  },
+  "local-d4751bff47960ec6163862fc-p35-en": {
+    "text": "2   Chapter 1   Introduction to Computers, the Internet and the Web \n1.1 Introduction \nWelcome to C and C++! C is a concise yet powerful computer programming language\nthat’s appropriate for technically oriented people with little or no programming experience\nand for experienced programmers to use in building substantial software systems.   C How\nto Program, Eighth Edition , is an effective learning tool for each of these audiences.\nThe core of the book emphasizes software engineering through the proven methodol-\nogies of   structured programming   in C and   object-oriented programming   in C++. The book\npresents hundreds of complete working programs and shows the outputs produced when\nthose programs are run on a computer. We call this the “live-code approach.” All of these\nexample programs may be downloaded from our website   www.deitel.com/books/chtp8/ .\nMost people are familiar with the exciting tasks that computers perform. Using this\ntextbook, you’ll learn how to command computers to perform those tasks. It’s   software \n(i.e., the instructions you write to command computers to perform   actions   and make   deci-\nsions ) that controls computers (often referred to as   hardware ). \n1.1   Introduction \n1.2   Hardware and Software\n1.2.1 Moore’s Law\n1.2.2 Computer Organization \n1.3   Data Hierarchy \n1.4   Machine Languages, Assembly\nLanguages and High-Level Languages \n1.5   The C Programming Language \n1.6   C Standard Library \n1.7   C++ and Other C-Based Languages \n1.8   Object Technology\n1.8.1 The Automobile as an Object\n1.8.2 Methods and Classes\n1.8.3 Instantiation\n1.8.4 Reuse\n1.8.5 Messages and Method Calls\n1.8.6 Attributes and Instance Variables\n1.8.7 Encapsulation and Information Hiding\n1.8.8 Inheritance \n1.9   Typical C Program-Development\nEnvironment\n1.9.1 Phase 1: Creating a Program\n1.9.2 Phases 2 and 3: Preprocessing and\nCompiling a C Program\n1.9.3 Phase 4: Linking\n1.9.4 Phase 5: Loading\n1.9.5 Phase 6: Execution\n1.9.6 Problems That May Occur at\nExecution Time\n1.9.7 Standard Input, Standard Output and\nStandard Error Streams \n1.10   Test-Driving a C Application in\nWindows, Linux and Mac OS X\n1.10.1 Running a C Application from the\nWindows Command Prompt\n1.10.2 Running a C Application Using GNU\nC with Linux\n1.10.3 Running a C Application Using the\nTeminal on Mac OS X \n1.11   Operating Systems\n1.11.1 Windows—A Proprietary Operating\nSystem\n1.11.2 Linux—An Open-Source Operating\nSystem\n1.11.3 Apple’s Mac OS X; Apple’s iOS for\niPhone®, iPad® and iPod Touch®\nDevices\n1.11.4 Google’s Android \n1.12   The Internet and World Wide Web\n1.12.1 The Internet: A Network of Networks\n1.12.2 The World Wide Web: Making the\nInternet User-Friendly\n1.12.3 Web Services\n1.12.4 Ajax\n1.12.5 The Internet of Things \n1.13   Some Key Software Terminology \n1.14   Keeping Up-to-Date with\nInformation Technologies \nSelf-Review Exercises | Answers to Self-Review Exercises | Exercises | Making a Difference ",
+    "language": "en",
+    "bookId": "local-d4751bff47960ec6163862fc",
+    "page": 35,
+    "original": true
+  },
+  "local-d4751bff47960ec6163862fc-p35-vi": {
+    "text": "2   Chương 1   Giới thiệu về Máy tính, Internet và Web \n1.1 Giới thiệu \nChào mừng bạn đến với C và C++! C là một ngôn ngữ lập trình máy tính ngắn gọn nhưng mạnh mẽ,\nphù hợp cho những người có định hướng kỹ thuật có ít hoặc chưa có kinh nghiệm lập trình,\ncũng như cho các lập trình viên giàu kinh nghiệm sử dụng để xây dựng các hệ thống phần mềm quy mô lớn.   C How\nto Program, Tái bản lần thứ tám , là một công cụ học tập hiệu quả cho cả hai nhóm đối tượng này.\nTrọng tâm của cuốn sách nhấn mạnh vào kỹ nghệ phần mềm thông qua các phương pháp luận\nđã được kiểm chứng của   lập trình có cấu trúc   trong C và   lập trình hướng đối tượng   trong C++. Cuốn sách\ntrình bày hàng trăm chương trình hoàn chỉnh, có thể chạy được và hiển thị kết quả đầu ra khi\ncác chương trình đó được thực thi trên máy tính. Chúng tôi gọi đây là \"phương pháp tiếp cận mã nguồn trực tiếp\" (live-code approach). Tất cả các\nchương trình ví dụ này đều có thể được tải xuống từ trang web của chúng tôi   www.deitel.com/books/chtp8/ .\nHầu hết mọi người đều quen thuộc với các tác vụ thú vị mà máy tính thực hiện. Thông qua\ngiáo trình này, bạn sẽ học cách ra lệnh cho máy tính thực hiện các tác vụ đó. Chính   phần mềm \n(tức là các chỉ thị bạn viết để ra lệnh cho máy tính thực hiện   hành động   và đưa ra   quyết\nđịnh ) sẽ điều khiển máy tính (thường được gọi là   phần cứng ). \n1.1   Giới thiệu \n1.2   Phần cứng và Phần mềm\n1.2.1 Định luật Moore\n1.2.2 Tổ chức Máy tính \n1.3   Phân cấp Dữ liệu \n1.4   Ngôn ngữ Máy, Hợp ngữ\nvà Ngôn ngữ Cấp cao \n1.5   Ngôn ngữ Lập trình C \n1.6   Thư viện Chuẩn C \n1.7   C++ và Các Ngôn ngữ Khác Dựa trên C \n1.8   Công nghệ Đối tượng\n1.8.1 Xe hơi như một Đối tượng\n1.8.2 Phương thức và Lớp\n1.8.3 Khởi tạo Thể hiện\n1.8.4 Tái sử dụng\n1.8.5 Thông điệp và Lời gọi Phương thức\n1.8.6 Thuộc tính và Biến Thể hiện\n1.8.7 Đóng gói và Che giấu Thông tin\n1.8.8 Kế thừa \n1.9   Môi trường Phát triển Chương trình\nC Điển hình\n1.9.1 Giai đoạn 1: Tạo một Chương trình\n1.9.2 Giai đoạn 2 và 3: Tiền xử lý và\nBiên dịch một Chương trình C\n1.9.3 Giai đoạn 4: Liên kết\n1.9.4 Giai đoạn 5: Nạp\n1.9.5 Giai đoạn 6: Thực thi\n1.9.6 Các Vấn đề Có thể Xảy ra tại\nThời điểm Thực thi\n1.9.7 Luồng Đầu vào Chuẩn, Đầu ra Chuẩn và\nLỗi Chuẩn \n1.10   Chạy thử một Ứng dụng C trên\nWindows, Linux và Mac OS X\n1.10.1 Chạy một Ứng dụng C từ\nCommand Prompt của Windows\n1.10.2 Chạy một Ứng dụng C Sử dụng GNU\nC trên Linux\n1.10.3 Chạy một Ứng dụng C Sử dụng\nTerminal trên Mac OS X \n1.11   Hệ điều hành\n1.11.1 Windows—Một Hệ điều hành Độc quyền\n1.11.2 Linux—Một Hệ điều hành Mã nguồn Mở\n1.11.3 Mac OS X của Apple; iOS của Apple cho\ncác Thiết bị iPhone®, iPad® và iPod Touch®\n1.11.4 Android của Google \n1.12   Internet và World Wide Web\n1.12.1 Internet: Mạng của các Mạng\n1.12.2 World Wide Web: Làm cho\nInternet Thân thiện với Người dùng\n1.12.3 Dịch vụ Web\n1.12.4 Ajax\n1.12.5 Internet Vạn Vật (IoT) \n1.13   Một số Thuật ngữ Phần mềm Then chốt \n1.14   Cập nhật Xu hướng\nCông nghệ Thông tin \nBài tập Tự ôn tập | Lời giải cho Bài tập Tự ôn tập | Bài tập | Tạo nên Sự khác biệt ",
+    "language": "vi",
+    "bookId": "local-d4751bff47960ec6163862fc",
+    "page": 35,
+    "updatedAt": 1794415970172
+  },
+  "sections-local-d4751bff47960ec6163862fc-5": {
+    "sha256": "d4751bff47960ec6163862fc19f15ec4a8b181bc531e3e34f844e3441cb3f8d7",
+    "en": [
+      "1.1 Introduction 2",
+      "1.2 Hardware and Software 3",
+      "1.2.1 Moore’s Law 3",
+      "1.2.2 Computer Organization 4",
+      "1.3 Data Hierarchy 5",
+      "1.4 Machine Languages, Assembly Languages and High-Level Languages 8",
+      "1.5 The C Programming Language 9",
+      "1.6 C Standard Library 10",
+      "1.7 C++ and Other C-Based Languages 11",
+      "1.8 Object Technology 12",
+      "1.8.1 The Automobile as an Object 13",
+      "1.8.2 Methods and Classes 13",
+      "1.8.3 Instantiation 13",
+      "1.8.4 Reuse 13",
+      "1.8.5 Messages and Method Calls 14",
+      "1.8.6 Attributes and Instance Variables 14",
+      "1.8.7 Encapsulation and Information Hiding 14",
+      "1.8.8 Inheritance 14",
+      "1.9 Typical C Program-Development Environment 15",
+      "1.9.1 Phase 1: Creating a Program 16",
+      "1.9.2 Phases 2 and 3: Preprocessing and Compiling a C Program 16",
+      "1.9.3 Phase 4: Linking 16",
+      "1.9.4 Phase 5: Loading 17",
+      "1.9.5 Phase 6: Execution 17",
+      "1.9.6 Problems That May Occur at Execution Time 17",
+      "1.9.7 Standard Input, Standard Output and Standard Error Streams 17",
+      "1.10 Test-Driving a C Application in Windows, Linux and Mac OS X 17",
+      "1.10.1 Running a C Application from the Windows Command Prompt 18",
+      "1.10.2 Running a C Application Using GNU C with Linux 21",
+      "1.10.3 Running a C Application Using the Teminal on Mac OS X 24",
+      "1.11 Operating Systems 27",
+      "1.11.1Windows—A Proprietary Operating System 27",
+      "1.11.2 Linux—An Open-Source Operating System 27",
+      "1.11.3 Apple’s Mac OS X; Apple’s iOS for iPhone®, iPad® and iPod Touch® Devices 28",
+      "1.11.4 Google’s Android 28",
+      "1.12 The Internet and World Wide Web 29",
+      "1.12.1 The Internet: A Network of Networks 29",
+      "1.12.2 The World Wide Web: Making the Internet User-Friendly 29",
+      "1.12.3 Web Services 30",
+      "1.12.4 Ajax 32",
+      "1.12.5 The Internet of Things 32",
+      "1.13 Some Key Software Terminology 32",
+      "1.14 Keeping Up-to-Date with Information Technologies 34"
+    ],
+    "vi": [
+      "1.1 Giới thiệu 2",
+      "1.2 Phần cứng và Phần mềm 3",
+      "1.2.1 Định luật Moore 3",
+      "1.2.2 Kiến trúc Máy tính 4",
+      "1.3 Phân cấp Dữ liệu 5",
+      "1.4 Ngôn ngữ Máy, Hợp ngữ và Ngôn ngữ Bậc cao 8",
+      "1.5 Ngôn ngữ Lập trình C 9",
+      "1.6 Thư viện Chuẩn C 10",
+      "1.7 C++ và các Ngôn ngữ Khác Dựa trên C 11",
+      "1.8 Công nghệ Hướng đối tượng 12",
+      "1.8.1 Ô tô như một Đối tượng 13",
+      "1.8.2 Phương thức và Lớp 13",
+      "1.8.3 Khởi tạo Đối tượng 13",
+      "1.8.4 Tái sử dụng 13",
+      "1.8.5 Thông điệp và Lời gọi Phương thức 14",
+      "1.8.6 Thuộc tính và Biến Thể hiện 14",
+      "1.8.7 Đóng gói và Che giấu Thông tin 14",
+      "1.8.8 Kế thừa 14",
+      "1.9 Môi trường Phát triển Chương trình C Điển hình 15",
+      "1.9.1 Giai đoạn 1: Tạo một Chương trình 16",
+      "1.9.2 Giai đoạn 2 và 3: Tiền xử lý và Biên dịch Chương trình C 16",
+      "1.9.3 Giai đoạn 4: Liên kết 16",
+      "1.9.4 Giai đoạn 5: Tải 17",
+      "1.9.5 Giai đoạn 6: Thực thi 17",
+      "1.9.6 Các vấn đề có thể xảy ra trong thời gian thực thi 17",
+      "1.9.7 Các luồng đầu vào chuẩn, đầu ra chuẩn và lỗi chuẩn 17",
+      "1.10 Chạy thử nghiệm ứng dụng C trên Windows, Linux và Mac OS X 17",
+      "1.10.1 Chạy ứng dụng C từ Command Prompt của Windows 18",
+      "1.10.2 Chạy ứng dụng C sử dụng GNU C với Linux 21",
+      "1.10.3 Chạy ứng dụng C bằng Terminal trên Mac OS X 24",
+      "1.11 Hệ điều hành 27",
+      "1.11.1Windows—Một hệ điều hành độc quyền 27",
+      "1.11.2 Linux—Một hệ điều hành mã nguồn mở 27",
+      "1.11.3 Mac OS X của Apple; iOS của Apple dành cho các thiết bị iPhone®, iPad® và iPod Touch® 28",
+      "1.11.4 Android của Google 28",
+      "1.12 Internet và World Wide Web 29",
+      "1.12.1 Internet: Mạng của các mạng 29",
+      "1.12.2 World Wide Web: Làm cho Internet trở nên thân thiện với người dùng 29",
+      "1.12.3 Dịch vụ Web 30",
+      "1.12.4 Ajax 32",
+      "1.12.5 Internet vạn vật (IoT) 32",
+      "1.13 Một số thuật ngữ phần mềm then chốt 32",
+      "1.14 Cập nhật thông tin công nghệ thông tin 34"
+    ]
+  }
+}

@@ -16,7 +16,7 @@ await page.evaluate(()=>openSettings());await page.evaluate(()=>document.fonts.r
 const cdp=await page.context().newCDPSession(page);await cdp.send('DOM.enable');await cdp.send('CSS.enable');
 for(const selector of ['#btn-buildrun','#btn-problem-browser','.menu-btn','.settings-tab[data-tab="editor"]','#btn-save-settings','#settings-search','#set-uiLanguage']){
  const {root}=await cdp.send('DOM.getDocument');const {nodeId}=await cdp.send('DOM.querySelector',{nodeId:root.nodeId,selector});assert(nodeId,'Missing font probe '+selector);
- const {fonts}=await cdp.send('CSS.getPlatformFontsForNode',{nodeId});const used=fonts.filter(f=>f.glyphCount>0);assert(used.length,selector+' has no rendered text');assert(used.every(f=>f.familyName.startsWith('Nunito')),selector+': '+JSON.stringify(used));
+ const {fonts}=await cdp.send('CSS.getPlatformFontsForNode',{nodeId});const used=fonts.filter(f=>f.glyphCount>0);if(!used.length){assert(['#btn-buildrun','#btn-problem-browser'].includes(selector),selector+' has no rendered text');const iconOnly=await page.locator(selector).evaluate(n=>({icon:!!n.querySelector('svg'),label:n.getAttribute('aria-label')||n.title}));assert(iconOnly.icon&&iconOnly.label,selector+' must retain an icon and accessible label');continue;}assert(used.every(f=>f.familyName.startsWith('Nunito')),selector+': '+JSON.stringify(used));
 }
 await cdp.detach();console.log('PASS Run, Practice, menus and Settings controls use bundled Nunito glyphs');
 fs.mkdirSync(path.join(ROOT,'plans/artifacts/gui'),{recursive:true});

@@ -11,6 +11,7 @@ window.ProblemBrowser = (() => {
         $('oj-problem-title').dataset.uiText = 'Select a problem from the list';
         $('oj-problem-title').textContent = window.UILanguage ? UILanguage.translate('Select a problem from the list') : 'Select a problem from the list';
         $('oj-problem-note').textContent = '';
+        $('oj-source-page')?.remove();
         $('oj-statement').replaceChildren();
         window.StatementTranslation?.setStatement('');
     }
@@ -23,7 +24,7 @@ window.ProblemBrowser = (() => {
     async function load(nextPage = 0) {
         const revision = ++listRevision;
         const provider = $('oj-provider').value;
-        for(const id of ['btn-submit-online','btn-submit-browser','btn-submit-official'])if($(id))$(id).hidden=provider==='28tech';
+        for(const id of ['oj-more-actions','btn-submit-online','btn-submit-browser','btn-submit-official'])if($(id))$(id).hidden=provider==='28tech';
         $('oj-difficulty').closest('label').hidden=provider==='28tech';
         const difficultyLabels=provider==='codeforces'?['All levels','Easy / CF ≤1200','Medium / CF 1300–2000','Hard / CF >2000']:['All levels','Easy','Medium','Hard'];
         [...$('oj-difficulty').options].forEach((o,i)=>{o.textContent=window.UILanguage?UILanguage.translate(difficultyLabels[i]):difficultyLabels[i];});
@@ -63,7 +64,10 @@ window.ProblemBrowser = (() => {
                     rank.onclick=()=>window.ContestStandings.open(item.contestId||Number(item.id.split('-')[0]));row.append(button,rank);target.append(row);
                 }else target.append(button);
             }
-            if(provider==='28tech')status(`${total.toLocaleString()} tài liệu bài tập · Chọn tài liệu, sau đó chọn từng bài`);
+            if(provider==='28tech'){
+                const progress=response.data.reviewProgress;
+                status(response.data.individualCount?`${response.data.individualCount.toLocaleString()} bài riêng · ${total.toLocaleString()} nhóm${progress?' · '+progress.validated+' bài đã biên soạn và kiểm chứng test · Đã xử lý '+(progress.validated+progress.adaptedRejected)+'/'+progress.total:''}`:`${total.toLocaleString()} nhóm tài liệu · Chọn từng bài để luyện tập`);
+            }
             else status(items.length ? (response.data.groups ? `${total.toLocaleString()} contests · ${response.data.problemTotal.toLocaleString()} problems` : `${total.toLocaleString()} ${total === 1 ? 'problem' : 'problems'} · ${names[provider]} · select one to preview${response.data.truncated ? ' · first 1,500 category entries indexed' : ''}`) : 'No matching problems. Try another name, ID or difficulty.');
         } catch (error) {
             if (revision !== listRevision) return;
@@ -187,7 +191,7 @@ window.ProblemBrowser = (() => {
         }
         return doc.body.innerHTML;
     }
-    async function select(item, button) {
+    async function select(item, button, language='vi') {
         $('oj-statement').dataset.provider=item.provider;
         const revision = ++detailRevision;
         selected = null; $('oj-start').disabled = true;
@@ -207,15 +211,19 @@ window.ProblemBrowser = (() => {
             return;
         }
         try {
-            const response = await window.electronAPI.ojProblemDetail({ provider: item.provider, id: item.id });
+            const response = await window.electronAPI.ojProblemDetail({ provider: item.provider, id: item.id,language });
             if (revision !== detailRevision) return;
             if (!response.ok) throw new Error(response.error);
             const detail = response.data;
+            $('oj-open-official').hidden=!!detail.source?.id?.startsWith('local-');
+            if(detail.source?.id?.startsWith('local-'))$('oj-language').value='cpp';
             if(!detail.html&&!detail.children?.length&&!detail.paid)throw Error(
                 detail.provider==='codeforces'&&/403|verification/i.test(detail.sourceError||'')
                     ? 'Codeforces đang từ chối tải đề (HTTP 403). Chưa có nội dung để làm bài. Bạn có thể thử tải lại hoặc mở trang gốc.'
                     : detail.sourceError||'Chưa tải được nội dung đề bài. Hãy thử tải lại.');
             $('oj-problem-title').textContent=detail.title||item.title;
+            $('oj-source-page')?.remove();
+            if(detail.courseId&&detail.source){const source=document.createElement('button');source.type='button';source.id='oj-source-page';source.dataset.i18nPreserve='';const prefix=detail.language==='en'?'p. ':'Tr. ';source.textContent=detail.source.firstPage===detail.source.lastPage?prefix+detail.source.firstPage:prefix+detail.source.firstPage+'–'+detail.source.lastPage;source.title=detail.language==='en'?'Open original book page':'Mở trang sách gốc';source.onclick=()=>{$('oj-browser').close();window.BookCourses?.openAt(detail.courseId,detail.source.firstPage);};$('oj-problem-title').after(source);}
             if(detail.children?.length){
                 selected=null;$('oj-start').disabled=true;$('oj-problem-note').textContent=detail.note;$('oj-statement').replaceChildren();
                 const collectionTitle=detail.title;
@@ -238,6 +246,15 @@ window.ProblemBrowser = (() => {
             $('oj-problem-note').textContent = detail.paid ? 'This problem is locked or Premium. Open it on the official website with your own account.' : detail.note;
             if(html!==sourceHtml||detail.englishGenerated)$('oj-problem-note').textContent+=' · Bản tiếng Anh được dịch từ nguồn tiếng Nga.';
             $('oj-statement').innerHTML = html;
+            for(const box of $('oj-statement').querySelectorAll('.sample-test .input,.sample-test .output')){
+                const heading=box.querySelector('.title'),pre=box.querySelector('pre');if(!heading||!pre)continue;
+                const copy=document.createElement('button');copy.type='button';copy.className='sample-copy';copy.textContent='Copy';copy.setAttribute('aria-label','Copy '+heading.textContent);
+                copy.onclick=async()=>{try{await navigator.clipboard.writeText(pre.textContent);copy.textContent=detail.language==='en'?'Copied':'Đã chép';setTimeout(()=>{if(copy.isConnected)copy.textContent='Copy';},1200);}catch{showToast('Không sao chép được. Bạn có thể chọn nội dung trong ô.','error');}};heading.append(copy);
+            }
+            if(detail.referenceAnswer&&!detail.adapted){
+                const reveal=document.createElement('button');reveal.type='button';reveal.className='action-btn';reveal.textContent='Bí rồi — xem lời giải tham khảo';reveal.onclick=()=>{const pre=document.createElement('pre');pre.textContent=detail.referenceAnswer;reveal.replaceWith(pre);};$('oj-statement').append(reveal);
+            }
+            window.BookStudyUI?.problem(detail,item,nextLanguage=>select(item,button,nextLanguage));
             let savedVietnamese=detail.savedVietnamese;
             if(savedVietnamese&&item.provider==='codeforces')savedVietnamese=await safeStatement('<div class="problem-statement">'+savedVietnamese+'</div>','codeforces');
             else if(savedVietnamese)savedVietnamese=await safeStatement(savedVietnamese,item.provider);
@@ -250,7 +267,7 @@ window.ProblemBrowser = (() => {
             if (revision !== detailRevision) return;
             $('oj-problem-note').textContent = error.message;
             selected = { ...item, previewFailed: true };
-            const retry=document.createElement('button');retry.type='button';retry.className='action-btn';retry.textContent='Thử tải lại đề';retry.onclick=()=>select(item,button);$('oj-statement').replaceChildren(retry);
+            const retry=document.createElement('button');retry.type='button';retry.dataset.action='retry-statement';retry.className='action-btn';retry.textContent='Thử tải lại đề';retry.onclick=()=>select(item,button);$('oj-statement').replaceChildren(retry);
         } finally {
             if(revision===detailRevision)$('oj-statement').setAttribute('aria-busy','false');
         }
@@ -351,7 +368,7 @@ window.ProblemBrowser = (() => {
                 FileExplorer.saveCategoriesForFolder(FileExplorer.currentFolder);
                 if(FileExplorer.contestFolder&&FileExplorer.contestMeta)await FileExplorer.saveContestMeta(FileExplorer.contestFolder,FileExplorer.contestMeta);
                 FileExplorer.leaveContest();
-                const result=await electronAPI.ojContestWorkspace({contestId:Number(match[1]),index:match[2].toUpperCase(),extension,starter:code});
+                const result=await electronAPI.ojContestWorkspace({contestId:Number(match[1]),index:match[2].toUpperCase(),extension,starter:code,kind:$('oj-view').value==='contests'?'contest':'problem'});
                 if(!result.ok)throw Error(result.error);
                 filePath=result.data.entry;const folder=result.data.folder;
                 FileExplorer.currentFolder=folder;FileExplorer.filterText='';
@@ -363,8 +380,11 @@ window.ProblemBrowser = (() => {
             await handleProblemReceived({
                 name: `${names[detail.provider]} ${detail.number || detail.id} - ${detail.title}`,
                 url: detail.url, group: names[detail.provider], tests,
-                sourcePlatform: detail.provider, problemId:detail.id,contestId:detail.contestId,solutionMode: detail.mode, functionMetadata: detail.metadata
+                sourcePlatform: detail.provider, problemId:detail.id,contestId:detail.contestId,solutionMode: detail.mode, functionMetadata: detail.metadata,verifiedTests:detail.adapted===true,courseId:detail.courseId,chapterId:detail.chapterId,sourcePage:detail.source?.firstPage,statementLanguage:detail.language,
+                tags:detail.tags||[],statementHtml:detail.html||'',statementVi:detail.savedVietnamese||''
             }, { newTab: true, starter: code, extension, filePath });
+            window.CodingWorkspace?.cache(App.tabs.find(t=>t.id===getPreferredTabId())?.testState?.problem,detail);
+            window.CodingWorkspace?.open('statement');
             localStorage.setItem('sameko-oj-provider', detail.provider);
             $('oj-browser').close();
             if (detail.mode === 'function') showToast(`${tests.length} sample tests loaded. C++/Python: press Run to test your function.`, 'info');
@@ -435,6 +455,6 @@ window.ProblemBrowser = (() => {
         $('oj-statement').onclick = event => { if (event.target.closest('a')) event.preventDefault(); };
         pagination();
     }
-    async function openLibrary(id){$('oj-provider').value='28tech';$('oj-search').value='';pinnedLibraryId=id;try{open();await load(0);if(items[0])await select(items[0],$('oj-results').querySelector('.oj-result'));}finally{pinnedLibraryId=null;}}
+    async function openLibrary(id, language='vi'){$('oj-provider').value='28tech';$('oj-search').value='';pinnedLibraryId=id;try{open();await load(0);if(items[0])await select(items[0],$('oj-results').querySelector('.oj-result'),language);}finally{pinnedLibraryId=null;}}
     return { init, open, openLibrary, sampleTests, starter, safeStatement, formatMath };
 })();

@@ -1,0 +1,62 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),{_electron}=require('playwright-core');
+const ROOT=path.resolve(__dirname,'../..');let app;
+(async()=>{
+ const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
+ app=await _electron.launch({executablePath:require('electron'),args:[ROOT,'--user-data-dir='+fs.mkdtempSync(path.join(os.tmpdir(),'semeko-account-usability-'))],env,cwd:ROOT});
+ let page;for(let i=0;i<300;i++){page=app.windows().find(p=>p.url().includes('index.html'));if(page)break;await new Promise(r=>setTimeout(r,100));}await page.waitForFunction(()=>window.App?.ready);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await app.evaluate(()=>{
+  globalThis.accountUsability={configured:true,github:{id:7,login:'gui-user'},links:{codeforces:{handle:'PublicCF',rating:1800,rank:'expert'},leetcode:{handle:'PublicLC',solved:0}},official:{connections:{codeforces:{handle:'VerifiedCF',transport:'bridge',connected:true},leetcode:{handle:'VerifiedLC',transport:'bridge',connected:false}},history:[]}};
+  const service=process.mainModule.require('./app/services/accounts'),official=process.mainModule.require('./app/services/official-submissions');
+  service.info=()=>globalThis.accountUsability;
+  service.link=async(provider,handle)=>{globalThis.accountUsability.links[provider]={handle};return globalThis.accountUsability;};
+  official.login=async provider=>{globalThis.connectedPlatform=provider;return{opened:true,bridge:true};};
+  official.logout=async provider=>{delete globalThis.accountUsability.official.connections[provider];return globalThis.accountUsability.official;};
+ });
+ await page.locator('#btn-account').click();
+ assert(await page.locator('#account-cancel-submit').isHidden(),'Cancel pending submit is hidden when no submission is queued');
+ const cf=page.locator('.account-connection-card[data-provider="codeforces"]'),lc=page.locator('.account-connection-card[data-provider="leetcode"]');
+ assert.strictEqual(await cf.getAttribute('data-state'),'connected');assert.strictEqual(await lc.getAttribute('data-state'),'interrupted');
+ assert(await cf.locator('[data-action="connect"]').isDisabled());assert(await lc.locator('[data-action="connect"]').isEnabled());
+ assert.strictEqual(await cf.locator('.account-platform-identity').textContent(),'VerifiedCF');assert.strictEqual(await lc.locator('.account-platform-identity').textContent(),'VerifiedLC');
+ assert.strictEqual(await cf.locator('[data-action="public-profile"]').evaluate(el=>el.open),false);assert(await cf.locator('input').isHidden());
+ fs.mkdirSync(path.join(ROOT,'plans/artifacts/gui'),{recursive:true});
+ await page.evaluate(()=>{App.settings.appearance.language='vi';UILanguage.apply();});
+ await page.screenshot({path:path.join(ROOT,'plans/artifacts/gui/account-usability.png')});
+ await page.evaluate(()=>{App.settings.appearance.language='en';UILanguage.apply();});
+ await cf.locator('summary').focus();await page.keyboard.press('Enter');assert(await cf.locator('input').isVisible());
+ await cf.locator('input').fill('NewPublicCF');await cf.getByRole('button',{name:'Link profile',exact:true}).click();
+ assert.strictEqual(await app.evaluate(()=>globalThis.accountUsability.links.codeforces.handle),'NewPublicCF');
+ assert.strictEqual(await page.locator('.account-connection-card[data-provider="codeforces"] .account-platform-identity').textContent(),'VerifiedCF','Public profile must not replace the submission identity');
+ assert(await cf.locator('input').isVisible(),'Linking a profile keeps its controls expanded');
+ assert.strictEqual(await cf.locator('[data-action="link-profile"]').evaluate(el=>el===document.activeElement),true,'Focus survives the account refresh');
+ const indicator=page.locator('#btn-account');assert.strictEqual(await indicator.getAttribute('data-connection'),'connected');assert((await indicator.getAttribute('title')).includes('CF: VerifiedCF'));assert((await indicator.getAttribute('title')).includes('LC: VerifiedLC'));
+ const iconWidth=await indicator.evaluate(el=>el.getBoundingClientRect().width);assert(iconWidth<=32,'Account status must not consume tab-strip width');
+ await lc.locator('[data-action="connect"]').click();assert.strictEqual(await app.evaluate(()=>globalThis.connectedPlatform),'leetcode');
+ await page.locator('.account-connection-card[data-provider="codeforces"] [data-action="disconnect"]').click();assert.strictEqual(await indicator.getAttribute('data-connection'),'interrupted');
+ const disconnected=page.locator('.account-connection-card[data-provider="codeforces"]');assert.strictEqual(await disconnected.getAttribute('data-state'),'disconnected');assert(await disconnected.locator('[data-action="connect"]').isEnabled());assert.strictEqual(await disconnected.locator('[data-action="disconnect"]').count(),0);
+ await app.evaluate(()=>{delete globalThis.accountUsability.official.connections.leetcode;});await page.evaluate(()=>SemekoAccounts.open());assert.strictEqual(await indicator.getAttribute('data-connection'),'disconnected');
+ await page.evaluate(()=>{App.settings.appearance.language='vi';UILanguage.apply();});
+ assert.strictEqual(await cf.locator('[data-action="connect"]').getAttribute('aria-label'),'Kết nối Codeforces');
+ await page.evaluate(()=>{App.settings.appearance.language='en';UILanguage.apply();});
+ assert.strictEqual(await cf.locator('[data-action="connect"]').getAttribute('aria-label'),'Connect Codeforces');
+ await page.evaluate(()=>{App.settings.appearance.language='vi';UILanguage.apply();});
+ const snapshots=[];
+ for(const [width,height,zoom]of [[1000,720,1],[760,520,1],[950,650,1.25]]){
+  await app.evaluate(({BrowserWindow},{width,height,zoom})=>{const w=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'));w.setMinimumSize(700,500);w.setContentSize(width,height);w.webContents.setZoomFactor(zoom);},{width,height,zoom});
+  await page.waitForFunction(({width,height,zoom})=>Math.abs(innerWidth-width/zoom)<2&&Math.abs(innerHeight-height/zoom)<2,{width,height,zoom});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await page.waitForTimeout(150);
+  await cf.locator('[data-action="public-profile"]').evaluate(el=>el.open=false);
+  await page.locator('.account-connection-card[data-provider="codeforces"] summary').click();
+  const geometry=await page.evaluate(()=>{const d=document.getElementById('semeko-accounts'),r=d.getBoundingClientRect();return{viewport:[innerWidth,innerHeight],dialog:[r.left,r.top,r.right,r.bottom],overflow:d.scrollWidth>d.clientWidth+1,outside:[...d.querySelectorAll('button,input,summary')].filter(el=>el.getClientRects().length).map(el=>({id:el.id||el.dataset.action||el.tagName,...{left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right}})).filter(el=>el.left<r.left-1||el.right>r.right+1)};});
+  assert(!geometry.overflow,JSON.stringify(geometry));assert.deepStrictEqual(geometry.outside,[],JSON.stringify(geometry));assert(geometry.dialog[0]>=0&&geometry.dialog[2]<=geometry.viewport[0]+1&&geometry.dialog[3]<=geometry.viewport[1]+1,JSON.stringify(geometry));snapshots.push({width,height,zoom,...geometry});
+  await page.locator('.account-connection-card[data-provider="codeforces"] summary').click();
+ }
+ await page.waitForTimeout(200);await app.evaluate(async({BrowserWindow},output)=>{
+  const w=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'));
+  const image=await w.webContents.capturePage();process.mainModule.require('fs').writeFileSync(output,image.toPNG());
+ },path.join(ROOT,'plans/artifacts/gui/account-usability-small.png'));
+ await page.keyboard.press('Escape');assert.strictEqual(await page.locator('#semeko-accounts').evaluate(el=>el.open),false);assert.deepStrictEqual(errors,[]);
+ console.log('PASS account cards: primary connection states, isolated public profile controls, compact status icon, keyboard details, 3 narrow/zoom layouts and Escape (simulated accounts)',JSON.stringify(snapshots));
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(app)await app.close();});

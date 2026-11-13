@@ -1,0 +1,20 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path'),http=require('http'),Module=require('module');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-chrome-test-')),original=Module._load;
+Module._load=function(name,...args){if(name==='electron')return{app:{getPath:()=>root}};return original.call(this,name,...args);};
+const chrome=require('../../app/services/platform-chrome');Module._load=original;
+let server,browser;
+(async()=>{
+ assert.throws(()=>chrome.profile('../default'));
+ server=http.createServer((req,res)=>res.end('Semeko test only'));
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
+ const win=await chrome.open('987654321','leetcode',url);browser=win.page.context().browser();
+ await win.page.context().addCookies([{name:'semeko_test_session',value:'persisted',url,expires:Math.floor(Date.now()/1000)+3600}]);
+ assert.throws(()=>win.webContents.executeJavaScript('document.cookie'),/official|nền tảng/);
+ const cdp=await win.page.context().newCDPSession(win.page);await cdp.send('Browser.close').catch(()=>{});
+ await new Promise(r=>setTimeout(r,1500));
+ const reopened=await chrome.open('987654321','leetcode',url);browser=reopened.page.context().browser();
+ assert((await reopened.page.context().cookies(url)).some(c=>c.name==='semeko_test_session'&&c.value==='persisted'));
+ console.log('PASS real installed Chrome opens, owned profile retains session across browser restart, foreign origin script blocked');
+ const close=await reopened.page.context().newCDPSession(reopened.page);await close.send('Browser.close').catch(()=>{});browser=null;
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close().catch(()=>{});server?.close();});

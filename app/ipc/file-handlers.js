@@ -15,6 +15,16 @@ const { writeFileAtomic } = require('../shared/fs-atomic');
 const { translate, dialogOptions } = require('../shared/ui-language');
 
 let mainWindow = null;
+// Serialize editor writes and path mutations in invocation order. An atomic
+// save must finish before a rename/delete, or its final rename can recreate
+// the old pathname after the operation has reported success.
+let mutationTail = Promise.resolve();
+function serializeMutation(work) {
+    const result = mutationTail.then(work);
+    mutationTail = result.catch(() => {});
+    return result;
+}
+const orderedHandler = handler => (...args) => serializeMutation(() => handler(...args));
 
 // Monaco becomes unusable well before this; refuse instead of freezing the window.
 const MAX_OPEN_BYTES = 16 * 1024 * 1024;
@@ -93,6 +103,9 @@ function decodeText(buf) {
 }
 
 async function writeTextFile(filePath, content) {
+    return serializeMutation(() => writeTextFileNow(filePath, content));
+}
+async function writeTextFileNow(filePath, content) {
     await fsp.mkdir(path.dirname(filePath), { recursive: true });
     // The save replaces the file (temp file + rename), which fs.watch reports as a
     // change or a rename while it happens, so it would read as an external edit and
@@ -347,16 +360,25 @@ function registerHandlers() {
         }
     });
 
-    ipcMain.handle(IPC.FILE.DELETE, async (event, filePath) => {
+    ipcMain.handle('missing-files', async (_event, paths) => {
+        if (!Array.isArray(paths) || paths.length > 100 || paths.some(p => typeof p !== 'string' || !path.isAbsolute(p))) throw new Error('Invalid file paths');
+        const results = await Promise.all(paths.map(async p => {
+            try { await fsp.stat(p); return null; }
+            catch (e) { return ['ENOENT', 'ENOTDIR'].includes(e.code) ? p : null; }
+        }));
+        return results.filter(Boolean);
+    });
+
+    ipcMain.handle(IPC.FILE.DELETE, orderedHandler(async (event, filePath) => {
         try {
             await fsp.unlink(filePath);
             return { success: true };
         } catch (error) {
             throw new Error(`Cannot delete file: ${error.message}`);
         }
-    });
+    }));
 
-    ipcMain.handle(IPC.FILE.RENAME, async (event, { oldPath, newPath }) => {
+    ipcMain.handle(IPC.FILE.RENAME, orderedHandler(async (event, { oldPath, newPath }) => {
         // On Windows rename() silently replaces an existing file. A change of case only
         // (main.cpp -> Main.cpp) is the same file there and is allowed.
         const fold = (p) => (process.platform === 'linux' ? path.resolve(p) : path.resolve(p).toLowerCase());
@@ -375,11 +397,11 @@ function registerHandlers() {
         await (isDir ? moveFolderHistory(oldPath, newPath) : require('./history-handlers').moveFileHistory(oldPath, newPath))
             .catch((error) => console.warn('[rename] local history not moved:', error.message));
         return { success: true };
-    });
+    }));
 
     // Copy and move never replace an existing file unless the renderer asked the
     // user first and passes `overwrite`; a refusal comes back as { exists: true }.
-    ipcMain.handle('copy-file', async (event, { src, dest, overwrite }) => {
+    ipcMain.handle('copy-file', orderedHandler(async (event, { src, dest, overwrite }) => {
         if (samePath(src, dest)) return { success: false, error: 'Source and destination are the same file' };
         try {
             await fsp.copyFile(src, dest, overwrite ? 0 : fs.constants.COPYFILE_EXCL);
@@ -388,9 +410,9 @@ function registerHandlers() {
             if (error.code === 'EEXIST') return { success: false, exists: true, error: `"${path.basename(dest)}" already exists` };
             throw new Error(`Cannot copy file: ${error.message}`);
         }
-    });
+    }));
 
-    ipcMain.handle('move-file', async (event, { src, dest, overwrite }) => {
+    ipcMain.handle('move-file', orderedHandler(async (event, { src, dest, overwrite }) => {
         // A change of case only (a.cpp -> A.cpp) is the same file on Windows/macOS.
         if (!samePath(src, dest) && !overwrite && await fileExists(dest)) {
             return { success: false, exists: true, error: `"${path.basename(dest)}" already exists` };
@@ -412,16 +434,16 @@ function registerHandlers() {
         await (isFile ? require('./history-handlers').moveFileHistory(src, dest) : moveFolderHistory(src, dest))
             .catch((error) => console.warn('[move] local history not moved:', error.message));
         return { success: true };
-    });
+    }));
 
-    ipcMain.handle('delete-folder', async (event, folderPath) => {
+    ipcMain.handle('delete-folder', orderedHandler(async (event, folderPath) => {
         try {
             await fsp.rm(folderPath, { recursive: true, force: true });
             return { success: true };
         } catch (error) {
             throw new Error(`Cannot delete folder: ${error.message}`);
         }
-    });
+    }));
 
     ipcMain.handle('create-directory', async (event, dirPath) => {
         try {

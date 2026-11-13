@@ -821,6 +821,9 @@ async function run({ exePath, cwd }) {
 
     const child = runningProcess;
     const pid = child.pid;
+    // Early exit, EOF or Stop can race with typed/file input. A closed stdin
+    // emits EPIPE asynchronously; it must never crash the main process.
+    child.stdin.on('error', () => { });
 
     // Memory polling. Windows: `tasklist` (instantaneous working set, so we
     // keep the running max). Linux: /proc/<pid>/status VmHWM, which IS the
@@ -990,9 +993,12 @@ async function run({ exePath, cwd }) {
  * @returns {{success: boolean, error?: string}}
  */
 function sendInput(input) {
-    if (runningProcess && runningProcess.stdin && !runningProcess.stdin.destroyed) {
-        runningProcess.stdin.write(input + '\n');
-        return { success: true };
+    const child = runningProcess;
+    if (child?.stdin && !child.stdin.destroyed && !child.stdin.writableEnded && child.exitCode === null) {
+        try {
+            child.stdin.write(input + '\n');
+            return { success: true };
+        } catch (error) { return { success: false, error: error.message }; }
     }
     return { success: false, error: 'No running process' };
 }
@@ -1005,22 +1011,35 @@ function sendInput(input) {
  */
 function sendInputFile(filePath) {
     const child = runningProcess;
-    if (!child || !child.stdin || child.stdin.destroyed) {
+    if (!child || !child.stdin || child.stdin.destroyed || child.stdin.writableEnded || child.exitCode !== null) {
         return Promise.resolve({ success: false, error: 'No running process' });
     }
     return new Promise((resolve) => {
         let bytes = 0;
         let last = 0x0a;
         const stream = fs.createReadStream(filePath);
+        let settled = false;
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            child.stdin.removeListener('close', stopped);
+            child.stdin.removeListener('error', stopped);
+            child.removeListener('close', stopped);
+            stream.unpipe(child.stdin);
+            stream.destroy();
+            resolve(result);
+        };
+        const stopped = () => finish({ success: false, error: 'Program stopped before input was fully sent' });
         stream.on('data', (chunk) => { bytes += chunk.length; last = chunk[chunk.length - 1]; });
-        stream.on('error', (err) => resolve({ success: false, error: err.message }));
+        stream.on('error', (err) => finish({ success: false, error: err.message }));
         stream.on('end', () => {
             // Like typed input, the last line ends with a newline.
-            if (last !== 0x0a && !child.stdin.destroyed) child.stdin.write('\n');
-            resolve({ success: true, bytes });
+            if (last !== 0x0a && !child.stdin.destroyed && !child.stdin.writableEnded) child.stdin.write('\n');
+            finish({ success: true, bytes });
         });
-        // The program may exit before reading everything; that is not an error.
-        child.stdin.once('error', () => { });
+        child.stdin.once('close', stopped);
+        child.stdin.once('error', stopped);
+        child.once('close', stopped);
         stream.pipe(child.stdin, { end: false });
     });
 }

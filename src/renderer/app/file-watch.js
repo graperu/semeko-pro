@@ -94,8 +94,21 @@ function showReloadNotification(tab) {
     notification.querySelector('.reload-btn-yes').onclick = async () => {
         const tab = tabForPath(filePath);
         if (!tab) { dismissReloadNotification(filePath); return; }
-        const result = await window.electronAPI?.reloadFile?.(tab.path);
-        if (result?.success && App.tabs.includes(tab)) {
+        const button = notification.querySelector('.reload-btn-yes');
+        if (button.disabled) return;
+        button.disabled = true;
+        const model = tab.model, version = model?.getVersionId(), text = tab.content;
+        let result;
+        try { result = await window.electronAPI?.reloadFile?.(filePath); }
+        catch (_) { result = null; }
+        button.disabled = false;
+        if (!App.tabs.includes(tab) || pathKey(tab.path) !== key) { dismissReloadNotification(filePath); return; }
+        // New edits typed while disk I/O was pending were never part of the reload decision.
+        if (tab.model !== model || (model && model.getVersionId() !== version) || tab.content !== text) {
+            showToast('Nội dung vừa thay đổi trong lúc tải lại. Đã giữ bản đang soạn; bấm Tải lại lần nữa nếu muốn bỏ các thay đổi.', 'warning');
+            return;
+        }
+        if (result?.success) {
             const pos1 = (tab.id === App.activeTabId && App.editor) ? App.editor.getPosition() : null;
             const pos2 = (tab.id === App.splitTabId && App.editor2) ? App.editor2.getPosition() : null;
 
@@ -107,7 +120,11 @@ function showReloadNotification(tab) {
             if (pos2) App.editor2.setPosition(pos2);
 
             renderTabs();
+            scheduleSessionSave();
             log(`Reloaded: ${tab.name}`, 'system');
+        } else {
+            showToast('Không thể tải lại tệp. Bản đang soạn vẫn được giữ nguyên.', 'error');
+            return;
         }
         dismissReloadNotification(filePath);
     };

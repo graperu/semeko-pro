@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),{_electron}=require('playwright-core');
+const ROOT=path.resolve(__dirname,'../..');let app;
+(async()=>{const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:require('electron'),args:[ROOT,'--user-data-dir='+fs.mkdtempSync(path.join(os.tmpdir(),'semeko-settings-layout-'))],env,cwd:ROOT});let page;for(let i=0;i<300;i++){page=app.windows().find(p=>p.url().includes('index.html'));if(page)break;await new Promise(r=>setTimeout(r,100));}await page.waitForFunction(()=>window.App?.ready);await page.evaluate(()=>{App.settings.appearance.language='vi';UILanguage.apply();openSettings();});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));const findings=[];
+for(const [width,height,factor] of [[1000,720,1],[760,520,1],[950,650,1.25]]){await app.evaluate(({BrowserWindow},{width,height,factor})=>{const w=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'));w.setMinimumSize(700,500);w.setSize(width,height);w.webContents.setZoomFactor(factor);},{width,height,factor});
+ for(const section of ['editor','compiler','languages','execution','appearance','template','keybindings','snippets','discord','about']){
+  const tab=page.locator('.settings-tab[data-tab="'+section+'"]');if(!await tab.count())continue;await tab.click();if(section==='compiler')await page.evaluate(()=>syncCompilerSettingsLanguage('java'));
+  const popup=await page.evaluate(()=>{const p=document.getElementById('settings-popup'),r=p.getBoundingClientRect(),s=getComputedStyle(p);return{viewport:[innerWidth,innerHeight],rect:[r.left,r.top,r.right,r.bottom],width:s.width,minWidth:s.minWidth,maxWidth:s.maxWidth,transform:s.transform};});if(popup.rect[2]>popup.viewport[0]+1||popup.rect[3]>popup.viewport[1]+1)findings.push({width,height,factor,section,popup});
+  const overflow=await page.evaluate(()=>{const content=document.querySelector('#settings-popup .settings-content'),box=content.getBoundingClientRect();return [...content.querySelectorAll('button,input,select,textarea')].filter(n=>n.getClientRects().length&&!n.closest('.monaco-editor')).map(n=>({id:n.id||n.className,left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right,limit:box.right})).filter(n=>n.right>box.right+1||n.left<box.left-1);});
+  findings.push(...overflow.map(o=>({width,height,factor,section,...o})));
+ }
+}
+await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().includes('index.html'));w.webContents.setZoomFactor(1);w.setSize(760,520);});await page.locator('.settings-tab[data-tab="compiler"]').click();await page.evaluate(()=>syncCompilerSettingsLanguage('py'));fs.mkdirSync(path.join(ROOT,'plans/artifacts/gui'),{recursive:true});await page.screenshot({path:path.join(ROOT,'plans/artifacts/gui/settings-minimum-window.png')});
+console.log(JSON.stringify(findings,null,2));assert.deepStrictEqual(findings,[],'Settings controls must remain inside scrollable content');assert.deepStrictEqual(errors,[]);console.log('PASS Vietnamese Settings controls at 1000x720, minimum 760x520, and minimum with 125% scale');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(app)await app.close();});

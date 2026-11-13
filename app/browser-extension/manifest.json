@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Semeko Session Bridge",
+  "version": "1.2.0",
+  "description": "Kết nối Codeforces/LeetCode đang đăng nhập trên Chrome với Semeko; không xuất cookie hoặc mật khẩu.",
+  "permissions": [
+    "scripting",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://codeforces.com/*",
+    "https://leetcode.com/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1/*"
+      ],
+      "js": [
+        "connect.js"
+      ]
+    }
+  ]
+}

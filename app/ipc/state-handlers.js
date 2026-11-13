@@ -44,6 +44,7 @@ async function readState(name) {
     try {
         return JSON.parse(await fsp.readFile(file, 'utf-8'));
     } catch (error) {
+        if(['session','practice-library','practice-exam'].includes(name))try{return JSON.parse(await fsp.readFile(file+'.bak','utf-8'));}catch{}
         if (error.code !== 'ENOENT') console.error(`[State] Failed to read ${name}:`, error.message);
         return null;
     }
@@ -65,6 +66,7 @@ function commitState(file, tmp, seq) {
         fs.rmSync(tmp, { force: true });
         return;
     }
+    if(/(?:session|practice-library|practice-exam)\.json$/.test(file))try{JSON.parse(fs.readFileSync(file,'utf-8'));fs.copyFileSync(file,file+'.bak');}catch{}
     fs.renameSync(tmp, file);
     committedSeq.set(file, seq);
 }
@@ -95,6 +97,7 @@ function deleteState(name) {
     const file = fileFor(name);
     committedSeq.set(file, ++writeSeq);
     fs.rmSync(file, { force: true });
+    fs.rmSync(file+'.bak', { force: true });
 }
 
 /**

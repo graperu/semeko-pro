@@ -253,7 +253,7 @@ async function runAllTests() {
                     timeLimit: timeLimit,
                     cwd: sourceDir,
                     debug: true,
-                    testMeta: { index: i, name: `Test ${i + 1}` }
+                    testMeta: { index: i, name: `Test ${i + 1}`, expectedPresent: problem.verifiedTests===true }
                 });
                 result.testIndex = i;
                 result.testName = `Test ${i + 1}`;
@@ -287,7 +287,7 @@ async function runAllTests() {
                     timeLimit: timeLimit,
                     cwd: sourceDir,
                     debug: true,
-                    testMeta: { index: i, name: `Test ${i + 1}` }
+                    testMeta: { index: i, name: `Test ${i + 1}`, expectedPresent: problem.verifiedTests===true }
                 });
                 again.testIndex = i;
                 again.testName = `Test ${i + 1}`;
@@ -429,7 +429,7 @@ async function runSingleTestByIndex(testIndex) {
             timeLimit: timeLimit,
             cwd: sourceDir,
             debug: true,
-            testMeta: { index: testIndex, name: `Test ${testIndex + 1}` }
+            testMeta: { index: testIndex, name: `Test ${testIndex + 1}`, expectedPresent: problem.verifiedTests===true }
         });
 
         result.testIndex = testIndex;
@@ -474,6 +474,7 @@ async function runSingleTestByIndex(testIndex) {
 }
 
 function renderTestResults() {
+    window.CodingWorkspace?.testsChanged();
     const container = document.getElementById('tests-results-list');
     const countEl = document.getElementById('test-results-count');
     const problemsPanel = document.getElementById('problems-panel');

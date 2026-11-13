@@ -446,7 +446,10 @@ function clearProblems(tabId = null) {
 async function revealProblem(p) {
     const key = p.file ? pathKey(p.file) : '';
     let tab = key ? App.tabs.find(t => t.path && pathKey(t.path) === key) : null;
-    if (!tab && p.file && /^(?:[a-zA-Z]:[\\/]|[\\/])/.test(p.file) && !/[\\/]temp_code(?:-[\w-]+)?\.cpp$/i.test(p.file)) {
+    const owner=App.tabs.find(t=>t.id===App.problemsTabId);
+    const generated=/[\\/]temp_code(?:-[\w-]+)?\.(?:cpp|c)$/i.test(p.file||'')||(!owner?.path&&/[\\/]sameko-languages[\\/][a-f\d]{24}[\\/]/i.test(p.file||''));
+    if(!tab&&generated&&owner)tab=owner;
+    if (!tab && p.file && /^(?:[a-zA-Z]:[\\/]|[\\/])/.test(p.file) && !generated) {
         // A header the problem is in, not open yet.
         await openFileFromPath(p.file);
         tab = App.tabs.find(t => t.path && pathKey(t.path) === key) || null;
@@ -462,16 +465,17 @@ async function revealProblem(p) {
         editor = getActiveEditor();
     }
     if (!editor || editor.getModel() !== tab.model) return;
-    const line = Math.max(1, Number(p.line) || 1);
-    const column = Math.max(1, Number(p.col) || 1);
+    const line = Math.min(editor.getModel().getLineCount(),Math.max(1, Number(p.line) || 1));
+    const column = Math.min(editor.getModel().getLineMaxColumn(line),Math.max(1, Number(p.col) || 1));
     editor.revealLineInCenter(line);
     editor.setPosition({ lineNumber: line, column });
     editor.focus();
 }
 
 function parseProblems(text, type) {
+    text=String(text||'').replace(/\r\n?/g,'\n');
     const lines = text.split('\n');
-    const regex = /(.+):(\d+):(\d+):\s*(error|warning):\s*(.+)/;
+    const regex = /(.+):(\d+):(\d+):\s*(fatal error|error|warning):\s*(.+)/;
 
     lines.forEach(line => {
         const m = line.match(regex);
@@ -480,7 +484,7 @@ function parseProblems(text, type) {
                 file: m[1],
                 line: parseInt(m[2]),
                 col: parseInt(m[3]),
-                type: m[4],
+                type: m[4]==='fatal error'?'error':m[4],
                 message: m[5]
             });
         }
@@ -530,6 +534,10 @@ function renderProblems() {
       <span class="problem-message">${escHtml(p.message)}</span>
       <span class="problem-location" style="margin-left:auto;opacity:0.7;color:var(--text-secondary)">${escHtml(String(p.file || '').split(/[/\\]/).pop())}:${Number(p.line) || 0}</span>`;
         el.onclick = () => { revealProblem(p); };
+        el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label',p.message+' · '+(Number(p.line)||1));
+        el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();void revealProblem(p);}};
+        const message=el.querySelector('.problem-message'),wrap=document.createElement('span');wrap.className='problem-message-wrap';message.replaceWith(wrap);wrap.append(message);
+        if(window.CodingWorkspace){const explanation=document.createElement('small');explanation.className='problem-explanation';explanation.textContent=CodingWorkspace.explain(p.message);wrap.append(explanation);}
         list.appendChild(el);
     });
 }

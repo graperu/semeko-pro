@@ -246,6 +246,7 @@ function createMainWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
+            sandbox: true,
             // Chromium's spellchecker is on by default and would underline
             // identifiers typed in the app's text fields; it also costs memory.
             spellcheck: false,

@@ -903,6 +903,31 @@ Close|Đóng
 Colors of the C++ code in the editor. ↺ on a row puts that color back.|Màu mã C++ trong vùng soạn thảo. Bấm ↺ trên mỗi dòng để khôi phục màu.
 Images, videos and their effects. Undo and Reset restore them too.|Hình ảnh, video và hiệu ứng. Hoàn tác và Khôi phục cũng áp dụng cho các mục này.
 Base theme, import, export and the theme JSON. Ctrl+Enter applies the JSON.|Chủ đề gốc, nhập, xuất và dữ liệu JSON của chủ đề. Nhấn Ctrl+Enter để áp dụng JSON.
+
+Connect|Kết nối
+Reconnect|Kết nối lại
+Connected|Đã kết nối
+Not connected|Chưa kết nối
+Connection interrupted|Kết nối bị ngắt
+Ready to submit from Semeko|Sẵn sàng nộp bài trong Semeko
+Connect once to submit from the app.|Kết nối một lần để nộp bài ngay trong app.
+Reconnect the browser before submitting.|Kết nối lại trình duyệt trước khi nộp bài.
+Public profile|Hồ sơ công khai
+Public profile statistics are separate from the browser account used to submit.|Thống kê hồ sơ công khai độc lập với tài khoản trình duyệt dùng để nộp bài.
+Disconnect|Ngắt kết nối
+Account connections|Kết nối tài khoản
+Connect Codeforces or LeetCode once, then submit your current solution from Semeko.|Kết nối Codeforces hoặc LeetCode một lần, rồi nộp lời giải đang mở ngay trong Semeko.
+More actions|Thao tác khác
+Submit current file|Nộp tệp đang mở
+Submit the currently open file, not the selected preview problem.|Nộp lời giải của tệp đang mở, không phải đề đang xem trước.
+Write code, run tests and practice in one place.|Viết code, chạy kiểm thử và luyện bài ngay tại đây.
+Keyboard shortcuts|Phím tắt
+Find tab|Tìm tab
+Find tab (Ctrl+P)|Tìm tab (Ctrl+P)
+Pin tab|Ghim tab
+Unpin tab|Bỏ ghim tab
+Reopen closed tab|Mở lại tab vừa đóng
+Loading statement…|Đang tải đề bài…
 `.trim().split('\n').map(line => { const index=line.indexOf('|'); return [line.slice(0,index),line.slice(index+1)]; }));
 if (typeof module === 'object' && module.exports) module.exports = catalog;
 else root.UIVietnamese = catalog;

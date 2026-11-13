@@ -17,6 +17,10 @@ const NEW_FILE_ICON = MENU_ICON('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2
 
 function showTabContextMenu(e, tab) {
     openContextMenu(e, [
+        {label:tab.pinned?'Unpin tab':'Pin tab',icon:NEW_FILE_ICON,action:()=>window.CodingWorkspace?.pin(tab)},
+        {label:'Reopen closed tab',hint:'Ctrl+Shift+T',icon:NEW_FILE_ICON,action:()=>window.CodingWorkspace?.reopenClosed()},
+        {label:'Find tab',hint:'Ctrl+P',icon:NEW_FILE_ICON,action:()=>window.CodingWorkspace?.searchTabs()},
+        {divider:true},
         {
             icon: MENU_ICON('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
             label: 'Rename',

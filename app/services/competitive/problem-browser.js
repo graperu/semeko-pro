@@ -58,6 +58,7 @@ function officialURL(provider, id, track) {
     validate(provider, id);
     if(provider==='hackerrank'&&!id&&['cpp','algorithms','data-structures','mathematics','python','java'].includes(track))return 'https://www.hackerrank.com/domains/'+track;
     if(provider==='28tech'){
+        if(id?.startsWith('local-'))return '';
         const catalog=require('./tech-library').list(),item=catalog.items.find(i=>i.id===id);
         return item?`https://github.com/${catalog.repository}/blob/${catalog.commit}/`+item.path.split('/').map(encodeURIComponent).join('/'):`https://github.com/${catalog.repository}`;
     }
@@ -92,10 +93,13 @@ async function list(options = {}) {
     const difficulty = String(options.difficulty || '').slice(0, 20);
     const page = Math.min(5000, Math.max(0, Number(options.page) || 0)) | 0;
     if(provider==='28tech'){
-        const items=require('./tech-library').list().items.filter(i=>i.ext==='pdf'&&/contest|exercise|bài tập/i.test(i.path)).filter(i=>!search||i.id===search||i.path.toLocaleLowerCase().includes(search.toLocaleLowerCase())).map(i=>({provider,id:i.id,title:require('../../shared/learning-title')(i.name),number:'',difficulty:i.root,tags:[i.group.split('/').slice(-1)[0]],paid:false}));
-        const shown=items.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE),groups=[];
-        for(const item of shown){const name=item.difficulty+' · '+item.tags[0];let group=groups.find(g=>g.name===name);if(!group){group={id:groups.length,name,items:[]};groups.push(group);}item.contestId=group.id;group.items.push(item);}
-        return{items:shown,groups,total:items.length,problemTotal:items.length,page,pageSize:PAGE_SIZE};
+        const imported=require('./local-practice').list();
+        const existing=require('./tech-library').list().items.filter(i=>i.ext==='pdf'&&/contest|exercise|bài tập/i.test(i.path)).map(i=>({provider,id:i.id,title:require('../../shared/learning-title')(i.name),number:'',difficulty:i.root,tags:[i.group.split('/').slice(-1)[0]],paid:false}));
+        const items=[...imported,...existing].filter(i=>!search||i.id===search||`${i.title} ${i.difficulty} ${i.tags.join(' ')}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+        const grouped=new Map();
+        for(const item of items){const name=item.groupTitle||item.difficulty+' · '+item.tags[0];if(!grouped.has(name))grouped.set(name,{id:name,name,items:[]});item.contestId=name;grouped.get(name).items.push(item);}
+        const groups=[...grouped.values()],shown=groups.slice(page*10,(page+1)*10);
+        return{items:shown.flatMap(g=>g.items),groups:shown,total:groups.length,problemTotal:items.length,page,pageSize:10,individualCount:imported.length,reviewProgress:require('./local-practice').progress(),view:'groups'};
     }
     if (provider === 'codeforces') {
         let items = await codeforces();
@@ -156,13 +160,13 @@ async function list(options = {}) {
         .filter(p => !difficulty || (difficulty === 'hard' ? /hard|advanced|expert/i.test(p.difficulty) : p.difficulty.toLowerCase() === difficulty));
     return { items: items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), total: items.length, page, pageSize: PAGE_SIZE, truncated: catalog.items.length < catalog.sourceTotal };
 }
-async function detail(provider, id) {
+async function detail(provider, id, language='vi') {
     if (!id) throw new Error('Select a problem first.');
-    if(provider==='28tech'){validate(provider,id);return require('./tech-library').problem(id);}
+    if(provider==='28tech'){validate(provider,id);if(id.startsWith('local-')){if(language==='en')await require('./book-study').ensureProblem({id});const item=require('./local-practice').detail(id,language);if(!item)throw Error('Không tìm thấy bài tập đã nhập.');return item;}return require('./tech-library').problem(id);}
     const url = officialURL(provider, id);
     try {
         const {app}=require('electron'),fs=require('fs'),path=require('path');
-        const saved=JSON.parse(fs.readFileSync(path.join(app.getPath('userData'),'translated-articles',provider,id+'.json'),'utf8'));
+        const saved=JSON.parse(fs.readFileSync(require('../../shared/content-library').file('translated-articles/'+provider+'/'+id+'.json',path.join(app.getPath('userData'),'translated-articles',provider,id+'.json')),'utf8'));
         const source=typeof saved.original==='string'?saved.original:saved.detail?.html;
         const fingerprint=typeof source==='string'?require('crypto').createHash('sha256').update(source).digest('hex'):'';
         const matchesSource=(!saved.sourceHash||saved.sourceHash===fingerprint)&&(!saved.translatedFromHash||saved.translatedFromHash===fingerprint);

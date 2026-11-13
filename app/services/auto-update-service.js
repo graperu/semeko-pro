@@ -81,14 +81,14 @@ class AutoUpdateService {
     autoUpdater.allowPrerelease = this.wantsPrerelease();
 
     // Auto-download updates in background
-    autoUpdater.autoDownload = true;
+    autoUpdater.autoDownload = process.platform !== 'win32';
 
     // Configure update check
     // Do NOT install silently on quit - require explicit restart
     autoUpdater.autoInstallOnAppQuit = false;
 
-    // Disable ALL signature verification for unsigned builds
-    autoUpdater.verifyUpdateCodeSignature = false;
+    // Reject installers that do not match the signed publisher.
+    autoUpdater.verifyUpdateCodeSignature = true;
 
     // Force disable differential downloads (they require signing)
     autoUpdater.disableDifferentialDownload = true;
@@ -96,18 +96,8 @@ class AutoUpdateService {
     // Disable web installer differential downloads
     autoUpdater.disableWebInstaller = false;
 
-    // Force allow unsigned updates
+    // Development updates remain explicitly opt-in.
     autoUpdater.forceDevUpdateConfig = false;
-
-    // Override the default signature validator to always return true
-    // This allows unsigned builds to update
-    if (autoUpdater.httpExecutor) {
-      const originalDownloadToBuffer =
-        autoUpdater.httpExecutor.downloadToBuffer;
-      autoUpdater.httpExecutor.downloadToBuffer = function (...args) {
-        return originalDownloadToBuffer.apply(this, args);
-      };
-    }
 
     this.setupEventHandlers();
     return autoUpdater;
@@ -220,6 +210,7 @@ class AutoUpdateService {
       this.updateDownloaded = false; // Reset state
       this.updateInfo = info;
       this.sendStatusToRenderer("update-available", {
+        manualDownload: process.platform === 'win32',
         version: info.version,
         releaseNotes: info.releaseNotes,
         releaseDate: info.releaseDate,
@@ -241,33 +232,8 @@ class AutoUpdateService {
     this.updater.on("error", (err) => {
       log.error("[AutoUpdate] Error:", shortUpdateError(err));
 
-      // Check if error is related to signature verification
-      const errorMsg = err.message || err.toString();
-      if (
-        errorMsg.includes("not signed by the application owner") ||
-        errorMsg.includes("not digitally signed") ||
-        errorMsg.includes("publisherNames")
-      ) {
-        log.warn(
-          "[AutoUpdate] Signature verification error - treating as successful download for unsigned build",
-        );
-
-        // For unsigned builds, treat signature error as successful download
-        // The file is already downloaded, just not verified
-        this.updateDownloaded = true;
-
-        this.sendStatusToRenderer("update-downloaded", {
-          version: this.updateInfo?.version || "Unknown",
-          releaseNotes: this.updateInfo?.releaseNotes || "",
-          releaseDate: this.updateInfo?.releaseDate || "",
-          unsigned: true,
-        });
-      } else {
-        // For other errors, send error status
-        this.sendStatusToRenderer("update-error", {
-          message: err.message,
-        });
-      }
+      this.updateDownloaded = false;
+      this.sendStatusToRenderer("update-error", {message:err.message});
     });
 
     // Download progress
@@ -397,6 +363,7 @@ class AutoUpdateService {
    * Download the available update
    */
   async downloadUpdate() {
+    if(process.platform === 'win32'){await require('electron').shell.openExternal('https://github.com/graperu/semeko-pro-downloads/releases/latest');return;}
     try {
       log.info("[AutoUpdate] Starting update download...");
       this.updateDownloaded = false; // Reset state
@@ -414,8 +381,11 @@ class AutoUpdateService {
   /**
    * Install the downloaded update and restart the app
    */
-  quitAndInstall() {
+  async quitAndInstall() {
+    if(process.platform === 'win32'){await require('electron').shell.openExternal('https://github.com/graperu/semeko-pro-downloads/releases/latest');return;}
     if (this.updateDownloaded) {
+      try { await require('./release-backup').capture('before-app-update'); }
+      catch(error) { this.sendStatusToRenderer('update-error',{message:error.message}); return; }
       log.info("[AutoUpdate] Quitting and installing update...");
 
       // setImmediate ensures the app quits after this function returns
@@ -598,13 +568,8 @@ class AutoUpdateService {
         log.info(
           `[AutoUpdate] Pending update (v${pendingVersion}) is newer than current (v${currentVersion})`,
         );
-        this.updateDownloaded = true;
-        this.sendStatusToRenderer("update-downloaded", {
-          version: pendingVersion,
-          releaseNotes: "Update downloaded in previous session",
-          releaseDate: new Date().toISOString(),
-          fromPending: true,
-        });
+        // Re-check through electron-updater; do not trust a filename or cache metadata.
+        this.checkForUpdates(false).catch(err=>log.warn(err.message));
       } else {
         parsed.forEach((item) => {
           const itemComparison = this.compareVersions(

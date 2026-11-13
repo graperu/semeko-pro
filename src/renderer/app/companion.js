@@ -35,7 +35,7 @@ function updateFixedTestUI() {
     const locked = hasFixedProblemTests();
     for (const id of ['input-area', 'expected-area']) {
         const field = document.getElementById(id);
-        if (field) { field.readOnly = locked; field.title = locked ? 'Official problem sample — read only' : ''; }
+        if (field) { field.readOnly = locked; field.title = locked ? (ccProblem?.sourcePlatform==='28tech'?'Ca kiểm thử cố định của bài — chỉ đọc':'Official problem sample — read only') : ''; }
     }
     for (const id of ['btn-add-test', 'btn-add-test-panel', 'btn-delete-test', 'btn-delete-all-tests', 'docked-btn-add-test', 'docked-btn-delete-test', 'clear-input', 'clear-output', 'btn-input-file']) {
         const button = document.getElementById(id);
@@ -655,6 +655,7 @@ function switchTestCase(index) {
 
     ccTestIndex = index;
     const test = ccProblem.tests[index];
+    window.CodingWorkspace?.testsChanged();
 
     const inputArea = document.getElementById('input-area');
     const expectedArea = document.getElementById('expected-area');

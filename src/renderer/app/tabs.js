@@ -193,6 +193,7 @@ async function closeTab(id, { quiet = false } = {}) {
     // found before it may now name another (unsaved) tab.
     const at = App.tabs.indexOf(tab);
     if (at === -1) return;   // already closed by another close
+    window.CodingWorkspace?.rememberClosed(tab);
     App.tabs.splice(at, 1);
     delete App.ioByTab[id];
     delete App.outputByTab[id];
@@ -346,6 +347,7 @@ function renderTabs() {
         if (isSplitTab) className += ' split';
         if (isFocused) className += ' focused';
         if (t.modified) className += ' modified';
+        if (t.pinned) className += ' pinned';
         if (tabHasErrors) className += ' has-errors';
         else if (tabHasWarnings) className += ' has-warnings';
 
@@ -355,7 +357,7 @@ function renderTabs() {
         const diagnosticsBadge = diagnostics && (diagnostics.errors || diagnostics.warnings)
             ? `<span class="tab-diagnostics ${tabHasErrors ? 'error' : 'warning'}" title="${diagnostics.errors || 0} errors, ${diagnostics.warnings || 0} warnings">${tabHasErrors ? diagnostics.errors : diagnostics.warnings}${tabHasErrors ? 'E' : 'W'}</span>`
             : '';
-        el.innerHTML = `<span class="tab-name">${escHtml(t.name)}</span>${diagnosticsBadge}<span class="tab-dot"></span><span class="tab-x">×</span>`;
+        el.innerHTML = `${t.pinned?'<svg class="tab-pin" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-label="Ghim tab"><path d="M9 3h6v6l3 3v2H6v-2l3-3zM12 14v7"/></svg>':''}<span class="tab-name">${escHtml(t.name)}</span>${diagnosticsBadge}<span class="tab-dot"></span><span class="tab-x">×</span>`;
         el.title=t.path||t.name;el.querySelector('.tab-name').title=t.name;
         el.onclick = e => {
             if (!e.target.classList.contains('tab-x')) {
@@ -375,6 +377,7 @@ function renderTabs() {
         el.querySelector('.tab-x').onclick = e => { e.stopPropagation(); closeTab(t.id); };
         c.appendChild(el);
     });
+    window.CodingWorkspace?.sync();
 
     setTimeout(() => {
         const focusedTab = c.querySelector('.tab.focused') || c.querySelector('.tab.active');
@@ -396,7 +399,12 @@ let activeMenu = null;
 
 function initMenus() {
     document.querySelectorAll('.menu-btn').forEach(btn => {
-        btn.onclick = e => { toggleMenu('menu-' + btn.dataset.menu, btn); e.stopPropagation(); };
+        btn.onclick = e => {
+            toggleMenu('menu-' + btn.dataset.menu, btn);
+            document.getElementById('btn-hamburger')?.classList.remove('active');
+            document.getElementById('menu-group')?.classList.remove('show');
+            e.stopPropagation();
+        };
     });
     // Items without data-action (Run without building, Debug panel) carry their own handlers.
     document.querySelectorAll('.dropdown-item[data-action]').forEach(item => {
@@ -413,7 +421,10 @@ function toggleMenu(id, el) {
     closeMenus();
     menu.classList.add('show');
     el.classList.add('active');
-    const rect = el.getBoundingClientRect();
+    const anchor = el.closest('#menu-group.show') ? document.getElementById('btn-hamburger') : el;
+    const rect = anchor.getBoundingClientRect();
+    menu.style.maxHeight = Math.max(80, window.innerHeight - rect.bottom - 16) + 'px';
+    menu.style.overflowY = 'auto';
     // Keep menus opened from the right side of the header inside the window.
     menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
     menu.style.top = rect.bottom + 4 + 'px';
@@ -432,6 +443,8 @@ function doAction(action) {
         new: newFile, open: openFile, openfolder: () => FileExplorer.openFolderDialog(), save, saveas: () => saveAs(), run, buildrun: buildRun, stop,
         compile: compileOnly,
         browseproblems: () => ProblemBrowser.open(),
+        practicearchive: () => document.getElementById('btn-practice-library')?.click(),
+        accounts: () => document.getElementById('btn-account')?.click(),
         runfolder: () => WorkspaceSupport.runFolder(),
         setmain: () => WorkspaceSupport.setMain(),
         mdpreview: () => window.MarkdownPreview?.toggle(getActiveEditor()),
@@ -513,9 +526,12 @@ async function save() {
             );
         }
 
-        const text = tab.content;
-        const r = await window.electronAPI.saveFile({ path: tab.path, content: text });
-        if (r && r.success) { markTabSaved(tab, text); setStatus(`Saved ${tab.name}`, 'success'); scheduleSessionSave(); }
+        const text = tab.content, savedPath = tab.path;
+        const r = await window.electronAPI.saveFile({ path: savedPath, content: text });
+        if (r && r.success) {
+            if (!App.tabs.includes(tab) || !tab.path || pathKey(tab.path) !== pathKey(savedPath)) return;
+            markTabSaved(tab, text); setStatus(`Saved ${tab.name}`, 'success'); scheduleSessionSave();
+        }
         else {
             const reason = (r && r.error) || 'unknown error';
             setStatus(`Save failed: ${reason}`, 'error');
@@ -575,6 +591,7 @@ async function saveAs(tabIdOverride = null) {
         defaultPath: tab.path || tab.name || 'untitled.cpp'
     });
     if (r.success) {
+        if (!App.tabs.includes(tab)) return;
         const oldDocId = tab.path || tab.id;
         tab.path = r.path;
         tab.name = r.path.split(/[/\\]/).pop();
@@ -638,6 +655,28 @@ function onFileRenamed(oldPath, newPath) {
         renderTabs();
         scheduleSessionSave();
     }
+}
+
+/** Keep a deleted file's editor buffer as an unsaved copy; Ctrl+S must not recreate it. */
+function onFileDeleted(filePath, { folder = false } = {}) {
+    const key = pathKey(filePath).replace(/\/+$/, '');
+    let changed = false;
+    for (const tab of App.tabs) {
+        if (!tab.path) continue;
+        const candidate = pathKey(tab.path);
+        if (candidate !== key && !(folder && candidate.startsWith(key + '/'))) continue;
+        stopFileWatch(tab.path);
+        closeClangdDocument(tab.path);
+        const text = tab.content;
+        tab.path = null;
+        tab.untitledHistoryKey = tab.untitledHistoryKey || createUntitledHistoryKey();
+        tab.name = tab.name.replace(/(\.[^.]+)?$/, ' (deleted)$1');
+        tab.content = text;
+        tab.modified = true;
+        tab.exePath = null;
+        changed = true;
+    }
+    if (changed) { renderTabs(); scheduleSessionSave(); }
 }
 
 /** A folder was renamed or moved on disk: every open tab inside it follows. */

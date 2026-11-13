@@ -136,12 +136,15 @@ async function runTest({ exePath, input, expectedOutput, timeLimit = 3000, cwd, 
         testProcess.stdout.setEncoding('utf8');
         testProcess.stderr.setEncoding('utf8');
         testProcess.stdout.on('data', (data) => {
-            if (output.length < MAX_CAPTURE_CHARS) output += data;
-            else outputTruncated = true;
+            const remaining = MAX_CAPTURE_CHARS - output.length;
+            if (data.length > remaining) outputTruncated = true;
+            if (remaining > 0) output += data.slice(0, remaining);
         });
 
         testProcess.stderr.on('data', (data) => {
-            if (errorOutput.length < MAX_CAPTURE_CHARS) errorOutput += data;
+            const remaining = MAX_CAPTURE_CHARS - errorOutput.length;
+            if (data.length > remaining) outputTruncated = true;
+            if (remaining > 0) errorOutput += data.slice(0, remaining);
         });
 
         testProcess.on('exit', (code, signal) => {
@@ -195,7 +198,7 @@ async function runTest({ exePath, input, expectedOutput, timeLimit = 3000, cwd, 
                 details = `Runtime error (${reason})${errPreview ? `\nStderr: ${errPreview}` : ''}`;
             } else if (expectedOutput !== undefined && expectedOutput !== null) {
                 const expectedText = String(expectedOutput ?? '');
-                const hasExpected = expectedText.trim().length > 0;
+                const hasExpected = testMeta?.expectedPresent===true || expectedText.trim().length > 0;
 
                 // If expected is blank, treat as run-only (do not judge WA).
                 // This avoids false WA when users only want to execute and inspect output.

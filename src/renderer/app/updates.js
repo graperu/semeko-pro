@@ -141,6 +141,7 @@ function handleUpdateStatus(data) {
             break;
 
         case 'update-available':
+            if(updateData?.manualDownload)isPortableVersion=true;
             updateDownloaded = false;
             pendingUpdateVersion = updateData?.version;
 

@@ -340,17 +340,18 @@ const FileExplorer = {
         try {
             const state = this._stateDoc?.state;
             if (state) {
-                this.width = Math.max(150, Math.min(400, state.width || 200));
-                this.currentFolder = state.currentFolder || null;
-                this.expandedFolders = new Set(state.expandedFolders || []);
+                const paths = value => Array.isArray(value) ? value.filter(p => typeof p === 'string' && p.trim()) : [];
+                this.width = Math.max(150, Math.min(400, Number.isFinite(state.width) ? state.width : 200));
+                this.currentFolder = typeof state.currentFolder === 'string' && state.currentFolder.trim() ? state.currentFolder : null;
+                this.expandedFolders = new Set(paths(state.expandedFolders));
                 this.fileStatuses = state.fileStatuses || {};
                 this.fileNotes = state.fileNotes || {};
                 this.wasOpenBeforeStartup = !!state.isOpen;
                 this.isOpen = false;
                 this.fileApproaches = state.fileApproaches || {};
-                this.expandedFiles = new Set(state.expandedFiles || []);
-                this.pinnedItems = state.pinnedItems || [];
-                this.recentFiles = state.recentFiles || [];
+                this.expandedFiles = new Set(paths(state.expandedFiles));
+                this.pinnedItems = paths(state.pinnedItems);
+                this.recentFiles = paths(state.recentFiles);
                 this.contestSectionCollapsed = !!state.contestSectionCollapsed;
                 this.collectionsSectionCollapsed = !!state.collectionsSectionCollapsed;
                 this.recentSectionCollapsed = !!state.recentSectionCollapsed;
@@ -439,6 +440,10 @@ const FileExplorer = {
 
         document.getElementById('btn-explorer-new-file')?.addEventListener('click', () => this.promptNewFile());
         document.getElementById('btn-explorer-refresh')?.addEventListener('click', () => this.refreshTree());
+        window.addEventListener('focus', () => {
+            clearTimeout(this._diskRefreshTimer);
+            this._diskRefreshTimer = setTimeout(() => this.refreshTree(), 200);
+        });
 
         const filter = document.getElementById('explorer-filter');
         const clear = document.getElementById('explorer-filter-clear');
@@ -637,6 +642,10 @@ const FileExplorer = {
      * Refresh the tree view
      */
     async refreshTree() {
+        const generation = (this._refreshGeneration || 0) + 1;
+        this._refreshGeneration = generation;
+        const folder = this.currentFolder;
+        const current = () => this._refreshGeneration === generation && this.currentFolder === folder;
         if (window.WorkspaceSupport) WorkspaceSupport.refresh();
         if (!this.currentFolder) {
             this.renderEmptyState();
@@ -645,10 +654,16 @@ const FileExplorer = {
 
         try {
             if (window.electronAPI && window.electronAPI.readDirectory) {
-                this.tree = await this.loadDirectory(this.currentFolder);
+                const tree = await this.loadDirectory(folder);
+                if (!current()) return;
+                this.tree = tree;
+                this.hiddenBuildCount = tree._hiddenBuildCount || 0;
+                await this.pruneMissingFileLinks();
+                if (!current()) return;
                 this._allFiles = null;
                 this._allFilesGen++;
                 if (this.filterText) await this.collectAllFiles();
+                if (!current()) return;
 
                 // Determine display mode (contest or normal)
                 this.displayMode = this.resolveDisplayMode(this.currentFolder, this.tree);
@@ -657,14 +672,16 @@ const FileExplorer = {
                     if (this.contestFolder !== this.currentFolder) this.leaveContest();
                     this.contestFolder = this.currentFolder;
                     // Load .sameko if exists
-                    const meta = await this.loadContestMeta(this.currentFolder);
+                    const meta = await this.loadContestMeta(folder);
+                    if (!current()) return;
                     if (meta) {
                         this.contestMeta = meta;
                         this.SessionTimer.loadFromMeta(meta);
                     } else {
                         // Auto-generate .sameko from detected files
                         this.contestMeta = this.generateContestMeta(this.tree);
-                        await this.saveContestMeta(this.currentFolder, this.contestMeta);
+                        await this.saveContestMeta(folder, this.contestMeta);
+                        if (!current()) return;
                         this.SessionTimer.loadFromMeta(this.contestMeta);
                     }
                 } else if (this.contestFolder) {
@@ -673,13 +690,14 @@ const FileExplorer = {
 
                 // Sync collection folders with disk contents
                 await this.syncAllCategories();
-
+                if (!current()) return;
                 this.renderTree();
             } else {
                 console.warn('Electron API not available for reading directory');
                 this.renderEmptyState();
             }
         } catch (e) {
+            if (!current()) return;
             console.error('Failed to refresh tree:', e);
             this.renderEmptyState();
         }
@@ -782,7 +800,7 @@ const FileExplorer = {
             if (depth === 0) {
                 grouped._hasSameko = hasSameko;
                 // Per call, so two loads running at once cannot add to each other's count.
-                this.hiddenBuildCount = stats.hidden;
+                grouped._hiddenBuildCount = stats.hidden;
             }
 
             return grouped;
@@ -804,7 +822,7 @@ const FileExplorer = {
     },
 
     /**
-     * Resolve display mode: .sameko > manual override > auto-detect
+     * Only explicitly marked contest folders use contest UI.
      */
     resolveDisplayMode(folderPath, items) {
         if (items._hasSameko) return 'contest';
@@ -812,7 +830,7 @@ const FileExplorer = {
         const manualOverride = localStorage.getItem(`cp-mode:${folderPath}`);
         if (manualOverride) return manualOverride;
 
-        return this.detectFolderType(items);
+        return 'normal';
     },
 
     /**
@@ -2720,6 +2738,7 @@ const FileExplorer = {
             return;
         }
         this.expandedFolders.delete(folderPath);
+        if (typeof onFileDeleted === 'function') onFileDeleted(folderPath, { folder: true });
         if (this.selectedFilePath === folderPath) this.selectedFilePath = null;
         this.refreshTree();
     },
@@ -2727,11 +2746,35 @@ const FileExplorer = {
     /**
      * Delete file
      */
+    forgetFileLink(filePath) {
+        const same = p => pathKey(p) === pathKey(filePath);
+        this.recentFiles = this.recentFiles.filter(p => !same(p));
+        this.pinnedItems = this.pinnedItems.filter(p => !same(p));
+        this.expandedFiles = new Set([...this.expandedFiles].filter(p => !same(p)));
+        if (this.selectedFilePath && same(this.selectedFilePath)) this.selectedFilePath = null;
+    },
+
+    async pruneMissingFileLinks() {
+        if (!window.electronAPI?.missingFiles) return;
+        const paths = [...new Set([...this.recentFiles, ...this.pinnedItems, ...(window.App?.tabs || []).map(tab => tab.path).filter(Boolean)])]
+            .filter(p => typeof p === 'string' && /^(?:[A-Za-z]:[\\/]|[\\/])/.test(p));
+        let changed = false;
+        for (let i = 0; i < paths.length; i += 100) {
+            const missing = await window.electronAPI.missingFiles(paths.slice(i, i + 100));
+            for (const file of missing) { this.forgetFileLink(file); if (typeof onFileDeleted === 'function') onFileDeleted(file); changed = true; }
+        }
+        if (changed) this.saveState();
+    },
+
     async deleteFile(filePath) {
         try {
             if (window.electronAPI && window.electronAPI.deleteFile) {
-                await window.electronAPI.deleteFile(filePath);
-                this.refreshTree();
+                const result = await window.electronAPI.deleteFile(filePath);
+                if (result?.success === false) throw Error(result.error || 'Delete failed');
+                if (typeof onFileDeleted === 'function') onFileDeleted(filePath);
+                this.forgetFileLink(filePath);
+                this.saveState();
+                await this.refreshTree();
             } else {
                 console.error('[FileExplorer] Delete API not available');
             }
@@ -2800,8 +2843,7 @@ const FileExplorer = {
         }
 
         // Reload tree to get children
-        this.tree = await this.loadDirectory(this.currentFolder);
-        this.renderTree();
+        await this.refreshTree();
         this.saveState();
     },
 

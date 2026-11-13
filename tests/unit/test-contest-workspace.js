@@ -2,6 +2,9 @@ const assert=require('assert'),fs=require('fs'),path=require('path'),os=require(
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'semeko-contest-workspace-')),load=Module._load;
 Module._load=function(name,...args){return name==='electron'?{app:{getPath:()=>root}}:load.call(this,name,...args);};
 const prepare=require('../../app/services/competitive/contest-workspace');Module._load=load;
+const standalone=prepare({contestId:2284,index:'D',extension:'cpp',starter:'// standalone',kind:'problem'});
+assert.strictEqual(path.basename(standalone.entry),'solution.cpp');assert(!fs.existsSync(path.join(standalone.folder,'.sameko')));fs.writeFileSync(standalone.entry,'// keep edits');
+assert.strictEqual(prepare({contestId:2284,index:'D',extension:'cpp',starter:'// new',kind:'problem'}).created,false);assert.strictEqual(fs.readFileSync(standalone.entry,'utf8'),'// keep edits');
 const make=(contestId,index,extension='cpp',starter='// starter')=>prepare({contestId,index,extension,starter});
 const a=make(2284,'A1');fs.writeFileSync(a.entry,'// my solution');
 const metaFile=path.join(a.folder,'.sameko'),meta=JSON.parse(fs.readFileSync(metaFile));meta.problems[0].status='solved';meta.problems[0].timeSpentMs=1234;fs.writeFileSync(metaFile,JSON.stringify(meta));

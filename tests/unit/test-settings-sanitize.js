@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),vm=require('vm');
+const source=fs.readFileSync('src/renderer/app/settings.js','utf8');
+const code=source.slice(source.indexOf('function sanitizeAppearanceSettings('),source.indexOf('// Coalesce bursts'));
+const defaults={appearance:{theme:'monokai',perTheme:{}}},ctx={DEFAULT_SETTINGS:defaults};vm.runInNewContext(code,ctx);
+const saved=JSON.parse('{"theme":"monokai","bgUrl":" / ","perTheme":{"monokai":null,"dracula":{"bgUrl":"file:","opacity":0},"nord":{"bgUrl":"  C:/picture.png  "},"bad":9,"list":[],"__proto__":{"bgUrl":"x"}}}');
+const before=JSON.stringify(saved),clean=ctx.sanitizeAppearanceSettings(saved);
+assert.strictEqual(JSON.stringify(saved),before,'Sanitizing settings must not mutate the previous settings snapshot');
+assert.strictEqual(clean.bgUrl,'');assert(!('monokai'in clean.perTheme));assert(!('bad'in clean.perTheme));assert(!('list'in clean.perTheme));assert.strictEqual(clean.perTheme.dracula.opacity,0);assert(!('bgUrl'in clean.perTheme.dracula));assert.strictEqual(clean.perTheme.nord.bgUrl,'C:/picture.png');assert(Object.hasOwn(clean.perTheme,'__proto__'));
+for(const value of [null,42,'broken',[]])assert.deepStrictEqual(Object.keys(ctx.sanitizeAppearanceSettings({perTheme:value}).perTheme),[]);
+console.log('PASS malformed per-theme settings cannot break startup; zero opacity retained; snapshots and object prototype preserved');

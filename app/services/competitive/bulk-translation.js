@@ -3,13 +3,14 @@ const {app,BrowserWindow}=require('electron'),fs=require('fs'),path=require('pat
 const {writeFileAtomicSync}=require('../../shared/fs-atomic');
 const browser=require('./problem-browser');let running=false,workers=[],indexTask;
 const workerModels=new Map();
+const catalog=require('./bulk-catalog');
 const loadSource=require('../../shared/async-limiter')(6);
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const file=()=>path.join(app.getPath('userData'),'bulk-translation.json');
 function read(){try{return JSON.parse(fs.readFileSync(file(),'utf8'));}catch(e){if(e.code!=='ENOENT')throw Error('Could not read translation queue; existing progress was preserved');return{items:[],providers:{},status:'idle'};}}
-function write(job){fs.mkdirSync(path.dirname(file()),{recursive:true});job.current=job.items.filter(i=>i.status==='processing').map(i=>i.provider+':'+i.id).join(', ');writeFileAtomicSync(file(),JSON.stringify(job),'utf8');}
+function write(job){fs.mkdirSync(path.dirname(file()),{recursive:true});job.current=job.items.filter(i=>i.status==='processing').map(i=>i.provider+':'+i.id).join(', ');require('../../shared/atomic-json-publish')(file(),job);}
 function alive(job){try{if(!job.pid||job.status!=='running')return false;process.kill(job.pid,0);return true;}catch{return false;}}
-function progress(){const job=read();return Object.fromEntries(['leetcode','codeforces'].map(provider=>{
+function progress(){const job=read();return Object.fromEntries(catalog.providers.map(provider=>{
  const items=job.items.filter(i=>i.provider===provider);let recovered=new Set();
  if(provider==='leetcode')try{recovered=new Set(fs.readdirSync(path.join(app.getPath('userData'),'translation-recovered')).filter(n=>n.endsWith('.json')).map(n=>n.slice(0,-5)));}catch{}
  const done=items.filter(i=>i.status==='done'||recovered.has(i.id)).length,skipped=items.filter(i=>i.status==='skipped').length;
@@ -33,7 +34,8 @@ async function supervise(){
  workers=workers.filter(w=>!w.isDestroyed());
  }
 }
-async function start(){
+async function start(options={}){
+ if(options.hackerRank){const job=read();job.targetProviders=[...new Set([...(job.targetProviders?.length?job.targetProviders:['leetcode','codeforces']),'hackerrank'])];job.priorityProviders=['hackerrank'];for(const item of job.items)if(item.provider==='hackerrank'&&item.status==='failed'&&/unlock translation API key|Configure.*translation/i.test(item.error||'')){item.status='pending';delete item.error;delete item.retryAt;}if(Number.isInteger(options.concurrency)&&options.concurrency>=1&&options.concurrency<=98)job.targetConcurrency=options.concurrency;write(job);}
  if(running||alive(read()))return info();if(!require('./statement-translation').info().hasKey)throw Error('Configure translation first');
  const release=require('../../shared/process-lock')(path.join(app.getPath('userData'),'bulk-translation.owner'));if(!release)return info();
  try{
@@ -44,17 +46,16 @@ async function start(){
 }
 async function indexOne(){
  if(indexTask)return indexTask;
- indexTask=(async()=>{let job=read();const provider=['leetcode','codeforces'].find(p=>(!job.targetProviders?.length||job.targetProviders.includes(p))&&!job.providers[p]?.complete);if(!provider)return false;const state=job.providers[provider]||{page:0};
- const result=await browser.list({provider,page:state.page});job=read();const known=new Set(job.items.map(i=>i.provider+':'+i.id));for(const item of result.items)if(!known.has(provider+':'+item.id))job.items.push({provider,id:item.id,title:item.title,paid:item.paid,status:item.paid?'skipped':'pending'});
- job.providers[provider]={page:state.page+1,complete:(state.page+1)*(result.pageSize||30)>=result.total,total:result.total};write(job);return true;
+ indexTask=(async()=>{const result=await catalog.index(read(),browser);if(!result)return false;let job=read();const {provider}=result;const known=new Set(job.items.map(i=>i.provider+':'+i.id));for(const item of result.items)if(!known.has(provider+':'+item.id)){job.items.push({provider,id:item.id,title:item.title,paid:item.paid,status:item.paid?'skipped':'pending'});known.add(provider+':'+item.id);}
+ job.providers[provider]=result.state;if(provider==='hackerrank'&&result.state.complete)job.providers[provider].total=job.items.filter(i=>i.provider===provider).length;write(job);return true;
  })().finally(()=>{indexTask=null;});return indexTask;
 }
 function store(item){const job=read(),index=job.items.findIndex(i=>i.provider===item.provider&&i.id===item.id);job.items[index]=item;write(job);return job;}
 async function lane(worker){let processed=0;
  for(;;){let job=read();if(job.stop)return;let item;
- if(processed%5===0)item=job.items.find(i=>allowed(job,i)&&i.status==='failed'&&i.retryAt&&i.retryAt<=Date.now());
+ if(processed%5===0)item=job.items.find(i=>allowed(job,i)&&(!job.priorityProviders?.length||job.priorityProviders.includes(i.provider))&&i.status==='failed'&&i.retryAt&&i.retryAt<=Date.now());
  if(item){item.attempts=0;delete item.retryAt;}
- else item=job.items.find(i=>i.status==='pending'&&allowed(job,i));
+ else {item=job.items.find(i=>i.status==='pending'&&allowed(job,i)&&job.priorityProviders?.includes(i.provider));if(!item&&job.priorityProviders?.some(p=>!job.providers[p]?.complete)){if(await indexOne())continue;}if(!item)item=job.items.find(i=>i.status==='pending'&&allowed(job,i));}
  if(!item){if(await indexOne())continue;return;}
  item.status='processing';item.translationModel=workerModels.get(worker.webContents.id)||require('./statement-translation').info().model;write(job);
  try{
@@ -72,7 +73,7 @@ async function lane(worker){let processed=0;
  if(transient&&item.status==='failed')item.retryAt=Date.now()+300000;
  job=store(item);
  if(item.status==='retry'){await wait(15000*item.attempts);item.status='pending';store(item);continue;}
- if(item.error&&/^Translation service returned HTTP (401|403)$/.test(item.error)){job=read();job.stop=true;job.error=item.error;write(job);return;}
+ if(item.error&&(/HTTP (401|403)$/.test(item.error)||/unlock translation API key|Configure.*translation/i.test(item.error))){job=read();job.stop=true;job.error=item.error;write(job);return;}
  // Back off only this lane when the API is busy; other lanes can still finish.
  if(item.error&&/HTTP 429|HTTP 5\d\d|connect|invalid response/.test(item.error))await wait(60000);
  // Unavailable individual statements stay in the failed queue; they must not

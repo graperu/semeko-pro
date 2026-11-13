@@ -27,12 +27,12 @@ async function main() {
         for (const file of fs.readdirSync(python)) if (file.endsWith('._pth')) fs.renameSync(path.join(python, file), path.join(python, file + '.disabled'));
         fs.unlinkSync(archive);
     }
-    const javaSource = path.dirname(path.dirname(executable('javac')));
-    const dotnetSource = path.dirname(executable('dotnet'));
     if (!fs.existsSync(path.join(root, 'java', 'bin', 'javac.exe'))) {
+        const javaSource = path.dirname(path.dirname(executable('javac')));
         console.log('Staging JDK with its legal notices'); copy(javaSource, path.join(root, 'java'));
     }
     if (!fs.existsSync(path.join(root, 'dotnet', 'sdk'))) {
+        const dotnetSource = path.dirname(executable('dotnet'));
         console.log('Staging .NET SDK, reference packs and runtime');
         for (const name of ['host', 'packs', 'sdk', 'sdk-manifests', 'shared', 'templates', 'dotnet.exe', 'LICENSE.txt', 'ThirdPartyNotices.txt']) {
             const source = path.join(dotnetSource, name);

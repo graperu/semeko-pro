@@ -1,9 +1,17 @@
 'use strict';
 const {app}=require('electron'),fs=require('fs'),path=require('path');
 const {writeFileAtomicSync}=require('../../shared/fs-atomic');
-module.exports=({contestId,index,extension,starter})=>{
+module.exports=({contestId,index,extension,starter,kind='contest'})=>{
  if(!Number.isInteger(contestId)||contestId<=0||!/^[A-Z][0-9]*$/.test(index||''))throw Error('Invalid Codeforces contest or problem');
  if(!['cpp','c','py','java','cs'].includes(extension)||typeof starter!=='string'||starter.length>2000000)throw Error('Invalid contest solution');
+ if(!['contest','problem'].includes(kind))throw Error('Invalid workspace kind');
+ if(kind==='problem'){
+  const folder=path.join(app.getPath('userData'),'Workspaces','Problems','Codeforces',contestId+'-'+index);
+  const fileName=(extension==='java'?'Main':'solution')+'.'+extension,entry=path.join(folder,fileName);
+  fs.mkdirSync(folder,{recursive:true});let created=true;
+  try{fs.writeFileSync(entry,starter,{encoding:'utf8',flag:'wx'});}catch(e){if(e.code!=='EEXIST')throw e;created=false;}
+  return{folder,entry,fileName,created};
+ }
  const folder=path.join(app.getPath('userData'),'Workspaces','Contests','Codeforces',String(contestId));
  const metaPath=path.join(folder,'.sameko');let meta;
  try{meta=JSON.parse(fs.readFileSync(metaPath,'utf8'));if(meta.type!=='contest'||meta.contestId!==contestId||!Array.isArray(meta.problems))throw Error('Invalid contest metadata');}

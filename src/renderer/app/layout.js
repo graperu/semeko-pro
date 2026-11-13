@@ -69,6 +69,7 @@ function initHeader() {
     document.getElementById('welcome-new').onclick = newFile;
     document.getElementById('welcome-open').onclick = openFile;
     document.getElementById('welcome-open-folder').onclick = () => FileExplorer.openFolderDialog();
+    document.getElementById('welcome-practice').onclick = () => window.ProblemBrowser?.open();
 
     document.getElementById('btn-close').onclick = () => window.electronAPI?.closeWindow?.();
     document.getElementById('btn-min').onclick = () => window.electronAPI?.minimizeWindow?.();
@@ -100,12 +101,6 @@ function initHeader() {
         });
 
 
-        menuGroup.querySelectorAll('.menu-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                hamburgerBtn.classList.remove('active');
-                menuGroup.classList.remove('show');
-            });
-        });
     }
 
     setupSplitResizer();

@@ -115,6 +115,11 @@ window.UILanguage = (() => {
     const original = new WeakMap(), attributes = new WeakMap();
     let language = 'en', scheduled = false, observer;
     const patterns = [
+        [/^(Connect|Reconnect|Connected|Disconnect) (Codeforces|LeetCode)$/, (_, action, provider) => vi[action] + ' ' + provider],
+        [/^Account connections · CF: (.*?) · LC: (.*)$/, (_, cf, lc) => {
+            const status = text => text.replace(/(^| — )(Connected|Connection interrupted|Not connected)$/, (_, separator, label) => separator + vi[label]);
+            return vi['Account connections'] + ' · CF: ' + status(cf) + ' · LC: ' + status(lc);
+        }],
         [/^(\d+) (?:tests|test)$/, '$1 ca kiểm thử'],
         [/^(\d+) results$/, '$1 kết quả'],
         [/^(\d+) spaces$/, '$1 dấu cách'],

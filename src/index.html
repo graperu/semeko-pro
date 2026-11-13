@@ -11,6 +11,7 @@
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-eval' blob:; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https:; media-src 'self' data: blob: file: https:; font-src 'self' data:; connect-src 'self' https://api.github.com https://gist.githubusercontent.com; object-src 'none'; base-uri 'self'; form-action 'none'">
     <title>Semeko</title>
+    <script src="renderer/app/release-restore.js"></script>
     <!-- Local bundled fonts (offline, no CDN round-trip on startup) -->
     <link rel="stylesheet" href="assets/fonts.css">
     <link rel="stylesheet" href="styles/base.css">
@@ -23,11 +24,16 @@
     <link rel="stylesheet" href="styles/components/typography.css">
     <link rel="stylesheet" href="styles/components/practice-library.css">
     <link rel="stylesheet" href="features/learning/learning.css">
+    <link rel="stylesheet" href="features/learning/book-courses.css">
+    <link rel="stylesheet" href="features/learning/cpp-course.css">
     <link rel="stylesheet" href="features/problem-browser/problem-browser.css">
     <link rel="stylesheet" href="../node_modules/katex/dist/katex.min.css">
     <link rel="stylesheet" href="styles/components/local-history.css">
     <link rel="stylesheet" href="styles/components/confirm-dialog.css">
     <link rel="stylesheet" href="styles/components/popups.css">
+    <link rel="stylesheet" href="styles/components/usability.css">
+    <link rel="stylesheet" href="styles/components/coding-workspace.css">
+    <link rel="stylesheet" href="styles/components/productivity.css">
     <link rel="stylesheet" href="styles/components/discord-preview.css">
     <link rel="stylesheet" href="styles/components/markdown-preview.css">
     <link rel="stylesheet" href="styles/themes/theme-customizer.css">
@@ -161,6 +167,10 @@
             <div class="dropdown-item" data-action="find"><span>Find</span><span class="key">Ctrl+F</span></div>
         </div>
         <div class="dropdown" id="menu-view">
+            <button type="button" class="dropdown-item" data-action="browseproblems"><span>Practice</span></button>
+            <button type="button" class="dropdown-item" data-action="practicearchive"><span>Archive</span></button>
+            <button type="button" class="dropdown-item" data-action="accounts"><span>Account</span></button>
+            <div class="dropdown-sep"></div>
             <div class="dropdown-item" data-action="toggleexplorer" style="display:none"><span>File Explorer</span><span
                     class="key">Ctrl+E</span></div>
             <div class="dropdown-item" data-action="toggleio"><span>Input/Output</span></div>
@@ -1141,7 +1151,7 @@
                 <div class="welcome" id="welcome">
                     <div class="welcome-box">
                         <h1>Semeko</h1>
-                        <p>Upgraded from Semeko C++ · Multi-language IDE</p>
+                        <p>Write code, run tests and practice in one place.</p>
                         <div class="welcome-btns">
                             <button class="welcome-btn" id="welcome-new">
                                 <svg class="ico" data-icon="file-plus" data-weight="duo"><use href="#i-file-plus-duo"/></svg>
@@ -1155,7 +1165,12 @@
                                 <svg class="ico" width="28" height="28"><use href="#i-folder-simple-duo"/></svg>
                                 Open Folder
                             </button>
+                            <button class="welcome-btn" id="welcome-practice" title="Choose a Codeforces, LeetCode or HackerRank problem">
+                                <svg class="ico" width="28" height="28" aria-hidden="true"><use href="#i-code-duo"/></svg>
+                                Practice
+                            </button>
                         </div>
+                        <div class="welcome-shortcuts" aria-label="Keyboard shortcuts"><span><kbd>Ctrl+N</kbd> New File</span><span><kbd>Ctrl+O</kbd> Open File</span><span><kbd>Ctrl+Shift+O</kbd> Open Folder</span></div>
                     </div>
                 </div>
 
@@ -1361,11 +1376,20 @@
     <script src="renderer/app/batch-tests.js"></script>
     <script src="renderer/app/terminal-input.js"></script>
     <script src="renderer/app/updates.js"></script>
+    <link rel="stylesheet" href="styles/components/content-updates.css">
+    <script src="features/content-updates.js"></script>
     <script src="renderer/app/tab-menu.js"></script>
     <script src="features/practice-library.js"></script>
     <script src="features/learning/tech-library-full.js"></script>
+    <script src="features/learning/book-courses.js"></script>
+    <script src="features/learning/book-study.js"></script>
+    <script src="features/learning/cpp-course-content.js"></script>
+    <script src="features/learning/cpp-course.js"></script>
+    <script src="features/learning/course-tools.js"></script>
     <script src="features/statement-translation.js"></script>
     <script src="features/accounts.js"></script>
+    <script src="features/coding-workspace.js"></script>
+    <script src="features/productivity.js"></script>
 </body>
 
 </html>

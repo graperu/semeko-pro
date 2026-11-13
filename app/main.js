@@ -29,6 +29,7 @@ require('./core/app-protocol').registerScheme();
 require('./services/launch-files').add(process.argv, process.cwd());
 
 app.whenReady().then(async () => {
+    require('./services/release-backup').applyPending();
     // Show splash screen immediately
     const { createSplashWindow, closeSplashWindow } = require('./windows/splash-window');
     createSplashWindow();

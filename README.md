@@ -22,6 +22,27 @@ action and server-result tracking. This integration has passed simulated provide
 checks; real authentication/submission still needs user verification. Local sample
 AC is separate from official Accepted. See [internal validation](docs/development/RELEASE-1.4.1-VALIDATION.md).
 
+The development version includes a resizable statement/sample/submission dock beside
+the editor. Use the buttons above the editor to open it; switch English/Vietnamese
+inside the statement panel. Right-click a tab to pin it, press Ctrl+P to find an open
+tab, or Ctrl+Shift+T to recover a closed tab (up to 20 in the current session).
+The practice archive supports platform/topic/status filters, saved notes and time
+spent in the focused app. Compiler diagnostics retain their original text and add
+a Vietnamese hint; click a diagnostic or press Enter to reach its source line.
+Run `npm run test:coding:workspace` for the focused local checks. Platform responses
+in these tests are simulated; they do not establish a real online Accepted result.
+
+**View → Công cụ & dữ liệu** opens recovery, language tools, timed practice and
+backup/transfer. Recovery checkpoints include source, tests/results, input and
+unsaved practice notes; continuous typing is checkpointed within five seconds.
+The tool center detects GCC, Python, a JDK and the .NET SDK, offers missing-tool
+installation through Windows WinGet, and compiles/runs a small verification program.
+Live checks add Vietnamese hints and conservative quick fixes (Ctrl+.) for supported
+diagnostics. Timed practice uses selected archived problems and saves its timer and
+local-sample summary. `.semeko-backup` packages support preview before importing
+copies, including source files in archived folders; application login tokens and
+translation credentials are excluded. Run `npm run test:productivity` for checks.
+
 - Switch language workspaces from the top-left language selector; each starts
   with Hello World and keeps its files when switching away.
 - Open existing folders, edit multiple files, select a main file and run a folder.
@@ -91,3 +112,10 @@ Semeko Pro adaptations are maintained in [graperu/semeko-pro](https://github.com
 The original copyright and [MIT license](LICENSE) are preserved, alongside
 [upstream acknowledgments and artwork credits](docs/development/UPSTREAM-CREDITS.md).
 Third-party notices, including Material Icon Theme, are in `src/assets/licenses/`.
+# Học từ sách / Book study
+
+Bốn sách C/C++ có trình đọc trang gốc, bản Anh/Việt lưu trên máy, rà bài theo chương, test biên được kiểm chứng, tiến độ học, ba cấp gợi ý, tìm kiếm, đánh dấu và ghi chú. Nội dung đang tiếp tục được dịch và chuẩn hóa; bộ đếm trong app cho biết phần đã lưu thực tế.
+
+Four C/C++ books support original-page reading, cached English/Vietnamese text, chapter audits, verified edge tests, learning progress, three hint levels, search, bookmarks and notes. Background content processing is ongoing; in-app counters show saved coverage.
+
+Validation: `npm run test:books:study` and `npm run test:practice:import`. Details: [book study report](docs/development/BOOK-STUDY-2026-11-12.md).
