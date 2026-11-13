@@ -1,6 +1,6 @@
 {
     "name": "sameko-dev-cpp",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "description": "Semeko: the upgraded Semeko C++ IDE for C/C++, Python, Java and C#",
     "main": "app/main.js",
     "author": "QuangquyNguyenvo",
@@ -239,7 +239,10 @@
             },
             "artifactName": "semeko-pro-${version}-portable.${ext}",
             "verifyUpdateCodeSignature": true,
-            "signExts": [".exe", ".dll"],
+            "signExts": [
+                ".exe",
+                ".dll"
+            ],
             "extraResources": [
                 {
                     "from": "Sameko-GCC",

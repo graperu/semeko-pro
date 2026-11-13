@@ -4,7 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased — 1.4.1 candidate]
+## [1.4.2] - 2026-11-13
+
+### Added
+
+- Completed page-to-course processing for all four books (3,096 pages), with bilingual lessons and searchable reference tables.
+- Bundled C/C++, Python, Java and C# environments in the Windows installer.
+
+### Fixed
+
+- Prevent late AI failures from overwriting directly reviewed course content.
+- Derive course progress from installed records instead of stale worker counters.
+- Correct reviewed code examples, exercise numbering, source references and container validation.
+
+### Validation
+
+- 145 reviewed course examples compiled and matched expected output; no unfinished source units.
+- Windows package and offline language runtime checks are recorded with the release.
+
+## [1.4.1] - 2026-11-13
 
 ### Added
 

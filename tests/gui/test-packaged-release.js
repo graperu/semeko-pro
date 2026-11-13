@@ -7,6 +7,11 @@ assert(fs.existsSync(path.join(path.dirname(binary),'resources','SEMEKO-LICENSE.
 const app=await _electron.launch({executablePath:binary,args:['--user-data-dir='+profile],cwd:os.tmpdir(),env,timeout:60000});
 try{let page;for(let i=0;i<600;i++){page=app.windows().find(p=>p.url().includes('index.html'));if(page)break;await new Promise(r=>setTimeout(r,100));}assert(page,'main window');await page.waitForFunction(()=>window.App?.ready);await page.evaluate(()=>ensureMonaco());
 const tools=await app.evaluate(()=>{const r=process.mainModule.require('./services/languages/runtime');return Object.fromEntries(['python','java','javac','dotnet'].map(k=>[k,r.tool(k)]));});for(const [key,file]of Object.entries(tools)){assert(file.includes('language-runtimes'),key+': '+file);console.log('PASS bundled '+key+': '+file);}
+const courseState=await app.evaluate(({app})=>({version:app.getVersion(),data:process.mainModule.require('./services/competitive/authored-course').jobStatus()}));
+assert.strictEqual(courseState.version,require('../../package.json').version);
+assert.strictEqual(courseState.data.books.length,4);assert.strictEqual(courseState.data.failed,0);
+assert.deepStrictEqual(courseState.data.books.map(b=>b.readyPages+b.referencePages),[308,1009,714,1065]);
+console.log('PASS packaged version and complete four-book course records');
 for(const ext of ['cpp','c','py','java','cs']){
 const built=await page.evaluate(async({ext,profile})=>{closeSettings();newFile(ext,helloWorldTemplate(ext));const tab=App.tabs.find(t=>t.id===getPreferredTabId());tab.path=profile+'/'+(ext==='java'?'Main.java':'hello.'+ext);tab.name=tab.path.split('/').pop();await buildRun();return {built:!!tab.exePath,status:document.getElementById('status-text')?.textContent};},{ext,profile:profile.replace(/\\/g,'/')});assert(built.built,ext+' failed '+JSON.stringify(built));await page.waitForFunction(()=>!App.isRunning,null,{timeout:30000});const output=await page.evaluate(()=>App.outputByTab[getPreferredTabId()]?.text);assert(String(output).includes('Hello, world!'),ext+': '+output);console.log('PASS packaged '+ext+': real build/run without system language runtimes');}
 await page.screenshot({path:path.resolve('plans/artifacts/gui/packaged-hello-world.png')});
