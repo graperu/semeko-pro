@@ -34,9 +34,9 @@ function currentProgress(){
  });progressCache={at:Date.now(),books:result};return result;
 }
 function jobStatus(){
- const file=process.env.SEMEKO_COURSE_STATUS_FILE||path.join(process.env.LOCALAPPDATA||require('os').tmpdir(),'SemekoPracticeAI/authored-course-status.json');let value;try{value=JSON.parse(fs.readFileSync(file,'utf8'));}catch(e){if(e.code!=='ENOENT')return{phase:'unavailable',active:0,workers:0,books:[],updatedAt:null,tasks:[]};return{phase:'not-running',active:0,workers:0,books:[],updatedAt:null,tasks:[]};}
+ const file=process.env.SEMEKO_COURSE_STATUS_FILE||path.join(process.env.LOCALAPPDATA||require('os').tmpdir(),'SemekoPracticeAI/authored-course-status.json');let value;try{value=JSON.parse(fs.readFileSync(file,'utf8'));}catch(e){if(e.code!=='ENOENT')return{phase:'unavailable',active:0,workers:0,books:[],updatedAt:null,tasks:[]};value={phase:'not-running',active:0,workers:0,updatedAt:null};}
  let alive=false;try{if(Number.isInteger(value.pid)&&value.pid>0){process.kill(value.pid,0);alive=true;}}catch{}
- const phases=['running','complete','needs-review','waiting-service','restarting'];let phase=phases.includes(value.phase)?value.phase:'unknown';if(!alive&&['running','restarting'].includes(phase))phase='stopped';if(alive&&phase==='running'&&Date.now()-value.updatedAt>600000)phase='stale';
+ const phases=['running','complete','needs-review','waiting-service','restarting','not-running'];let phase=phases.includes(value.phase)?value.phase:'unknown';if(!alive&&['running','restarting'].includes(phase))phase='stopped';if(alive&&phase==='running'&&Date.now()-value.updatedAt>600000)phase='stale';
  const backoff=require('../../shared/study-model-request').cooldown();const retryAt=Number.isFinite(backoff.until)&&backoff.until>Date.now()?backoff.until:null;if(alive&&phase==='running'&&retryAt)phase=backoff.status===429?'rate-limited':'waiting-service';
  const count=n=>Number.isFinite(n)?Math.max(0,Math.floor(n)):0,progress=currentProgress(),failed=progress.reduce((n,b)=>n+b.failedParts,0);
  if(!failed)phase='complete';else if(phase==='complete')phase='needs-review';
