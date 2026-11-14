@@ -217,7 +217,7 @@ class AutoUpdateService {
         isPrerelease:
           info.version.includes("beta") || info.version.includes("alpha"),
       });
-      this.sendStatusToRenderer("download-started");
+      if (process.platform !== 'win32') this.sendStatusToRenderer("download-started");
     });
 
     // No update available

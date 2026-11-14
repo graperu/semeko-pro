@@ -21,10 +21,10 @@ window.ContentUpdatesUI=(()=>{
   notice.setAttribute('role',type==='error'?'alert':'status');notice.setAttribute('aria-live',type==='error'?'assertive':'polite');notice.hidden=false;if(!notice.matches(':popover-open'))notice.showPopover();
  }
  function notify(data){
-  const updates=data.packs.filter(p=>p.updateAvailable),count=updates.length;if(badge){badge.hidden=!count;badge.textContent=T('Tài liệu mới','New documents')+' ('+count+')';badge.title=T('Có gói tài liệu mới. Bấm để xem và cập nhật.','New content packs are available. Click to review and update.');}
+  const updates=data.packs.filter(p=>p.updateAvailable||p.downloadAvailable),count=updates.length;if(badge){badge.hidden=!count;badge.textContent=T('Tài liệu mới','New documents')+' ('+count+')';badge.title=T('Có gói tài liệu để tải hoặc cập nhật. Bấm để xem.','Content packs are available to download or update. Click to review.');}
   if(!count){if(noticeType==='available')hideNotice();return;}
   const key=updates.map(p=>p.id+':'+p.version).sort().join('|');let seen=announced.has(key);try{seen||=localStorage.getItem('semeko-content-announced')===key;}catch{}
-  if(!seen){announced.add(key);try{localStorage.setItem('semeko-content-announced',key);}catch{}lastIds=updates.map(p=>p.id);showNotice('available',T('Có tài liệu mới','New content available'),count+T(' gói có bản mới: ',' packs have updates: ')+updates.map(p=>p.title).join(', ')+T('. Bạn có thể cập nhật hoặc để sau.','. Update now or continue working and return later.'),key);}
+  if(!seen){announced.add(key);try{localStorage.setItem('semeko-content-announced',key);}catch{}lastIds=updates.map(p=>p.id);showNotice('available',T('Có tài liệu mới','New content available'),count+T(' gói có thể tải hoặc cập nhật: ',' packs available to download or update: ')+updates.map(p=>p.title).join(', ')+T('. Bạn có thể chọn gói cần dùng hoặc để sau.','. Choose the packs you need or continue working and return later.'),key);}
  }
  function render(data){
   notify(data);const downloading=data.phase==='downloading';

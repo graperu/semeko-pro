@@ -9,7 +9,8 @@ app.setPath('userData',path.join(process.env.APPDATA,'sameko-dev-cpp'));app.setP
 app.whenReady().then(async()=>{
  require('../app/ipc/translation-handlers')();
  const bulk=require('../app/services/competitive/bulk-translation');
- const result=await bulk.start({hackerRank:true,concurrency:3});console.log(JSON.stringify({status:result.status,pid:process.pid,total:result.total}));
- const timer=setInterval(()=>{const info=bulk.info();console.log(JSON.stringify({status:info.status,hackerrank:info.platforms.hackerrank,error:info.error||''}));if(['complete','paused'].includes(info.status)){clearInterval(timer);app.quit();}},10000);
+ const all=process.argv.includes('--all');
+ const result=await bulk.start({hackerRank:true,onlyHackerRank:!all,allProviders:all,claudeLane:false,concurrency:6});console.log(JSON.stringify({status:result.status,pid:process.pid,total:result.total}));
+ const timer=setInterval(()=>{const info=bulk.info();console.log(JSON.stringify({status:info.status,platforms:info.platforms,error:info.error||''}));if(['complete','paused'].includes(info.status)){clearInterval(timer);app.quit();}},10000);
 }).catch(e=>{console.error(e.message);app.exit(1);});
 app.on('window-all-closed',()=>{});

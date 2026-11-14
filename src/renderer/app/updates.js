@@ -77,6 +77,7 @@ async function initAbout() {
 // Update state
 let updateDownloaded = false;
 let isPortableVersion = false;
+let manualUpdateDownload = false;
 let pendingUpdateVersion = null;
 
 // Detect portable version (non-blocking)
@@ -85,7 +86,7 @@ function detectPortableVersion() {
 
     window.electronAPI.getAppInfo()
         .then(info => {
-            isPortableVersion = info?.isPortable || false;
+            isPortableVersion = manualUpdateDownload || info?.isPortable || false;
         })
         .catch(() => { });
 }
@@ -141,7 +142,8 @@ function handleUpdateStatus(data) {
             break;
 
         case 'update-available':
-            if(updateData?.manualDownload)isPortableVersion=true;
+            manualUpdateDownload = updateData?.manualDownload === true;
+            if(manualUpdateDownload)isPortableVersion=true;
             updateDownloaded = false;
             pendingUpdateVersion = updateData?.version;
 
@@ -178,6 +180,10 @@ function handleUpdateStatus(data) {
             }
 
             if (progress) progress.style.display = 'none';
+            if (manualUpdateDownload) {
+                const headerProgress = document.getElementById('header-update-progress');
+                if (headerProgress) headerProgress.style.display = 'none';
+            }
             break;
 
         case 'update-not-available':

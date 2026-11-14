@@ -16,7 +16,7 @@ function progress(){const job=read();return Object.fromEntries(catalog.providers
  const done=items.filter(i=>i.status==='done'||recovered.has(i.id)).length,skipped=items.filter(i=>i.status==='skipped').length;
  const total=job.providers[provider]?.total||items.length;
  const failures=items.filter(i=>i.status==='failed'&&!recovered.has(i.id));
- const failedSource=failures.filter(i=>/Statement unavailable|Codeforces|platform returned|verification page/i.test(i.error||'')).length;
+ const failedSource=failures.filter(i=>i.failureStage==='source'||/Statement unavailable|Codeforces|platform returned|verification page/i.test(i.error||'')).length;
  return[provider,{done,total,percent:total?Number((100*done/total).toFixed(2)):0,failed:failures.length,failedSource,failedTranslation:failures.length-failedSource,retrying:items.filter(i=>i.status==='retry').length,skipped,available:total-skipped}];
 }));}
 function info(){const job=read();return{status:running||alive(job)?job.status:job.status==='running'?'paused':job.status,concurrency:(job.concurrency||1)+(job.claudeLane?Math.min(2,job.claudeLanes||1):0),providers:job.providers,total:job.items.length,done:job.items.filter(i=>i.status==='done').length,failed:job.items.filter(i=>i.status==='failed').length,skipped:job.items.filter(i=>i.status==='skipped').length,current:job.current,error:job.error,audit:job.audit||null};}
@@ -35,6 +35,8 @@ async function supervise(){
  }
 }
 async function start(options={}){
+ if(options.allProviders===true){const job=read();job.targetProviders=[...catalog.providers];job.continuous=true;if(options.claudeLane===false)job.claudeLane=false;write(job);}
+ if(options.onlyHackerRank===true){const job=read();job.targetProviders=['hackerrank'];job.priorityProviders=['hackerrank'];job.continuous=true;if(options.claudeLane===false)job.claudeLane=false;write(job);}
  if(options.hackerRank){const job=read();job.targetProviders=[...new Set([...(job.targetProviders?.length?job.targetProviders:['leetcode','codeforces']),'hackerrank'])];job.priorityProviders=['hackerrank'];for(const item of job.items)if(item.provider==='hackerrank'&&item.status==='failed'&&/unlock translation API key|Configure.*translation/i.test(item.error||'')){item.status='pending';delete item.error;delete item.retryAt;}if(Number.isInteger(options.concurrency)&&options.concurrency>=1&&options.concurrency<=98)job.targetConcurrency=options.concurrency;write(job);}
  if(running||alive(read()))return info();if(!require('./statement-translation').info().hasKey)throw Error('Configure translation first');
  const release=require('../../shared/process-lock')(path.join(app.getPath('userData'),'bulk-translation.owner'));if(!release)return info();
@@ -58,22 +60,24 @@ async function lane(worker){let processed=0;
  else {item=job.items.find(i=>i.status==='pending'&&allowed(job,i)&&job.priorityProviders?.includes(i.provider));if(!item&&job.priorityProviders?.some(p=>!job.providers[p]?.complete)){if(await indexOne())continue;}if(!item)item=job.items.find(i=>i.status==='pending'&&allowed(job,i));}
  if(!item){if(await indexOne())continue;return;}
  item.status='processing';item.translationModel=workerModels.get(worker.webContents.id)||require('./statement-translation').info().model;write(job);
- try{
+ let failureStage='source';try{
  const detail=await loadSource(()=>browser.detail(item.provider,item.id));
  if(detail.paid||!detail.html){item.status=detail.paid?'skipped':'failed';item.error=detail.paid?'Premium':detail.sourceError||'Statement unavailable';}
- else if(typeof detail.savedVietnamese==='string'&&detail.savedVietnamese.trim()&&!item.repairTranslation){item.status='done';delete item.error;delete item.retryAt;}
+ else if(typeof detail.savedVietnamese==='string'&&detail.savedVietnamese.trim()&&!item.repairTranslation){item.status='done';delete item.error;delete item.retryAt;delete item.failureStage;}
  else{
+ failureStage='translation';
  const article=await worker.webContents.executeJavaScript('(async()=>{const d='+JSON.stringify({html:detail.html,provider:item.provider,original:detail.savedOriginal,saved:item.repairTranslation?detail.savedVietnamese:null})+';const source=d.saved&&d.original?d.original:await ProblemBrowser.safeStatement(d.html,d.provider);const original=d.provider==="codeforces"?await StatementTranslation.normalizeEnglish(source):source;return{original,translated:d.saved&&original===source?await StatementTranslation.repairArticle(original,d.saved):await StatementTranslation.translateArticle(original),englishGenerated:original!==source};})()');
  const sourceHash=require('crypto').createHash('sha256').update(article.original).digest('hex');
- const dir=path.join(app.getPath('userData'),'translated-articles',item.provider);fs.mkdirSync(dir,{recursive:true});const storedDetail={...detail};delete storedDetail.savedVietnamese;delete storedDetail.savedOriginal;writeFileAtomicSync(path.join(dir,item.id+'.json'),JSON.stringify({detail:storedDetail,...article,sourceHash,translatedFromHash:sourceHash}),'utf8');item.status='done';delete item.error;delete item.retryAt;delete item.repairTranslation;
+ const dir=path.join(app.getPath('userData'),'translated-articles',item.provider);fs.mkdirSync(dir,{recursive:true});const storedDetail={...detail};delete storedDetail.savedVietnamese;delete storedDetail.savedOriginal;writeFileAtomicSync(path.join(dir,item.id+'.json'),JSON.stringify({detail:storedDetail,...article,sourceHash,translatedFromHash:sourceHash}),'utf8');item.status='done';delete item.error;delete item.retryAt;delete item.repairTranslation;delete item.failureStage;
  }
  }catch(e){item.status='failed';item.error=e.message;}
+ if(item.error)item.failureStage=failureStage;
  const transient=!!item.error&&/HTTP 429|HTTP 5\d\d|connect|valid JSON|does not match|protected formulas|Statement unavailable|verification page|Codeforces.*(?:verification|HTTP|statement content)/i.test(item.error);
  if(transient){item.attempts=(item.attempts||0)+1;if(item.attempts<3)item.status='retry';}
  if(transient&&item.status==='failed')item.retryAt=Date.now()+300000;
  job=store(item);
  if(item.status==='retry'){await wait(15000*item.attempts);item.status='pending';store(item);continue;}
- if(item.error&&(/HTTP (401|403)$/.test(item.error)||/unlock translation API key|Configure.*translation/i.test(item.error))){job=read();job.stop=true;job.error=item.error;write(job);return;}
+ if(item.error&&failureStage==='translation'&&(/HTTP (401|403)$/.test(item.error)||/unlock translation API key|Configure.*translation/i.test(item.error))){job=read();job.stop=true;job.error=item.error;write(job);return;}
  // Back off only this lane when the API is busy; other lanes can still finish.
  if(item.error&&/HTTP 429|HTTP 5\d\d|connect|invalid response/.test(item.error))await wait(60000);
  // Unavailable individual statements stay in the failed queue; they must not

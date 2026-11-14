@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.3] - 2026-11-14
+
+### Added
+
+- Published a signed, separately downloadable English/Vietnamese HackerRank pack covering all 1,069 challenges in the six indexed categories. Saved translations do not require a personal AI key to read.
+- Show available content packs to users who have not downloaded them, with a persistent badge and a choice to download or return later.
+- Download page displays GitHub installer download totals and the latest version's file downloads, excluding checksum files, drafts and prereleases.
+
+### Fixed
+
+- A problem source returning HTTP 403 no longer stops the whole translation queue as if the AI provider had rejected its credentials. Source failures retry independently; real AI authentication errors remain visible.
+- Windows app updates show the official download action instead of a download progress indicator stuck at zero.
+- Recovered malformed HackerRank translations and preserved official code, sample I/O, images and rendered formulas in the saved bilingual pairs.
+
+### Validation
+
+- Audited all 1,069 saved HackerRank pairs for identity, source hashes, unchanged protected content and recognizably untranslated prose.
+- Verified signed content bundles, download integrity, new/returning-user update notices and source-error isolation. Upstream verification can still prevent loading individual Codeforces statements; Premium LeetCode statements are not included.
+
 ## [1.4.2] - 2026-11-13
 
 ### Added

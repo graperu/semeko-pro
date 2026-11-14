@@ -16,6 +16,20 @@ fs.writeFileSync(path.join(profile,'bulk-translation.json'),JSON.stringify({item
 await page.evaluate(()=>electronAPI.translationBulk('start'));
 for(let i=0;i<100;i++){status=await page.evaluate(()=>electronAPI.translationBulk('info'));if(status.data.status==='complete')break;await new Promise(r=>setTimeout(r,100));}
 assert.strictEqual(status.data.status,'complete',JSON.stringify(status));assert.strictEqual(status.data.done,2);assert.strictEqual(status.data.failed,3);
+// A source site's 403 must not be treated as a translation-provider credential failure.
+await app.evaluate(()=>{const browser=process.mainModule.require('./app/services/competitive/problem-browser'),detail=browser.detail;browser.detail=async(provider,id)=>{if(id==='source-returned-403')return{provider,id,html:'',sourceError:'Codeforces source returned HTTP 403'};if(id==='source-threw-403')throw Error('Codeforces source returned HTTP 403');return detail(provider,id);};});
+fs.writeFileSync(path.join(profile,'bulk-translation.json'),JSON.stringify({items:[...['source-returned-403','source-threw-403'].map(id=>({provider:'codeforces',id,status:'pending',attempts:2})),{provider:'leetcode',id:'after-http-403',status:'pending'}],providers:{leetcode:{complete:true},codeforces:{complete:true},hackerrank:{complete:true}},status:'idle'}));
+await page.evaluate(()=>electronAPI.translationBulk('start'));
+for(let i=0;i<100;i++){status=await page.evaluate(()=>electronAPI.translationBulk('info'));if(status.data.status!=='running')break;await new Promise(r=>setTimeout(r,100));}
+assert.strictEqual(status.data.status,'complete',JSON.stringify(status));assert.strictEqual(status.data.done,1);assert.strictEqual(status.data.platforms.codeforces.failedSource,2);assert.strictEqual(status.data.error,'');
+const sourceFailures=JSON.parse(fs.readFileSync(path.join(profile,'bulk-translation.json'),'utf8')).items.filter(i=>i.status==='failed');assert(sourceFailures.every(i=>i.failureStage==='source'&&i.retryAt>Date.now()));
+await app.evaluate(()=>{process.mainModule.require('./app/services/competitive/statement-translation').translate=async()=>{throw Error('Translation service returned HTTP 403');};});
+fs.writeFileSync(path.join(profile,'bulk-translation.json'),JSON.stringify({items:[{provider:'leetcode',id:'provider-http-403',status:'pending'}],providers:{leetcode:{complete:true},codeforces:{complete:true},hackerrank:{complete:true}},status:'idle'}));
+await page.evaluate(()=>electronAPI.translationBulk('start'));
+for(let i=0;i<100;i++){status=await page.evaluate(()=>electronAPI.translationBulk('info'));if(status.data.status!=='running')break;await new Promise(r=>setTimeout(r,100));}
+assert.strictEqual(status.data.status,'paused');assert.match(status.data.error,/Translation service returned HTTP 403/);
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(profile,'bulk-translation.json'),'utf8')).items[0].failureStage,'translation');
+await app.evaluate(()=>{process.mainModule.require('./app/services/competitive/statement-translation').translate=async texts=>{globalThis.bulkPeak=Math.max(globalThis.bulkPeak,++globalThis.bulkActive);await new Promise(r=>setTimeout(r,800));globalThis.bulkActive--;return texts.map(t=>'VN '+t);};});
 await app.evaluate(()=>{globalThis.bulkPeak=0;globalThis.claimedIds=[];const browser=process.mainModule.require('./app/services/competitive/problem-browser'),detail=browser.detail;browser.detail=async(provider,id)=>{globalThis.claimedIds.push(provider+':'+id);return detail(provider,id);};});
 fs.writeFileSync(path.join(profile,'bulk-translation.json'),JSON.stringify({items:[...Array.from({length:100},(_,i)=>({provider:'leetcode',id:'parallel-100-'+i,status:'pending'})),...Array.from({length:5},(_,i)=>({provider:'leetcode',id:'parallel-100-'+i,status:'pending'}))],targetConcurrency:98,claudeLane:true,claudeLanes:2,providers:{leetcode:{complete:true},codeforces:{complete:true},hackerrank:{complete:true}},status:'idle'}));
 await page.evaluate(()=>electronAPI.translationBulk('start'));

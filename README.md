@@ -12,12 +12,18 @@ This private repository contains the source; the public downloads repository con
 
 ## Features
 
-Development changes after 1.4.0 (not released yet): Vietnamese/English interface selection,
-accent-insensitive Settings search, detected Python interpreter choices, compiler-supported
-Java/C# version dropdowns, and a separate C language standard selector. The public installer
-remains 1.4.0 until the next release is explicitly approved.
+Semeko 1.4.3 includes Vietnamese/English interface selection, accent-insensitive
+Settings search, detected Python interpreter choices, Java/C# version dropdowns,
+and a separate C language standard selector. Language runtimes are included in
+the Windows installer.
 
-The 1.4.1 candidate also adds verified platform login, a dedicated official-submit
+The separately downloadable HackerRank content pack contains 1,069 saved bilingual
+statements from the six indexed categories. Open **Settings → About → Manage and
+update content**, select HackerRank, then download and reopen the app. Reading
+saved translations does not require an AI key. App updates are announced in the
+app; Windows users follow the official release link and run the installer.
+
+The app also includes verified platform login, a dedicated official-submit
 action and server-result tracking. This integration has passed simulated provider/UI
 checks; real authentication/submission still needs user verification. Local sample
 AC is separate from official Accepted. See [internal validation](docs/development/RELEASE-1.4.1-VALIDATION.md).
